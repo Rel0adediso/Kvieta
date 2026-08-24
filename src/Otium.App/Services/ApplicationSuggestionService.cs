@@ -24,7 +24,7 @@ public static class ApplicationSuggestionService
     public static IReadOnlyList<ApplicationSuggestion> GetSuggestions(
         UsageLedger? ledger,
         IEnumerable<string> excludedPaths,
-        int maximum = 6)
+        int maximum = 12)
     {
         HashSet<string> excluded = excludedPaths
             .Where(path => !string.IsNullOrWhiteSpace(path))
