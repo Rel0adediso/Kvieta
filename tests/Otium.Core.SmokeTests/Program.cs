@@ -301,6 +301,11 @@ Assert(awarenessModeEngine.GetSnapshot(blockedTime.AddMinutes(1)).State == Sessi
     "Farkındalık modu günlük limit uyguladı.");
 Assert(!new ApplicationRuleEnforcer().Enforce(loadedAwarenessSettings, awarenessModeLedger, TimeSpan.FromSeconds(1)),
     "Farkındalık modu eski uygulama engellerini uyguladı.");
+string silentAwarenessUsagePath = Path.Combine(testDirectory, "silent-awareness-usage.json");
+CafeViewModel silentAwarenessViewModel = new(awarenessSettingsStore, new JsonUsageStore(silentAwarenessUsagePath));
+await silentAwarenessViewModel.InitializeAsync();
+Assert(!silentAwarenessViewModel.ShouldShowSessionSurfaces,
+    "Farkındalık modunda sayaç veya oturum yüzeyi görünür bırakıldı.");
 string awarenessUsagePath = Path.Combine(testDirectory, "awareness-mode-usage.json");
 await new JsonUsageStore(awarenessUsagePath).SaveAsync(new UsageLedger
 {

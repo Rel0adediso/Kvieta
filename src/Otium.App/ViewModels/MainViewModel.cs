@@ -141,6 +141,7 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsProtectedMode));
                 OnPropertyChanged(nameof(IsAwarenessMode));
                 OnPropertyChanged(nameof(HasRestrictions));
+                OnPropertyChanged(nameof(TodayDescriptionText));
                 if (value == ControlMode.Awareness && SelectedPageIndex is 1 or 2)
                 {
                     SelectedPageIndex = 0;
@@ -154,6 +155,9 @@ public sealed class MainViewModel : ObservableObject
     public bool IsProtectedMode => SelectedControlMode == ControlMode.Protected;
     public bool IsAwarenessMode => SelectedControlMode == ControlMode.Awareness;
     public bool HasRestrictions => SelectedControlMode != ControlMode.Awareness;
+    public string TodayDescriptionText => IsAwarenessMode
+        ? L("Bugünkü gerçek uygulama kullanımını tek bakışta gör.", "See today's actual application usage at a glance.")
+        : LocalizationService.Get("TodayDescription");
 
     public string ChangeDelay
     {
@@ -804,6 +808,7 @@ public sealed class MainViewModel : ObservableObject
 
         OnPropertyChanged(nameof(AdminPinActionText));
         OnPropertyChanged(nameof(ControlModeText));
+        OnPropertyChanged(nameof(TodayDescriptionText));
         NotifyPendingChange();
         if (_lastUsageLedger is not null)
         {

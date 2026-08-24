@@ -682,7 +682,7 @@ public partial class MainWindow : Window
     {
         _trayMenuWindow?.Close();
 
-        TrayMenuWindow menu = new();
+        TrayMenuWindow menu = new(showSessionScreen: _viewModel.HasRestrictions);
         _trayMenuWindow = menu;
         menu.ControlCenterRequested += (_, _) => RestoreControlCenter();
         menu.SessionScreenRequested += (_, _) =>

@@ -6,9 +6,10 @@ namespace Otium.App;
 
 public partial class TrayMenuWindow : Window
 {
-    public TrayMenuWindow()
+    public TrayMenuWindow(bool showSessionScreen = true)
     {
         InitializeComponent();
+        SessionScreenButton.Visibility = showSessionScreen ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public event EventHandler? ControlCenterRequested;

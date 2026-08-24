@@ -47,7 +47,7 @@
                     <TextBlock Grid.Column="2" Text="›" Foreground="{DynamicResource FaintTextBrush}" FontSize="17" VerticalAlignment="Center" />
                 </Grid>
             </Button>
-            <Button Style="{StaticResource TrayActionStyle}" Click="OpenSessionScreen_Click">
+            <Button x:Name="SessionScreenButton" Style="{StaticResource TrayActionStyle}" Click="OpenSessionScreen_Click">
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="25" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBlock Text="◷" Foreground="{DynamicResource PrimaryBrush}" FontSize="15" VerticalAlignment="Center" TextAlignment="Center" />
                     <TextBlock Grid.Column="1" Text="{DynamicResource SessionScreen}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" />

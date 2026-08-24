@@ -244,6 +244,14 @@ public partial class CafeWindow : Window
             return;
         }
 
+        if (!_viewModel.ShouldShowSessionSurfaces)
+        {
+            _forceSurfaceVisible = false;
+            _widget?.Hide();
+            Hide();
+            return;
+        }
+
         if (_viewModel.IsActive && !_forceSurfaceVisible)
         {
             _widget ??= CreateWidget();
@@ -268,6 +276,12 @@ public partial class CafeWindow : Window
 
     public void ShowSessionSurface()
     {
+        if (!_viewModel.ShouldShowSessionSurfaces)
+        {
+            Hide();
+            return;
+        }
+
         _forceSurfaceVisible = true;
         _widget?.Hide();
         if (!IsVisible)
