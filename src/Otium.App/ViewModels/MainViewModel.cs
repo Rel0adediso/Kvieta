@@ -22,6 +22,7 @@ public sealed class MainViewModel : ObservableObject
     private string _languageMode = "Türkçe";
     private bool _startWithWindows;
     private bool _awarenessTrackingEnabled;
+    private bool _strictPersonalMode;
     private ControlMode _controlMode = ControlMode.Protected;
     private string _changeDelay = "1 saat";
     private bool _isSidebarExpanded = true;
@@ -45,6 +46,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<string> ChangeDelayOptions { get; } = [];
     public ObservableCollection<UsageHistoryDayRow> HistoryDays { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryApplications { get; } = [];
+    public ObservableCollection<AppUsageHistoryRow> HistoryAllApplications { get; } = [];
     public ObservableCollection<UsageHistoryEventRow> HistoryEvents { get; } = [];
 
     public int SelectedPageIndex
@@ -105,6 +107,12 @@ public sealed class MainViewModel : ObservableObject
     {
         get => _awarenessTrackingEnabled;
         set => SetProperty(ref _awarenessTrackingEnabled, value);
+    }
+
+    public bool StrictPersonalMode
+    {
+        get => _strictPersonalMode;
+        set => SetProperty(ref _strictPersonalMode, value);
     }
 
     public ControlMode SelectedControlMode
@@ -211,6 +219,7 @@ public sealed class MainViewModel : ObservableObject
             LanguageMode = _settings.Language == LanguagePreference.English ? "English" : "Türkçe";
             StartWithWindows = _settings.StartWithWindows;
             AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
+            StrictPersonalMode = _settings.StrictPersonalMode;
             SelectedControlMode = _settings.Mode;
             ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
             RefreshLocalizedCollections(_settings.LimitAction, _settings.Theme);
@@ -253,6 +262,7 @@ public sealed class MainViewModel : ObservableObject
         _settings = await _settingsStore.LoadAsync();
         StartWithWindows = _settings.StartWithWindows;
         AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
+        StrictPersonalMode = _settings.StrictPersonalMode;
         SelectedControlMode = _settings.Mode;
         ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
         LoadPolicyRows(_settings);
@@ -289,7 +299,7 @@ public sealed class MainViewModel : ObservableObject
 
             ControlSettings desired = new()
             {
-                SchemaVersion = 3,
+                SchemaVersion = 4,
                 SetupCompleted = true,
                 Mode = SelectedControlMode,
                 DeviceName = string.IsNullOrWhiteSpace(DeviceName) ? LocalizationService.Get("DefaultDeviceName") : DeviceName.Trim(),
@@ -301,6 +311,7 @@ public sealed class MainViewModel : ObservableObject
                 AwarenessTrackingEnabled = AwarenessTrackingEnabled,
                 UsageRetentionDays = _settings.UsageRetentionDays,
                 PersonalChangeDelayMinutes = FromDisplayDelay(ChangeDelay),
+                StrictPersonalMode = StrictPersonalMode,
                 AdminPin = _settings.AdminPin,
                 WarningMinutes = [15, 5, 1],
                 Schedule = schedule,
@@ -314,6 +325,7 @@ public sealed class MainViewModel : ObservableObject
                 ControlSettings immediate = CloneSettings(desired);
                 immediate.StartWithWindows = _settings.StartWithWindows;
                 immediate.PersonalChangeDelayMinutes = _settings.PersonalChangeDelayMinutes;
+                immediate.StrictPersonalMode = _settings.StrictPersonalMode || desired.StrictPersonalMode;
                 immediate.Schedule = CloneSchedule(_settings.Schedule);
                 immediate.TemporaryAllowances = CloneTemporaryAllowances(_settings.TemporaryAllowances);
                 immediate.AppRules = CloneAppRules(_settings.AppRules);
@@ -549,22 +561,31 @@ public sealed class MainViewModel : ObservableObject
             .GroupBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
             .Select(group => new AppUsageHistoryRow { Name = group.Key, UsedSeconds = group.Sum(item => item.UsedSeconds), RelativePercent = 0 })
             .OrderByDescending(item => item.UsedSeconds)
-            .Take(8)
             .ToList();
         long maximumApp = Math.Max(1, applications.Select(item => item.UsedSeconds).DefaultIfEmpty(0).Max());
-        HistoryApplications.Clear();
-        foreach (AppUsageHistoryRow application in applications)
-        {
-            HistoryApplications.Add(new AppUsageHistoryRow
+        List<AppUsageHistoryRow> rankedApplications = applications
+            .Select((application, index) => new AppUsageHistoryRow
             {
+                Rank = index + 1,
                 Name = application.Name,
                 UsedSeconds = application.UsedSeconds,
                 RelativePercent = Math.Clamp(application.UsedSeconds * 100d / maximumApp, 0, 100)
-            });
+            })
+            .ToList();
+        HistoryAllApplications.Clear();
+        foreach (AppUsageHistoryRow application in rankedApplications)
+        {
+            HistoryAllApplications.Add(application);
+        }
+
+        HistoryApplications.Clear();
+        foreach (AppUsageHistoryRow application in rankedApplications.Take(3))
+        {
+            HistoryApplications.Add(application);
         }
 
         HistoryEvents.Clear();
-        foreach (UsageEventRecord historyEvent in ledger.RecentEvents.OrderByDescending(item => item.OccurredAtUtc).Take(8))
+        foreach (UsageEventRecord historyEvent in ledger.RecentEvents.OrderByDescending(item => item.OccurredAtUtc).Take(5))
         {
             HistoryEvents.Add(new UsageHistoryEventRow { Event = historyEvent });
         }
@@ -572,7 +593,7 @@ public sealed class MainViewModel : ObservableObject
         long weekSeconds = records.Sum(item => item.UsedSeconds);
         HistoryWeekTotalText = UsageHistoryFormatting.FormatDuration(weekSeconds);
         HistoryDailyAverageText = UsageHistoryFormatting.FormatDuration(weekSeconds / 7);
-        HistoryMostUsedAppText = applications.FirstOrDefault()?.Name ?? "—";
+        HistoryMostUsedAppText = rankedApplications.FirstOrDefault()?.Name ?? "—";
         OnPropertyChanged(nameof(HistoryWeekTotalText));
         OnPropertyChanged(nameof(HistoryDailyAverageText));
         OnPropertyChanged(nameof(HistoryMostUsedAppText));
@@ -779,6 +800,11 @@ public sealed class MainViewModel : ObservableObject
             details.Add($"• {LocalizationService.Get("StartWithWindows")} · {(pending.TargetSettings.StartWithWindows ? LocalizationService.Get("Enabled") : L("Kapalı", "Off"))}");
         }
 
+        if (_settings.StrictPersonalMode != pending.TargetSettings.StrictPersonalMode)
+        {
+            details.Add($"• {LocalizationService.Get("StrictPersonalMode")} · {(pending.TargetSettings.StrictPersonalMode ? LocalizationService.Get("Enabled") : L("Kapatılacak", "Will be disabled"))}");
+        }
+
         Dictionary<string, AppRule> currentRules = _settings.AppRules.ToDictionary(rule => rule.ExecutablePath, StringComparer.OrdinalIgnoreCase);
         foreach (AppRule targetRule in pending.TargetSettings.AppRules)
         {
@@ -912,6 +938,7 @@ public sealed class MainViewModel : ObservableObject
         AwarenessTrackingEnabled = settings.AwarenessTrackingEnabled,
         UsageRetentionDays = settings.UsageRetentionDays,
         PersonalChangeDelayMinutes = settings.PersonalChangeDelayMinutes,
+        StrictPersonalMode = settings.StrictPersonalMode,
         AdminPin = settings.AdminPin,
         WarningMinutes = [.. settings.WarningMinutes],
         Schedule = CloneSchedule(settings.Schedule),

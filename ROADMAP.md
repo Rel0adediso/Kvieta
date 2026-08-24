@@ -54,6 +54,8 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 - Yalnız güvenli uygulama adı ve süre saklanıyor; pencere başlığı, belge, yazılan metin ve site bilgisi kaydedilmiyor.
 - Şema 3 migration'ı eski ayarları ve kullanım geçmişini koruyor.
 - Ritim ekranındaki uygulama özeti yalnız farkındalık verisini kullanıyor; kural motoru verisiyle karıştırılmıyor.
+- İsteğe bağlı sıkı kişisel mod, anında öz-ek süreyi kapatıyor; modu gevşetmek bekleme süresine tabi.
+- Uygulama özeti ilk üç kayıtla sınırlı; tüm sıralama ayrı ayrıntı panelinde açılıyor ve hareket listesi sabit uzunlukta tutuluyor.
 
 Sıradaki v0.16 dilimi: başlangıç ritmi, haftalık karşılaştırmalar, küçük azaltma hedefleri ve gizlilik/veri sahipliği merkezi.
 

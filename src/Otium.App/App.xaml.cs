@@ -113,7 +113,7 @@ public partial class App : System.Windows.Application
                 settings.AdminPin = AdminPinService.Create(setup.ResultPin);
             }
 
-            settings.SchemaVersion = 3;
+            settings.SchemaVersion = 4;
             settings.SetupCompleted = true;
             await settingsStore.SaveAsync(settings);
         }

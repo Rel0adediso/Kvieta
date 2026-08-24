@@ -106,6 +106,7 @@ public partial class CafeWindow : Window
         }
 
         _limitActionHandled = true;
+        SystemMediaController.PausePlayback();
         await _viewModel.SaveAsync();
         switch (_viewModel.LimitAction)
         {

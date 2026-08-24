@@ -20,10 +20,12 @@ public sealed class UsageHistoryDayRow
 
 public sealed class AppUsageHistoryRow
 {
+    public int Rank { get; init; }
     public required string Name { get; init; }
     public long UsedSeconds { get; init; }
     public double RelativePercent { get; init; }
     public string UsedText => UsageHistoryFormatting.FormatDuration(UsedSeconds);
+    public string RankText => $"#{Rank}";
 }
 
 public sealed class UsageHistoryEventRow

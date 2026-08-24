@@ -227,7 +227,7 @@ Assert(loadedLedger.UsedSeconds == ledger.UsedSeconds, "Kullanım kaydı geri y�
 string legacyPath = Path.Combine(testDirectory, "legacy-settings.json");
 await File.WriteAllTextAsync(legacyPath, "{\"SchemaVersion\":1,\"DeviceName\":\"Eski Kurulum\"}");
 ControlSettings migratedSettings = await new JsonSettingsStore(legacyPath).LoadAsync();
-Assert(migratedSettings.SchemaVersion == 3, "Eski ayar şeması yükseltilemedi.");
+Assert(migratedSettings.SchemaVersion == 4, "Eski ayar şeması yükseltilemedi.");
 Assert(!migratedSettings.AwarenessTrackingEnabled && migratedSettings.UsageRetentionDays == 90, "Migration açık rıza gerektiren ölçümü kendiliğinden etkinleştirdi.");
 Assert(migratedSettings.SetupCompleted, "Mevcut kullanıcıya ilk kurulum ekranı yeniden gösterilmemeli.");
 Assert(migratedSettings.Mode == ControlMode.Protected, "Mevcut kullanıcı korumalı kullanıma taşınmalı.");
@@ -311,6 +311,22 @@ await personalViewModel.InitializeAsync();
 personalViewModel.AwarenessTrackingEnabled = true;
 Assert(await personalViewModel.SaveAsync(), "Ritim farkındalığı tercihi kaydedilemedi.");
 Assert((await personalSettingsStore.LoadAsync()).AwarenessTrackingEnabled, "Ritim farkındalığı tercihi kalıcı olmadı.");
+await new JsonUsageStore(personalUsagePath).SaveAsync(new UsageLedger
+{
+    LocalDay = DateOnly.FromDateTime(DateTime.Today),
+    AwarenessUsedSeconds = 150,
+    ForegroundAppUsedSeconds = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["one.exe"] = 50,
+        ["two.exe"] = 40,
+        ["three.exe"] = 30,
+        ["four.exe"] = 20,
+        ["five.exe"] = 10
+    }
+});
+await personalViewModel.ReloadUsageAsync();
+Assert(personalViewModel.HistoryApplications.Count == 3 && personalViewModel.HistoryAllApplications.Count == 5, "Uygulama özetindeki üç kayıt sınırı uygulanmadı.");
+Assert(personalViewModel.HistoryAllApplications.Select(item => item.Rank).SequenceEqual([1, 2, 3, 4, 5]), "Uygulama ayrıntıları kullanım sırasına göre numaralanmadı.");
 personalViewModel.ScheduleRows.Single(day => day.Day == DayOfWeek.Monday).DailyLimitMinutes = 90;
 Assert(await personalViewModel.SaveAsync(), $"Kişisel mod değişikliği kaydedilemedi: {personalViewModel.StatusMessage}");
 ControlSettings queuedPersonalSettings = await personalSettingsStore.LoadAsync();
@@ -320,6 +336,27 @@ Assert(queuedPersonalSettings.PendingChange?.TargetSettings.Schedule.Single(day 
 ControlSettings shorterDelay = CloneForTest(queuedPersonalSettings);
 shorterDelay.PersonalChangeDelayMinutes = 15;
 Assert(SettingsPolicyComparer.HasRelaxation(queuedPersonalSettings, shorterDelay), "Bekleme süresini azaltma gevşetme olarak algılanmadı.");
+
+ControlSettings strictPersonal = CloneForTest(queuedPersonalSettings);
+strictPersonal.StrictPersonalMode = true;
+ControlSettings relaxedPersonal = CloneForTest(strictPersonal);
+relaxedPersonal.StrictPersonalMode = false;
+Assert(SettingsPolicyComparer.HasRelaxation(strictPersonal, relaxedPersonal), "Sıkı kişisel modu kapatma gevşetme olarak algılanmadı.");
+
+string strictSettingsPath = Path.Combine(testDirectory, "strict-personal-settings.json");
+string strictUsagePath = Path.Combine(testDirectory, "strict-personal-usage.json");
+ControlSettings strictSessionSettings = new() { SetupCompleted = true, Mode = ControlMode.Personal, StrictPersonalMode = true };
+DaySchedule strictToday = strictSessionSettings.Schedule.Single(day => day.Day == DateTime.Today.DayOfWeek);
+strictToday.AllowedFrom = TimeOnly.MinValue;
+strictToday.AllowedUntil = TimeOnly.MinValue;
+strictToday.DailyLimitMinutes = 1;
+await new JsonSettingsStore(strictSettingsPath).SaveAsync(strictSessionSettings);
+await new JsonUsageStore(strictUsagePath).SaveAsync(new UsageLedger { LocalDay = DateOnly.FromDateTime(DateTime.Today), UsedSeconds = 60 });
+CafeViewModel strictCafe = new(new JsonSettingsStore(strictSettingsPath), new JsonUsageStore(strictUsagePath));
+await strictCafe.InitializeAsync();
+Assert(strictCafe.State == SessionState.TimeExpired && !strictCafe.CanRequestExtraTime, "Sıkı kişisel modda ek süre isteği kapatılmadı.");
+await strictCafe.AddBonusMinutesAsync(30);
+Assert((await new JsonUsageStore(strictUsagePath).LoadAsync()).BonusMinutes == 0, "Sıkı kişisel mod ek süreyi model katmanında reddetmedi.");
 
 await personalViewModel.SetControlModeAsync(ControlMode.Protected, "4826");
 ControlSettings queuedModeSettings = await personalSettingsStore.LoadAsync();
@@ -449,6 +486,7 @@ static ControlSettings CloneForTest(ControlSettings settings) => new()
     Language = settings.Language,
     StartWithWindows = settings.StartWithWindows,
     PersonalChangeDelayMinutes = settings.PersonalChangeDelayMinutes,
+    StrictPersonalMode = settings.StrictPersonalMode,
     AdminPin = settings.AdminPin,
     WarningMinutes = [.. settings.WarningMinutes],
     Schedule = settings.Schedule.Select(day => new DaySchedule

@@ -123,6 +123,19 @@ public partial class MainWindow : Window
             : LocalizationService.Get("ExpandMenu");
     }
 
+    private void HistoryApplications_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (_viewModel.HistoryAllApplications.Count == 0)
+        {
+            return;
+        }
+
+        new ApplicationUsageDetailsWindow(_viewModel.HistoryAllApplications)
+        {
+            Owner = this
+        }.ShowDialog();
+    }
+
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ClickCount == 2)

@@ -35,7 +35,8 @@ public sealed class CafeViewModel : ObservableObject
     public bool CanStartOrResume => State is SessionState.Ready or SessionState.Paused;
     public bool CanEndSession => State == SessionState.Paused;
     public bool IsBlocked => State is SessionState.TimeExpired or SessionState.OutsideSchedule;
-    public bool CanRequestExtraTime => State == SessionState.TimeExpired;
+    public bool CanRequestExtraTime => State == SessionState.TimeExpired &&
+        (_settings?.Mode != ControlMode.Personal || _settings.StrictPersonalMode == false);
     public bool IsOutsideSchedule => State == SessionState.OutsideSchedule;
     public bool IsClockRollbackDetected => _engine?.Ledger.ClockRollbackUntilUtc is { } until && until > DateTimeOffset.UtcNow;
     public LimitReachedAction LimitAction => _settings?.LimitAction ?? LimitReachedAction.ShowBlockScreen;
@@ -219,7 +220,7 @@ public sealed class CafeViewModel : ObservableObject
 
     public async Task AddBonusMinutesAsync(int minutes)
     {
-        if (_engine is null)
+        if (_engine is null || (_settings?.Mode == ControlMode.Personal && _settings.StrictPersonalMode))
         {
             return;
         }
@@ -241,7 +242,7 @@ public sealed class CafeViewModel : ObservableObject
         {
             ControlSettings target = pending.TargetSettings;
             target.PendingChange = null;
-            target.SchemaVersion = 3;
+            target.SchemaVersion = 4;
             target.SetupCompleted = true;
             await _settingsStore.SaveAsync(target);
             _settings = target;

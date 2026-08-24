@@ -19,6 +19,11 @@ public static class SettingsPolicyComparer
             return true;
         }
 
+        if (current.StrictPersonalMode && !desired.StrictPersonalMode)
+        {
+            return true;
+        }
+
         Dictionary<DayOfWeek, DaySchedule> currentDays = current.Schedule.ToDictionary(day => day.Day);
         foreach (DaySchedule desiredDay in desired.Schedule)
         {
