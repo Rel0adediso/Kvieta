@@ -179,12 +179,13 @@ public partial class CafeWindow : Window
 
     private void PowerMenu_Click(object sender, RoutedEventArgs e)
     {
-        MotionService.ShowOverlay(PowerOverlay, PowerCard);
+        PowerOverlay.Visibility = Visibility.Visible;
+        MotionService.Enter(PowerCard, 0, 8, 180);
     }
 
-    private async void ClosePowerMenu_Click(object sender, RoutedEventArgs e)
+    private void ClosePowerMenu_Click(object sender, RoutedEventArgs e)
     {
-        await MotionService.HideOverlayAsync(PowerOverlay, PowerCard);
+        PowerOverlay.Visibility = Visibility.Collapsed;
     }
 
     private async void Sleep_Click(object sender, RoutedEventArgs e)

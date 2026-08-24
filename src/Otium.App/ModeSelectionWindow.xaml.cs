@@ -1,6 +1,5 @@
 using System.Windows;
 using System.Windows.Input;
-using Otium.App.Services;
 using Otium.Core.Models;
 
 namespace Otium.App;
@@ -35,8 +34,6 @@ public partial class ModeSelectionWindow : Window
         MinHeight = Math.Min(MinHeight, MaxHeight);
         Width = Math.Min(Width, MaxWidth);
         Height = Math.Min(Height, MaxHeight);
-        MotionService.RevealWindow(ModeSurface);
-        MotionService.RevealElements([AwarenessButton, PersonalButton, ProtectedButton], 80);
     }
 
     private void Awareness_Click(object sender, RoutedEventArgs e)

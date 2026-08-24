@@ -82,11 +82,6 @@ public partial class MainWindow : Window
         ResetSettingsScrollPosition();
         _overviewTimer.Start();
         _isInitializing = false;
-        MotionService.RevealWindow(RootFrame);
-        if (MainTabs.SelectedContent is FrameworkElement initialPage)
-        {
-            MotionService.RevealPage(initialPage, 1);
-        }
     }
 
     private async void AwarenessTracking_Changed(object sender, RoutedEventArgs e)
@@ -111,7 +106,7 @@ public partial class MainWindow : Window
     {
         if (IsLoaded && !_isInitializing)
         {
-            await MotionService.CrossfadeThemeAsync(
+            await MotionService.FadeThemeAsync(
                 RootFrame,
                 () => ((App)System.Windows.Application.Current).ThemeService.SetPreference(
                     MainViewModel.FromDisplayTheme(_viewModel.ThemeMode)));
@@ -120,7 +115,7 @@ public partial class MainWindow : Window
 
     private void MainTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!IsLoaded || _isInitializing || e.Source != MainTabs)
+        if (!IsLoaded || e.Source != MainTabs)
         {
             return;
         }
@@ -132,7 +127,7 @@ public partial class MainWindow : Window
         {
             if (MainTabs.SelectedContent is FrameworkElement selectedPage)
             {
-                MotionService.RevealPage(selectedPage, direction);
+                MotionService.Enter(selectedPage, direction * 10, 0);
             }
 
             if (nextIndex == 3)
@@ -183,20 +178,15 @@ public partial class MainWindow : Window
 
         _sidebarAnimationRunning = true;
         bool expand = !_viewModel.IsSidebarExpanded;
-        List<FrameworkElement> motionElements = GetSidebarMotionElements();
         try
         {
             if (expand)
             {
-                MotionService.PrepareSidebarReveal(motionElements);
                 _viewModel.IsSidebarExpanded = true;
                 UpdateSidebarVisuals(updateWidth: false);
-                UpdateLayout();
             }
 
-            Task columnAnimation = MotionService.AnimateColumnWidthAsync(SidebarColumn, expand ? 184 : 64);
-            Task labelAnimation = MotionService.AnimateSidebarElementsAsync(motionElements, expand);
-            await Task.WhenAll(columnAnimation, labelAnimation);
+            await MotionService.AnimateColumnWidthAsync(SidebarColumn, expand ? 184 : 64);
             if (!expand)
             {
                 _viewModel.IsSidebarExpanded = false;
@@ -208,23 +198,6 @@ public partial class MainWindow : Window
         {
             _sidebarAnimationRunning = false;
         }
-    }
-
-    private List<FrameworkElement> GetSidebarMotionElements()
-    {
-        List<FrameworkElement> elements = [SidebarBrand, SidebarFooterText];
-        foreach (object item in SidebarNavigation.Items)
-        {
-            ListBoxItem? navigationItem = item as ListBoxItem ??
-                SidebarNavigation.ItemContainerGenerator.ContainerFromItem(item) as ListBoxItem;
-            if (navigationItem?.Content is StackPanel stack &&
-                stack.Children.OfType<TextBlock>().Skip(1).FirstOrDefault() is { } label)
-            {
-                elements.Add(label);
-            }
-        }
-
-        return elements;
     }
 
     private void UpdateSidebarVisuals(bool updateWidth = true)
@@ -446,7 +419,7 @@ public partial class MainWindow : Window
             await _backgroundSessionWindow.ReloadSettingsAsync();
         }
 
-        _ = MotionService.ConfirmAsync(SaveButton);
+        MotionService.Pulse(SaveButton);
     }
 
     private void Animations_Changed(object sender, RoutedEventArgs e)
@@ -457,6 +430,10 @@ public partial class MainWindow : Window
         }
 
         MotionService.SetUserPreference(_viewModel.AnimationsEnabled);
+        if (_viewModel.AnimationsEnabled && sender is FrameworkElement toggle)
+        {
+            MotionService.Pulse(toggle);
+        }
     }
 
     private void ReductionGoal_SelectionChanged(object sender, SelectionChangedEventArgs e)
