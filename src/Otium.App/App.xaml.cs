@@ -20,8 +20,15 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        if (e.Args.Any(argument => string.Equals(argument, "--windows-admin-verification", StringComparison.OrdinalIgnoreCase)))
+        {
+            await HandleWindowsAdministratorVerificationAsync(e.Args);
+            return;
+        }
+
         if (e.Args.Any(argument => string.Equals(argument, "--uninstall", StringComparison.OrdinalIgnoreCase)))
         {
+            _themeService.Start(this);
             await HandleUninstallRequestAsync();
             Shutdown();
             return;
@@ -73,9 +80,15 @@ public partial class App : System.Windows.Application
         {
             settings = await settingsStore.LoadAsync();
         }
-        catch
+        catch (Exception exception)
         {
-            settings = new ControlSettings();
+            System.Windows.MessageBox.Show(
+                $"Otium ayarları ve son sağlam kopya okunamadı. Güvenlik için başlangıç durduruldu.\n\nOtium settings and the last-known-good copy could not be read. Startup was stopped for safety.\n\n{exception.Message}",
+                "Otium · Recovery required",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown();
+            return;
         }
 
         LocalizationService.SetLanguage(this, settings.Language);
@@ -132,7 +145,7 @@ public partial class App : System.Windows.Application
                 settings.AdminPin = AdminPinService.Create(setup.ResultPin);
             }
 
-            settings.SchemaVersion = 6;
+            settings.SchemaVersion = 8;
             settings.SetupCompleted = true;
             await settingsStore.SaveAsync(settings);
         }
@@ -176,7 +189,8 @@ public partial class App : System.Windows.Application
         if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                pin => AdminPinService.Verify(pin, settings.AdminPin));
+                pin => AdminPinService.Verify(pin, settings.AdminPin),
+                owner => RunRecoveryPinResetAsync(owner, settingsStore, settings, protectedPolicyAvailable));
             verification.ShowInTaskbar = true;
             verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             if (verification.ShowDialog() != true)
@@ -256,7 +270,14 @@ public partial class App : System.Windows.Application
         if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                pin => AdminPinService.Verify(pin, settings.AdminPin));
+                pin => AdminPinService.Verify(pin, settings.AdminPin),
+                owner => RunRecoveryPinResetAsync(
+                    owner,
+                    File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+                        ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
+                        : new JsonSettingsStore(),
+                    settings,
+                    ProtectionServiceManager.GetState() == ProtectionServiceState.Running));
             verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             verification.ShowInTaskbar = true;
             verification.Topmost = true;
@@ -299,6 +320,58 @@ public partial class App : System.Windows.Application
         File.Copy(ProtectionServiceManager.ProtectedSettingsPath, destination, overwrite: true);
     }
 
+    private static async Task<string?> RunRecoveryPinResetAsync(
+        Window owner,
+        JsonSettingsStore settingsStore,
+        ControlSettings settings,
+        bool guardianAvailable)
+    {
+        if (settings.RecoveryCodes.All(code => code.UsedAtUtc is not null))
+        {
+            return null;
+        }
+
+        RecoveryResetWindow recoveryWindow = new(async (code, newPin) =>
+        {
+            if (!await WindowsAdministratorVerificationService.RequestAsync("recovery.code.consume"))
+            {
+                return false;
+            }
+
+            AdminCredential credential = AdminPinService.Create(newPin);
+            bool reset;
+            if (guardianAvailable)
+            {
+                reset = await ProtectionPolicyChannel.ResetPinWithRecoveryCodeAsync(code, credential);
+            }
+            else
+            {
+                string localAuditPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Otium",
+                    "security-audit.jsonl");
+                reset = await new RecoveryManager(settingsStore, new SecurityAuditLog(localAuditPath))
+                    .TryResetPinAsync(code, credential);
+            }
+
+            if (reset)
+            {
+                settings.AdminPin = credential;
+                if (guardianAvailable)
+                {
+                    RestoreProtectedSettingsToUserProfile();
+                }
+            }
+
+            return reset;
+        })
+        {
+            Owner = owner
+        };
+
+        return recoveryWindow.ShowDialog() == true ? recoveryWindow.ResultPin : null;
+    }
+
     private async Task HandleUninstallRequestAsync()
     {
         JsonSettingsStore settingsStore = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
@@ -309,9 +382,14 @@ public partial class App : System.Windows.Application
         {
             settings = await settingsStore.LoadAsync();
         }
-        catch
+        catch (Exception exception)
         {
-            settings = new ControlSettings();
+            System.Windows.MessageBox.Show(
+                $"Ayarlar doğrulanamadığı için kaldırma başlatılmadı.\n\nUninstall was not started because settings could not be verified.\n\n{exception.Message}",
+                "Otium · Recovery required",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return;
         }
 
         LocalizationService.SetLanguage(this, settings.Language);
@@ -355,6 +433,45 @@ public partial class App : System.Windows.Application
                 LocalizationService.Get("UninstallTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
+        }
+    }
+
+    private async Task HandleWindowsAdministratorVerificationAsync(IReadOnlyList<string> arguments)
+    {
+        if (!WindowsAdministratorVerificationService.IsAdministrator())
+        {
+            Shutdown(5);
+            return;
+        }
+
+        int eventIndex = arguments.ToList().FindIndex(argument =>
+            string.Equals(argument, "--audit-event", StringComparison.OrdinalIgnoreCase));
+        string? auditEvent = eventIndex >= 0 && eventIndex + 1 < arguments.Count
+            ? arguments[eventIndex + 1]
+            : null;
+        if (!WindowsAdministratorVerificationService.IsAllowedAuditEvent(auditEvent))
+        {
+            Shutdown(2);
+            return;
+        }
+
+        try
+        {
+            await new SecurityAuditLog().AppendAsync(auditEvent!, "windows-admin-authorized");
+            if (string.Equals(auditEvent, "recovery.installer.repair", StringComparison.Ordinal))
+            {
+                bool repaired = await ProtectionServiceManager.RunProductRepairAsync(requestElevation: false);
+                await new SecurityAuditLog().AppendAsync(
+                    "recovery.installer.repair",
+                    repaired ? "accepted" : "rejected");
+                Shutdown(repaired ? 0 : 1);
+                return;
+            }
+            Shutdown(0);
+        }
+        catch
+        {
+            Shutdown(1);
         }
     }
 

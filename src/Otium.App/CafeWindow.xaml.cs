@@ -527,8 +527,13 @@ public partial class CafeWindow : Window
 
     public event EventHandler? ControlCenterRequested;
 
+#if OTIUM_DEVELOPMENT_BUILD
     private async void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+#else
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+#endif
     {
+#if OTIUM_DEVELOPMENT_BUILD
         if (e.Key != Key.F12 ||
             !Keyboard.Modifiers.HasFlag(ModifierKeys.Control) ||
             !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) ||
@@ -542,6 +547,7 @@ public partial class CafeWindow : Window
         _forceSurfaceVisible = false;
         EnsureCorrectSurface();
         ControlCenterRequested?.Invoke(this, EventArgs.Empty);
+#endif
     }
 
     private void Window_Closing(object? sender, CancelEventArgs e)

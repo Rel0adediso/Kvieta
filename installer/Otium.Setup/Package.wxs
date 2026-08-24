@@ -89,6 +89,12 @@
         Name="InstalledVersion"
         Type="string"
         Value="[ProductVersion]" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Otium"
+        Name="SignerThumbprint"
+        Type="string"
+        Value="$(var.OtiumSignerThumbprint)" />
     </Component>
 
     <Component

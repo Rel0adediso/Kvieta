@@ -172,6 +172,8 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public string ControlModeText => ModeDisplayName(SelectedControlMode);
+    public string BuildInformationText =>
+        $"Otium {BuildInfo.Version} · {LocalizationService.Get(BuildInfo.IsDevelopmentBuild ? "DevelopmentTestBuild" : "PublicReleaseBuild")}";
     public bool IsPersonalMode => SelectedControlMode == ControlMode.Personal;
     public bool IsProtectedMode => SelectedControlMode == ControlMode.Protected;
     public bool IsAwarenessMode => SelectedControlMode == ControlMode.Awareness;
@@ -371,7 +373,7 @@ public sealed class MainViewModel : ObservableObject
 
             ControlSettings desired = new()
             {
-                SchemaVersion = 6,
+                SchemaVersion = 8,
                 SetupCompleted = true,
                 Mode = SelectedControlMode,
                 DeviceName = string.IsNullOrWhiteSpace(DeviceName) ? LocalizationService.Get("DefaultDeviceName") : DeviceName.Trim(),
@@ -386,6 +388,7 @@ public sealed class MainViewModel : ObservableObject
                 StrictPersonalMode = StrictPersonalMode,
                 WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal),
                 AdminPin = _settings.AdminPin,
+                RecoveryCodes = CloneRecoveryCodes(_settings.RecoveryCodes),
                 WarningMinutes = [15, 5, 1],
                 Schedule = schedule,
                 TemporaryAllowances = TemporaryAllowances.Select(row => row.ToModel()).ToList(),
@@ -470,13 +473,7 @@ public sealed class MainViewModel : ObservableObject
             return;
         }
 
-        AppRules.Add(new AppRuleRow(new AppRule
-        {
-            Name = Path.GetFileNameWithoutExtension(executablePath),
-            ExecutablePath = executablePath,
-            Mode = AppRuleMode.Blocked,
-            DailyLimitMinutes = 60
-        }));
+        AppRules.Add(new AppRuleRow(ApplicationIdentityService.CaptureRule(executablePath)));
 
         RefreshOverview();
         StatusMessage = L("Uygulama listeye eklendi. Değişiklikleri kaydetmeyi unutma.", "Application added. Remember to save your changes.");
@@ -528,6 +525,21 @@ public sealed class MainViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(settings);
         await _settingsStore.SaveAsync(CloneSettings(settings));
         await InitializeAsync();
+    }
+
+    public async Task RestoreLastKnownGoodSettingsAsync()
+    {
+        await _settingsStore.RestoreBackupAsync();
+        await InitializeAsync();
+    }
+
+    public async Task ClearClockAnomalyAsync()
+    {
+        await _usageStore.ClearClockAnomalyAsync(
+            DateTimeOffset.Now,
+            WindowsMonotonicClock.Uptime,
+            WindowsMonotonicClock.GetBootId());
+        await ReloadUsageAsync();
     }
 
     public async Task<string> ExportUsageJsonAsync()
@@ -621,6 +633,13 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasAdminPin));
         OnPropertyChanged(nameof(AdminPinActionText));
         await SaveAsync();
+    }
+
+    public async Task<IReadOnlyList<string>> GenerateRecoveryCodesAsync()
+    {
+        IReadOnlyList<string> codes = RecoveryCodeService.Generate(_settings);
+        await _settingsStore.SaveAsync(_settings);
+        return codes;
     }
 
     public async Task SetControlModeAsync(ControlMode mode, string? newPin = null)
@@ -952,16 +971,17 @@ public sealed class MainViewModel : ObservableObject
         string name,
         long usedSeconds,
         double relativePercent,
-        DoubleCollection? trendValues = null) => new()
-    {
-        Rank = rank,
-        Name = name,
-        UsedSeconds = usedSeconds,
-        RelativePercent = relativePercent,
-        Icon = ApplicationIconProvider.GetIcon(name),
-        FallbackBrush = ApplicationIconProvider.GetFallbackBrush(name),
-        TrendValues = trendValues ?? []
-    };
+        DoubleCollection? trendValues = null) =>
+        new()
+        {
+            Rank = rank,
+            Name = name,
+            UsedSeconds = usedSeconds,
+            RelativePercent = relativePercent,
+            Icon = ApplicationIconProvider.GetIcon(name),
+            FallbackBrush = ApplicationIconProvider.GetFallbackBrush(name),
+            TrendValues = trendValues ?? []
+        };
 
     private static bool SettingsEquivalent(ControlSettings left, ControlSettings right)
     {
@@ -1117,6 +1137,7 @@ public sealed class MainViewModel : ObservableObject
 
         OnPropertyChanged(nameof(AdminPinActionText));
         OnPropertyChanged(nameof(ControlModeText));
+        OnPropertyChanged(nameof(BuildInformationText));
         OnPropertyChanged(nameof(TodayDescriptionText));
         OnPropertyChanged(nameof(RhythmPlanMetricLabel));
         NotifyPendingChange();
@@ -1423,6 +1444,15 @@ public sealed class MainViewModel : ObservableObject
         Id = rule.Id,
         Name = rule.Name,
         ExecutablePath = rule.ExecutablePath,
+        OriginalFileName = rule.OriginalFileName,
+        ProductName = rule.ProductName,
+        PublisherName = rule.PublisherName,
+        PublisherThumbprint = rule.PublisherThumbprint,
+        Sha256 = rule.Sha256,
+        RequireSha256 = rule.RequireSha256,
+        PackageFamilyName = rule.PackageFamilyName,
+        IncludeChildProcesses = rule.IncludeChildProcesses,
+        LauncherExecutablePaths = [.. rule.LauncherExecutablePaths],
         Mode = rule.Mode,
         DailyLimitMinutes = rule.DailyLimitMinutes
     };
@@ -1466,6 +1496,7 @@ public sealed class MainViewModel : ObservableObject
             SaltBase64 = settings.AdminPin.SaltBase64,
             HashBase64 = settings.AdminPin.HashBase64
         },
+        RecoveryCodes = CloneRecoveryCodes(settings.RecoveryCodes),
         WarningMinutes = [.. settings.WarningMinutes],
         Schedule = CloneSchedule(settings.Schedule),
         TemporaryAllowances = CloneTemporaryAllowances(settings.TemporaryAllowances),
@@ -1480,6 +1511,16 @@ public sealed class MainViewModel : ObservableObject
                 TargetSettings = CloneSettings(settings.PendingChange.TargetSettings)
             }
     };
+
+    private static List<RecoveryCodeRecord> CloneRecoveryCodes(IEnumerable<RecoveryCodeRecord> codes) => codes.Select(code => new RecoveryCodeRecord
+    {
+        Id = code.Id,
+        Iterations = code.Iterations,
+        SaltBase64 = code.SaltBase64,
+        HashBase64 = code.HashBase64,
+        CreatedAtUtc = code.CreatedAtUtc,
+        UsedAtUtc = code.UsedAtUtc
+    }).ToList();
 
     private ControlSettings BuildPreviewSettings()
     {

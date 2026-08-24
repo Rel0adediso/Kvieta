@@ -62,4 +62,20 @@ public static class AdminPinService
             return false;
         }
     }
+
+    public static byte[] DeriveHash(string pin, string saltBase64, int iterations, int length = HashSize)
+    {
+        if (!IsValidFormat(pin) || iterations < 100_000 || length is < 16 or > 64)
+        {
+            throw new ArgumentException("PIN türetme parametreleri geçersiz.");
+        }
+
+        byte[] salt = Convert.FromBase64String(saltBase64);
+        return Rfc2898DeriveBytes.Pbkdf2(
+            pin,
+            salt,
+            iterations,
+            HashAlgorithmName.SHA256,
+            length);
+    }
 }

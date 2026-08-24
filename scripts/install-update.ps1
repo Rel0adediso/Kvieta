@@ -17,8 +17,30 @@ function Test-Administrator {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Get-VerifiedRelease([string]$Path) {
-    return & $verifyScript -ManifestPath $Path
+function Get-NormalizedThumbprint([string]$Thumbprint) {
+    return ($Thumbprint -replace '\s', '').ToUpperInvariant()
+}
+
+function Get-CurrentScriptSigner {
+    $signature = Get-AuthenticodeSignature -LiteralPath $PSCommandPath
+    if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate) {
+        throw 'The Otium updater does not have a valid Authenticode signature.'
+    }
+
+    return Get-NormalizedThumbprint $signature.SignerCertificate.Thumbprint
+}
+
+function Assert-TrustedScriptSignature([string]$Path, [string]$TrustedSigner) {
+    $signature = Get-AuthenticodeSignature -LiteralPath $Path
+    if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate -or
+        (Get-NormalizedThumbprint $signature.SignerCertificate.Thumbprint) -ne $TrustedSigner) {
+        throw 'The installer verification script does not have a valid signature from the trusted Otium signer.'
+    }
+}
+
+function Get-VerifiedRelease([string]$Path, [string]$TrustedSigner) {
+    Assert-TrustedScriptSignature $verifyScript $TrustedSigner
+    return & $verifyScript -ManifestPath $Path -TrustedSignerThumbprint $TrustedSigner
 }
 
 function Get-InstalledOtium {
@@ -31,6 +53,11 @@ function Get-InstalledOtium {
         return [pscustomobject]@{
             ProductCode = [string]$key.ProductCode
             Version = [version]$key.InstalledVersion
+            SignerThumbprint = if ([string]::IsNullOrWhiteSpace([string]$key.SignerThumbprint)) {
+                $null
+            } else {
+                Get-NormalizedThumbprint ([string]$key.SignerThumbprint)
+            }
         }
     }
     catch {
@@ -91,14 +118,25 @@ $resolvedRollbackManifestPath = if ([string]::IsNullOrWhiteSpace($RollbackManife
     (Resolve-Path -LiteralPath $RollbackManifestPath).Path
 }
 
-# Verify once before elevation so invalid packages never trigger a UAC prompt.
-$preflightTarget = Get-VerifiedRelease $resolvedManifestPath
-$preflightRollback = $null
-if ($null -ne $resolvedRollbackManifestPath) {
-    $preflightRollback = Get-VerifiedRelease $resolvedRollbackManifestPath
+$updaterSigner = Get-CurrentScriptSigner
+$preflightInstalled = Get-InstalledOtium
+$trustedSigner = if ($null -ne $preflightInstalled -and
+    -not [string]::IsNullOrWhiteSpace($preflightInstalled.SignerThumbprint)) {
+    $preflightInstalled.SignerThumbprint
+} else {
+    $updaterSigner
+}
+if ($updaterSigner -ne $trustedSigner) {
+    throw 'The updater signer does not match the signer pinned by the installed Otium release.'
 }
 
-$preflightInstalled = Get-InstalledOtium
+# Verify once before elevation so invalid packages never trigger a UAC prompt.
+$preflightTarget = Get-VerifiedRelease $resolvedManifestPath $trustedSigner
+$preflightRollback = $null
+if ($null -ne $resolvedRollbackManifestPath) {
+    $preflightRollback = Get-VerifiedRelease $resolvedRollbackManifestPath $trustedSigner
+}
+
 if ($null -ne $preflightInstalled -and [version]$preflightTarget.Version -le $preflightInstalled.Version) {
     throw "Otium $($preflightTarget.Version) is not newer than installed version $($preflightInstalled.Version)."
 }
@@ -111,26 +149,17 @@ if ($null -ne $preflightInstalled -and [version]$preflightRollback.Version -ne $
 
 if (-not (Test-Administrator)) {
     $hostPath = (Get-Process -Id $PID).Path
-    $startInfo = [Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = $hostPath
-    $startInfo.UseShellExecute = $true
-    $startInfo.Verb = 'runas'
-    $startInfo.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
-    foreach ($argument in @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $PSCommandPath,
-            '-ManifestPath', $resolvedManifestPath)) {
-        $startInfo.ArgumentList.Add($argument)
-    }
+    $startArguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -ManifestPath `"$resolvedManifestPath`""
     if ($null -ne $resolvedRollbackManifestPath) {
-        $startInfo.ArgumentList.Add('-RollbackManifestPath')
-        $startInfo.ArgumentList.Add($resolvedRollbackManifestPath)
+        $startArguments += " -RollbackManifestPath `"$resolvedRollbackManifestPath`""
     }
     if ($ForceRollbackForTesting) {
-        $startInfo.ArgumentList.Add('-ForceRollbackForTesting')
+        $startArguments += ' -ForceRollbackForTesting'
     }
 
     try {
-        $elevated = [Diagnostics.Process]::Start($startInfo)
-        $elevated.WaitForExit()
+        $elevated = Start-Process -FilePath $hostPath -ArgumentList $startArguments `
+            -Verb RunAs -WindowStyle Hidden -Wait -PassThru
         exit $elevated.ExitCode
     }
     catch [System.ComponentModel.Win32Exception] {
@@ -139,12 +168,19 @@ if (-not (Test-Administrator)) {
 }
 
 # Verify again after elevation to narrow the package replacement window.
-$targetRelease = Get-VerifiedRelease $resolvedManifestPath
+$installedAfterElevation = Get-InstalledOtium
+if ($null -ne $installedAfterElevation -and
+    -not [string]::IsNullOrWhiteSpace($installedAfterElevation.SignerThumbprint) -and
+    $installedAfterElevation.SignerThumbprint -ne $trustedSigner) {
+    throw 'The installed Otium signer changed while the update was awaiting elevation.'
+}
+
+$targetRelease = Get-VerifiedRelease $resolvedManifestPath $trustedSigner
 $targetVersion = [version]$targetRelease.Version
 $rollbackRelease = if ($null -eq $resolvedRollbackManifestPath) {
     $null
 } else {
-    Get-VerifiedRelease $resolvedRollbackManifestPath
+    Get-VerifiedRelease $resolvedRollbackManifestPath $trustedSigner
 }
 $installedBefore = Get-InstalledOtium
 $keepDesktopShortcut = Test-Path -LiteralPath 'C:\Users\Public\Desktop\Otium.lnk'

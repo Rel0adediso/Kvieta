@@ -12,7 +12,7 @@ Calm, local-first screen-time management for Windows — no account required.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/version-v0.17.0-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/version-v0.18.0--dev-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
@@ -90,7 +90,7 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 
 ## Current status
 
-**v0.17.0 prototype**
+**v0.18.0 feature-complete candidate**
 
 - Release build: `0` warnings, `0` errors
 - Single-file, self-contained Windows package
@@ -100,6 +100,10 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 - Completed v0.16 rhythm foundation with opt-in, local-only foreground app awareness and separate policy counters
 - Completed v0.16.1 motion language with short, accessible, non-blocking transitions and micro-interactions
 - Completed v0.17 installer lifecycle with an optional desktop shortcut, MSI-managed Guardian, protected uninstall, verified update packages, rollback, and downgrade prevention
+- Completed v0.18 hardening: public builds contain no test unlock path; one-time recovery codes can reset the PIN after Windows administrator approval
+- Guardian IPC verifies the signed installed client and uses nonce/HMAC/replay protection with persistent throttling and local security audit
+- Monotonic clock checks distinguish reboot/time-zone changes from forward/rollback manipulation and retain an administrator recovery path
+- Application Identity 2.0 combines path, trusted publisher, original filename, product metadata, optional SHA-256, package family, launcher, and child-process relationships
 
 See the [current roadmap](ROADMAP.md) for the development sequence and v1.0 goals.
 

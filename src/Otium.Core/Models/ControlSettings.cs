@@ -29,7 +29,7 @@ public enum ControlMode
 
 public sealed class ControlSettings
 {
-    public int SchemaVersion { get; set; } = 6;
+    public int SchemaVersion { get; set; } = 8;
     public bool SetupCompleted { get; set; }
     public ControlMode Mode { get; set; } = ControlMode.Protected;
     public string DeviceName { get; set; } = "Bu Bilgisayar";
@@ -45,6 +45,7 @@ public sealed class ControlSettings
     public int WeeklyReductionGoalPercent { get; set; }
     public PendingPolicyChange? PendingChange { get; set; }
     public AdminCredential AdminPin { get; set; } = new();
+    public List<RecoveryCodeRecord> RecoveryCodes { get; set; } = [];
     public List<int> WarningMinutes { get; set; } = [15, 5, 1];
     public List<DaySchedule> Schedule { get; set; } = CreateDefaultSchedule();
     public List<TemporaryAllowance> TemporaryAllowances { get; set; } = [];
@@ -68,6 +69,16 @@ public sealed class ControlSettings
             .OrderBy(item => item.Day == DayOfWeek.Sunday ? 7 : (int)item.Day)
             .ToList();
     }
+}
+
+public sealed class RecoveryCodeRecord
+{
+    public string Id { get; set; } = string.Empty;
+    public int Iterations { get; set; }
+    public string SaltBase64 { get; set; } = string.Empty;
+    public string HashBase64 { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset? UsedAtUtc { get; set; }
 }
 
 public sealed class TemporaryAllowance

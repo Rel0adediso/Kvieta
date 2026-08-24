@@ -22,6 +22,13 @@ public sealed class SessionEngine
 
     public UsageLedger Ledger { get; }
 
+    public ClockChangeKind ObserveClock(DateTimeOffset now, TimeSpan systemUptime, string? bootId = null)
+    {
+        ClockChangeKind change = ClockIntegrityMonitor.Observe(Ledger, now, systemUptime, bootId);
+        Refresh(now);
+        return change;
+    }
+
     public SessionSnapshot GetSnapshot(DateTimeOffset now)
     {
         Refresh(now);
@@ -172,6 +179,11 @@ public sealed class SessionEngine
     private void Refresh(DateTimeOffset now)
     {
         DateTimeOffset utcNow = now.ToUniversalTime();
+        if (Ledger.ClockAnomalyRequiresRecovery)
+        {
+            Ledger.State = SessionState.OutsideSchedule;
+            return;
+        }
         if (Ledger.LastUpdatedUtc != DateTimeOffset.MinValue &&
             Ledger.LastUpdatedUtc > utcNow.AddMinutes(5))
         {

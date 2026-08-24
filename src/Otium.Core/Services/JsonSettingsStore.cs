@@ -51,7 +51,7 @@ public sealed class JsonSettingsStore
         {
             settings = pending.TargetSettings;
             settings.PendingChange = null;
-            settings.SchemaVersion = 6;
+            settings.SchemaVersion = 8;
             settings.SetupCompleted = true;
             settings.AwarenessTrackingEnabled = settings.Mode == ControlMode.Awareness || settings.AwarenessTrackingEnabled;
             await SaveAsync(settings, cancellationToken);
@@ -70,25 +70,31 @@ public sealed class JsonSettingsStore
         await _file.SaveAsync(settings, cancellationToken);
     }
 
+    public Task<ControlSettings> UpdateAsync(Func<ControlSettings, ControlSettings> update, CancellationToken cancellationToken = default) =>
+        _file.UpdateAsync(update, cancellationToken);
+
+    public Task<ControlSettings> RestoreBackupAsync(CancellationToken cancellationToken = default) =>
+        _file.RestoreBackupAsync(cancellationToken);
+
     private static ResilientJsonFile<ControlSettings> CreateFile(string path) => new(
         path,
         JsonOptions,
         static () => new ControlSettings(),
         static settings =>
         {
-            if (settings.SchemaVersion > 6)
+            if (settings.SchemaVersion > 8)
             {
                 throw new InvalidDataException($"Desteklenmeyen ayar şeması: {settings.SchemaVersion}");
             }
 
-            bool changed = settings.SchemaVersion < 6;
+            bool changed = settings.SchemaVersion < 8;
             if (settings.SchemaVersion < 2)
             {
                 settings.SetupCompleted = true;
                 settings.Mode = ControlMode.Protected;
             }
 
-            settings.SchemaVersion = 6;
+            settings.SchemaVersion = 8;
             if (settings.Mode == ControlMode.Awareness)
             {
                 changed |= !settings.AwarenessTrackingEnabled || settings.PendingChange is not null;
@@ -106,7 +112,12 @@ public sealed class JsonSettingsStore
             settings.Schedule ??= ControlSettings.CreateDefaultSchedule();
             settings.TemporaryAllowances ??= [];
             settings.AppRules ??= [];
+            foreach (AppRule rule in settings.AppRules)
+            {
+                rule.LauncherExecutablePaths ??= [];
+            }
             settings.AdminPin ??= new AdminCredential();
+            settings.RecoveryCodes ??= [];
             return new MigrationResult<ControlSettings>(settings, changed);
         });
 }

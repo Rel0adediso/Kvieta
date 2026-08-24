@@ -67,7 +67,7 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 
 Tamamlanan aşama: v0.17 kurulum, güvenli güncelleme ve rollback.
 
-Sıradaki aşama: v0.18 recovery ve güvenlik sertleştirmesi.
+Tamamlanan aşama: v0.18 recovery ve güvenlik sertleştirmesi.
 
 ### Ritim
 
@@ -127,9 +127,10 @@ Tamamlananlar:
 - İsteğe bağlı masaüstü kısayolu için installer özelliği.
 - Guardian servis yaşam döngüsünün Windows Installer tarafından kurulup kaldırılması.
 - MSI tarafından yönetilen Guardian ile uygulama içi koruma açma/kapatma akışının ayrılması.
+- Her release EXE, MSI ve dağıtım betiğini aynı güvenilir sertifikayla Authenticode imzalama ve zaman damgalama.
 - Her MSI çıktısına SHA-256 bütünlük dosyası üretimi.
 - Sürüm paketlerini ayrı klasörlerde tutarak önceki rollback paketini koruma.
-- MSI dosya adı, boyut ve SHA-256 değerini kurulum öncesi doğrulayan release manifesti.
+- MSI dosya adı, boyut, SHA-256 ve kurulu sürüme sabitlenmiş imzalayan kimliğini kurulum öncesi doğrulayan release manifesti.
 - Upgrade sırasında kullanıcı ayarları, kullanım geçmişi ve korunan policy verisine dokunmama.
 - Temiz kurulum, repair, kaldırma, `0.17.0 → 0.17.1` yükseltme ve downgrade engeli gerçek Windows Installer üzerinde doğrulandı.
 - Başlat menüsündeki kontrollü kaldırma yolu, korumalı modda yönetici PIN'i ve ardından Windows yönetici izni istiyor; doğrudan ARP kaldırma/değiştirme seçenekleri kapatıldı.
@@ -156,13 +157,19 @@ Tamamlananlar:
 
 ## v0.18 — Recovery ve güvenlik sertleştirmesi
 
+**Durum:** Tamamlandı.
+
 ### Test ve public build ayrımı
+
+Tamamlandı:
 
 - `Ctrl+Alt+Shift+F12` geçidini yalnız Development/Test build'de derleme.
 - Public Release paketinde test geçidini tamamen çıkarma.
 - Paket türünü sürüm bilgisinde ve tanılama ekranında açıkça gösterme.
 
 ### Yönetici kurtarma sistemi
+
+Tamamlandı:
 
 - Tek kullanımlık recovery kodları.
 - Windows yönetici doğrulaması.
@@ -171,6 +178,8 @@ Tamamlananlar:
 
 ### Guardian ve IPC güvenliği
 
+Tamamlandı. Public istemci, Program Files konumu ve installer'da pinlenen geçerli Authenticode imzasıyla doğrulanır; bağlantı başına nonce, PIN/recovery sırrından türetilen HMAC, zaman penceresi ve request ID replay önlemi uygulanır. Artan bekleme servis verisinde kalıcıdır ve reddedilen komutlar hassas içerik olmadan audit kaydına yazılır.
+
 - İstemci kimliği ve yetkisini doğrulama.
 - Mesaj bütünlüğü ve tekrar oynatma saldırısı koruması.
 - Artan PIN beklemesini servis tarafında otoriter tutma.
@@ -178,12 +187,16 @@ Tamamlananlar:
 
 ### Monotonic zaman güvenliği
 
+Tamamlandı. Windows uptime ve boot kimliği duvar saatiyle birlikte saklanır; reboot, saat dilimi değişimi, ileri sıçrama ve rollback ayrı durumlara ayrılır. Anomali yalnız PIN ve Windows yönetici onayıyla temizlenebilir.
+
 - Sistem saatine ek olarak monotonic süre kaynağı kullanma.
 - Reboot, saat dilimi ve ileri/geri tarih değişikliklerini ayırma.
 - Son güvenilir zamanı saklama.
 - Yanlış pozitif kilitlenmede yönetici kurtarma yolu bırakma.
 
 ### Uygulama kimliği 2.0
+
+Tamamlandı. Kurallar yolun yanında WinTrust ile doğrulanan publisher imzası, original filename, ürün bilgisi, isteğe bağlı/zorunlu SHA-256 ve varsa package family kullanır; launcher ile alt süreç ağacı aynı kurala bağlanır. İmzasız portable uygulamalar SHA-256 ile pinlenir. AppLocker/WDAC, Windows sürümü ve kurum politikası bağımlılığı nedeniyle v0.18'in varsayılanı yapılmadı; ileride isteğe bağlı gelişmiş seviye olarak kalır.
 
 - EXE yoluna ek olarak publisher imzası ve original filename.
 - Ürün bilgisi ve isteğe bağlı SHA-256 kimliği.

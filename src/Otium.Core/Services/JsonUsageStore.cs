@@ -70,11 +70,22 @@ public sealed class JsonUsageStore
     public Task<UsageLedger> ClearAsync(CancellationToken cancellationToken = default) =>
         _file.UpdateAsync(current => new UsageLedger
         {
-            SchemaVersion = 5,
+            SchemaVersion = 6,
             DataGeneration = checked(current.DataGeneration + 1),
             RetainedFromDay = current.RetainedFromDay,
             LocalDay = DateOnly.FromDateTime(DateTime.Today),
             LastUpdatedUtc = DateTimeOffset.UtcNow
+        }, cancellationToken);
+
+    public Task<UsageLedger> ClearClockAnomalyAsync(
+        DateTimeOffset now,
+        TimeSpan systemUptime,
+        string? bootId,
+        CancellationToken cancellationToken = default) =>
+        _file.UpdateAsync(ledger =>
+        {
+            ClockIntegrityMonitor.ClearAnomaly(ledger, now, systemUptime, bootId);
+            return ledger;
         }, cancellationToken);
 
     public async Task TrimHistoryAsync(int retentionDays, CancellationToken cancellationToken = default)
@@ -117,7 +128,7 @@ public sealed class JsonUsageStore
 
         UsageLedger newest = incoming.LastUpdatedUtc >= current.LastUpdatedUtc ? incoming : current;
         UsageLedger other = ReferenceEquals(newest, incoming) ? current : incoming;
-        newest.SchemaVersion = 5;
+        newest.SchemaVersion = 6;
         newest.RetainedFromDay = retainedFromDay;
         newest.UsedSeconds = Math.Max(newest.UsedSeconds, other.UsedSeconds);
         newest.BonusMinutes = Math.Max(newest.BonusMinutes, other.BonusMinutes);
@@ -130,6 +141,16 @@ public sealed class JsonUsageStore
             (newest.ClockRollbackUntilUtc is null || otherRollback > newest.ClockRollbackUntilUtc))
         {
             newest.ClockRollbackUntilUtc = otherRollback;
+        }
+        newest.ClockAnomalyRequiresRecovery |= other.ClockAnomalyRequiresRecovery;
+        if (other.LastTrustedUtc > newest.LastTrustedUtc)
+        {
+            newest.LastTrustedUtc = other.LastTrustedUtc;
+        }
+        if (other.ClockChangeDetectedAtUtc > newest.ClockChangeDetectedAtUtc)
+        {
+            newest.LastClockChange = other.LastClockChange;
+            newest.ClockChangeDetectedAtUtc = other.ClockChangeDetectedAtUtc;
         }
 
         foreach ((Guid ruleId, long seconds) in other.AppUsedSeconds)
@@ -282,13 +303,13 @@ public sealed class JsonUsageStore
         static () => new UsageLedger(),
         static ledger =>
         {
-            if (ledger.SchemaVersion > 5)
+            if (ledger.SchemaVersion > 6)
             {
                 throw new InvalidDataException($"Desteklenmeyen kullanım şeması: {ledger.SchemaVersion}");
             }
 
-            bool changed = ledger.SchemaVersion < 5;
-            ledger.SchemaVersion = 5;
+            bool changed = ledger.SchemaVersion < 6;
+            ledger.SchemaVersion = 6;
             ledger.AppUsedSeconds ??= [];
             ledger.ForegroundAppUsedSeconds ??= new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             ledger.AwarenessHourlyUsedSeconds ??= [];

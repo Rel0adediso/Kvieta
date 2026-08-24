@@ -102,6 +102,47 @@ internal sealed class ResilientJsonFile<T> where T : class
         await WriteCoreAsync(migrated.Value, updateBackup: true, cancellationToken);
     }
 
+    public async Task<T> RestoreBackupAsync(CancellationToken cancellationToken = default)
+    {
+        await using FileStream fileLock = await AcquireLockAsync(cancellationToken);
+        if (!File.Exists(BackupPath))
+        {
+            throw new FileNotFoundException("Otium son sağlam yedeği bulunamadı.", BackupPath);
+        }
+
+        MigrationResult<T> recovered = await ReadAndMigrateAsync(BackupPath, cancellationToken);
+        string temporaryPath = FilePath + $".restore.{Environment.ProcessId}.{Guid.NewGuid():N}";
+        try
+        {
+            await using (FileStream stream = new(
+                temporaryPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 16 * 1024,
+                FileOptions.Asynchronous | FileOptions.WriteThrough))
+            {
+                await JsonSerializer.SerializeAsync(stream, recovered.Value, _jsonOptions, cancellationToken);
+                await stream.FlushAsync(cancellationToken);
+                stream.Flush(flushToDisk: true);
+            }
+
+            await ReadAndMigrateAsync(temporaryPath, cancellationToken);
+            File.Move(temporaryPath, FilePath, overwrite: true);
+            await UpdateBackupSnapshotAsync(cancellationToken);
+            LastLoadRecoveredFromBackup = true;
+            LastLoadMigrated = recovered.Changed;
+            return recovered.Value;
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
     private async Task<MigrationResult<T>> ReadAndMigrateAsync(string path, CancellationToken cancellationToken)
     {
         await using FileStream stream = new(

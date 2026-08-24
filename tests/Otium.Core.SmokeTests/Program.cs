@@ -3,15 +3,33 @@ using Otium.Core.Services;
 using Otium.App.ViewModels;
 using Otium.App.Services;
 using System.Diagnostics;
+using System.Text.Json;
 
 ControlSettings settings = new();
+#if OTIUM_DEVELOPMENT_BUILD
+Assert(BuildInfo.IsDevelopmentBuild && BuildInfo.Flavor == "development", "Debug paketi Development/Test olarak işaretlenmedi.");
+#else
+Assert(!BuildInfo.IsDevelopmentBuild && BuildInfo.Flavor == "public", "Release paketi Public olarak işaretlenmedi.");
+#endif
 Assert(settings.DeviceName == "Bu Bilgisayar", "Yeni kurulumun varsayılan cihaz adı yanlış.");
+Assert(WindowsAdministratorVerificationService.IsAllowedAuditEvent("recovery.code.consume") &&
+    !WindowsAdministratorVerificationService.IsAllowedAuditEvent("arbitrary.command"),
+    "Windows yönetici doğrulama yardımcısı audit olaylarını allowlist ile sınırlamıyor.");
 Assert(!settings.SetupCompleted, "Yeni kurulum, kullanım biçimi seçilmeden tamamlanmış görünmemeli.");
 Assert(!AdminPinService.IsValidFormat("12ab"), "Harf içeren PIN kabul edilmemeliydi.");
 AdminCredential credential = AdminPinService.Create("4826");
 Assert(AdminPinService.Verify("4826", credential), "Doğru yönetici PIN'i doğrulanamadı.");
 Assert(!AdminPinService.Verify("4827", credential), "Yanlış yönetici PIN'i kabul edildi.");
 settings.AdminPin = credential;
+ControlSettings recoveryCodeSettings = new();
+IReadOnlyList<string> recoveryCodes = RecoveryCodeService.Generate(recoveryCodeSettings, 2);
+Assert(recoveryCodes.Count == 2 && recoveryCodeSettings.RecoveryCodes.Count == 2 &&
+    recoveryCodes.All(code => !JsonSerializer.Serialize(recoveryCodeSettings).Contains(code, StringComparison.Ordinal)),
+    "Recovery kodları tek yönlü saklanmadı.");
+string incorrectRecoveryCode = recoveryCodes[0][..7] + "AAAAAA-AAAAAA-AAAAAA";
+Assert(!RecoveryCodeService.TryConsume(recoveryCodeSettings, incorrectRecoveryCode), "Yanlış recovery kodu kabul edildi.");
+Assert(RecoveryCodeService.TryConsume(recoveryCodeSettings, recoveryCodes[0]), "Geçerli recovery kodu kabul edilmedi.");
+Assert(!RecoveryCodeService.TryConsume(recoveryCodeSettings, recoveryCodes[0]), "Recovery kodu ikinci kez kullanılabildi.");
 DaySchedule monday = settings.Schedule.Single(item => item.Day == DayOfWeek.Monday);
 monday.AllowedFrom = new TimeOnly(9, 0);
 monday.AllowedUntil = new TimeOnly(21, 0);
@@ -143,6 +161,12 @@ Assert(recoveredSettings.DeviceName == "Son sağlam kayıt", "Bozuk ayar dosyas�
 Assert(recoveryStore.LastLoadRecoveredFromBackup, "Yedekten kurtarma durumu bildirilmedi.");
 Assert((await new JsonSettingsStore(recoverySettingsPath).LoadAsync()).DeviceName == "Son sağlam kayıt", "Kurtarılan ayar ana dosyaya geri yazılmadı.");
 
+await File.WriteAllTextAsync(recoverySettingsPath, "{\"SchemaVersion\":7,\"DeviceName\":\"İstenmeyen değişiklik\"}");
+ControlSettings explicitlyRestoredSettings = await recoveryStore.RestoreBackupAsync();
+Assert(explicitlyRestoredSettings.DeviceName == "Son sağlam kayıt" &&
+    (await recoveryStore.LoadAsync()).DeviceName == "Son sağlam kayıt",
+    "Açık son-sağlam-kopya geri yüklemesi doğrulanmış ayarı döndürmedi.");
+
 await File.WriteAllTextAsync(recoverySettingsPath, "{ yine bozuk");
 await File.WriteAllTextAsync(recoveryStore.BackupPath, "{ yedek de bozuk");
 bool corruptPairRejected = false;
@@ -156,6 +180,49 @@ catch (InvalidDataException)
 }
 Assert(corruptPairRejected, "Ana dosya ve yedek bozukken sessizce varsayılan ayarlara geçildi.");
 
+string recoveryManagerPath = Path.Combine(testDirectory, "recovery-manager-settings.json");
+string recoveryAuditPath = Path.Combine(testDirectory, "security-audit.jsonl");
+JsonSettingsStore recoveryManagerStore = new(recoveryManagerPath);
+ControlSettings managedRecoverySettings = new();
+string managedRecoveryCode = RecoveryCodeService.Generate(managedRecoverySettings, 1).Single();
+await recoveryManagerStore.SaveAsync(managedRecoverySettings);
+RecoveryManager recoveryManager = new(recoveryManagerStore, new SecurityAuditLog(recoveryAuditPath));
+Assert(await recoveryManager.TryConsumeCodeAsync(managedRecoveryCode), "Recovery manager geçerli kodu tüketemedi.");
+Assert(!await recoveryManager.TryConsumeCodeAsync(managedRecoveryCode), "Recovery manager aynı kodu ikinci kez kabul etti.");
+ControlSettings persistedRecoverySettings = await recoveryManagerStore.LoadAsync();
+Assert(persistedRecoverySettings.RecoveryCodes.Single().UsedAtUtc is not null, "Kullanılan recovery kodu atomik olarak kaydedilmedi.");
+string[] recoveryAuditLines = await File.ReadAllLinesAsync(recoveryAuditPath);
+Assert(recoveryAuditLines.Length == 2 && recoveryAuditLines[0].Contains("accepted", StringComparison.Ordinal) &&
+    recoveryAuditLines[1].Contains("rejected", StringComparison.Ordinal) &&
+    recoveryAuditLines.All(line => !line.Contains(managedRecoveryCode, StringComparison.Ordinal)),
+    "Recovery audit kaydı eksik veya hassas kod içeriyor.");
+string concurrentAuditPath = Path.Combine(testDirectory, "concurrent-security-audit.jsonl");
+await Task.WhenAll(Enumerable.Range(0, 20).Select(index =>
+    new SecurityAuditLog(concurrentAuditPath).AppendAsync("audit.concurrent", $"entry-{index}")));
+Assert((await File.ReadAllLinesAsync(concurrentAuditPath)).Length == 20,
+    "Süreçler arası audit kilidi eşzamanlı güvenlik olaylarını kaybetti.");
+
+string pinResetPath = Path.Combine(testDirectory, "recovery-pin-reset-settings.json");
+string pinResetAuditPath = Path.Combine(testDirectory, "recovery-pin-reset-audit.jsonl");
+JsonSettingsStore pinResetStore = new(pinResetPath);
+ControlSettings pinResetSettings = new() { AdminPin = AdminPinService.Create("1111") };
+string pinResetCode = RecoveryCodeService.Generate(pinResetSettings, 1).Single();
+await pinResetStore.SaveAsync(pinResetSettings);
+RecoveryManager pinResetManager = new(pinResetStore, new SecurityAuditLog(pinResetAuditPath));
+AdminCredential replacementCredential = AdminPinService.Create("7391");
+Assert(!await pinResetManager.TryResetPinAsync("WRONG-CODE", replacementCredential),
+    "Yanlış recovery kodu PIN sıfırlamasında kabul edildi.");
+Assert(AdminPinService.Verify("1111", (await pinResetStore.LoadAsync()).AdminPin),
+    "Reddedilen recovery isteği eski PIN'i değiştirdi.");
+Assert(await pinResetManager.TryResetPinAsync(pinResetCode, replacementCredential),
+    "Geçerli recovery kodu PIN'i sıfırlayamadı.");
+ControlSettings resetSettings = await pinResetStore.LoadAsync();
+Assert(AdminPinService.Verify("7391", resetSettings.AdminPin) &&
+    !AdminPinService.Verify("1111", resetSettings.AdminPin),
+    "Recovery PIN sıfırlaması atomik olarak kaydedilmedi.");
+Assert(!await pinResetManager.TryResetPinAsync(pinResetCode, AdminPinService.Create("8520")),
+    "Kullanılmış recovery kodu PIN'i ikinci kez değiştirdi.");
+
 string migrationUsagePath = Path.Combine(testDirectory, "migration-usage.json");
 await File.WriteAllTextAsync(migrationUsagePath, """
 {
@@ -166,9 +233,31 @@ await File.WriteAllTextAsync(migrationUsagePath, """
 """);
 JsonUsageStore migrationUsageStore = new(migrationUsagePath);
 UsageLedger migratedUsage = await migrationUsageStore.LoadAsync();
-Assert(migratedUsage.SchemaVersion == 5 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 5'e taşınmadı.");
+Assert(migratedUsage.SchemaVersion == 6 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 6'ya taşınmadı.");
 Assert(migratedUsage.AwarenessHourlyUsedSeconds.Count == 0, "Eski kullanım verisine sahte saatlik dağılım eklendi.");
 Assert(File.Exists(migrationUsageStore.BackupPath), "Migration sonrasında sağlam kullanım yedeği oluşturulmadı.");
+
+UsageLedger clockLedger = new();
+DateTimeOffset clockStart = new(2026, 8, 25, 10, 0, 0, TimeSpan.FromHours(2));
+Assert(ClockIntegrityMonitor.Observe(clockLedger, clockStart, TimeSpan.FromHours(1), "boot-a") == ClockChangeKind.None,
+    "İlk güvenilir saat gözlemi anomali sayıldı.");
+Assert(ClockIntegrityMonitor.Observe(clockLedger, clockStart.AddMinutes(1), TimeSpan.FromMinutes(61), "boot-a") == ClockChangeKind.None,
+    "Monotonic ilerleyen saat anomali sayıldı.");
+DateTimeOffset timeZoneChange = clockStart.AddMinutes(2).ToUniversalTime().ToOffset(TimeSpan.FromHours(3));
+Assert(ClockIntegrityMonitor.Observe(clockLedger, timeZoneChange, TimeSpan.FromMinutes(62), "boot-a") == ClockChangeKind.TimeZoneChanged &&
+    !clockLedger.ClockAnomalyRequiresRecovery,
+    "Saat dilimi değişikliği güvenli biçimde ayrıştırılamadı.");
+DateTimeOffset afterReboot = timeZoneChange.AddMinutes(10);
+Assert(ClockIntegrityMonitor.Observe(clockLedger, afterReboot, TimeSpan.FromSeconds(30), "boot-b") == ClockChangeKind.Reboot &&
+    !clockLedger.ClockAnomalyRequiresRecovery,
+    "Windows yeniden başlatması saat manipülasyonu sayıldı.");
+DateTimeOffset forwardJump = afterReboot.AddHours(2);
+Assert(ClockIntegrityMonitor.Observe(clockLedger, forwardJump, TimeSpan.FromMinutes(1), "boot-b") == ClockChangeKind.ForwardJump &&
+    clockLedger.ClockAnomalyRequiresRecovery,
+    "İleri saat sıçraması monotonic kaynağa rağmen yakalanmadı.");
+ClockIntegrityMonitor.ClearAnomaly(clockLedger, afterReboot.AddMinutes(1), TimeSpan.FromMinutes(1), "boot-b");
+Assert(!clockLedger.ClockAnomalyRequiresRecovery,
+    "Yönetici saat kurtarma yolu anomalinin güvenli durumunu temizlemedi.");
 
 string retentionUsagePath = Path.Combine(testDirectory, "retention-usage.json");
 JsonUsageStore retentionUsageStore = new(retentionUsagePath);
@@ -326,7 +415,7 @@ Assert(loadedLedger.UsedSeconds == ledger.UsedSeconds, "Kullanım kaydı geri y�
 string legacyPath = Path.Combine(testDirectory, "legacy-settings.json");
 await File.WriteAllTextAsync(legacyPath, "{\"SchemaVersion\":1,\"DeviceName\":\"Eski Kurulum\"}");
 ControlSettings migratedSettings = await new JsonSettingsStore(legacyPath).LoadAsync();
-Assert(migratedSettings.SchemaVersion == 6, "Eski ayar şeması yükseltilemedi.");
+Assert(migratedSettings.SchemaVersion == 8, "Eski ayar şeması yükseltilemedi.");
 Assert(!migratedSettings.AwarenessTrackingEnabled && migratedSettings.UsageRetentionDays == 90, "Migration açık rıza gerektiren ölçümü kendiliğinden etkinleştirdi.");
 Assert(migratedSettings.WeeklyReductionGoalPercent == 0, "Migration kullanıcı onayı olmadan azaltma hedefi oluşturdu.");
 
@@ -533,9 +622,13 @@ JsonSettingsStore shortcutStore = new(shortcutSettingsPath);
 await shortcutStore.SaveAsync(shortcutSettings);
 CafeViewModel shortcutViewModel = new(shortcutStore, new JsonUsageStore(shortcutUsagePath));
 await shortcutViewModel.InitializeAsync();
+#if OTIUM_DEVELOPMENT_BUILD
 await shortcutViewModel.ForceUnlockForTestingAsync();
 ControlSettings shortcutApplied = await shortcutStore.LoadAsync();
 Assert(shortcutApplied.Mode == ControlMode.Protected && shortcutApplied.PendingChange is null, "Gizli yönetici kısayolu bekleyen değişikliği hemen uygulamadı.");
+#else
+Assert(!BuildInfo.IsDevelopmentBuild, "Public Release testi geliştirme paketi olarak derlendi.");
+#endif
 
 string personalSettingsPath = Path.Combine(testDirectory, "personal-settings.json");
 string personalUsagePath = Path.Combine(testDirectory, "personal-usage.json");
@@ -631,6 +724,16 @@ Assert(!await personalViewModel.ForceApplyPendingForTestingAsync(), "Bekleyen de
 
 string blockedExecutable = Path.Combine(testDirectory, "otium-rule-test.exe");
 File.Copy(Path.Combine(Environment.SystemDirectory, "cmd.exe"), blockedExecutable);
+string tamperedSignedExecutable = Path.Combine(testDirectory, "tampered-signed-test.exe");
+File.Copy(Path.Combine(Environment.SystemDirectory, "cmd.exe"), tamperedSignedExecutable);
+await File.AppendAllTextAsync(tamperedSignedExecutable, "tampered");
+Assert(!AuthenticodeTrustVerifier.IsTrusted(tamperedSignedExecutable),
+    "İçeriği değiştirilmiş Authenticode dosyası güvenilir kabul edildi.");
+AppRule capturedApplicationRule = ApplicationIdentityService.CaptureRule(blockedExecutable);
+Assert(!string.IsNullOrWhiteSpace(capturedApplicationRule.OriginalFileName) &&
+    !string.IsNullOrWhiteSpace(capturedApplicationRule.Sha256) &&
+    ApplicationIdentityService.MatchesRule(capturedApplicationRule, blockedExecutable),
+    "Publisher/original filename/SHA-256 uygulama kimliği yakalanamadı.");
 ControlSettings enforcementSettings = new();
 enforcementSettings.AppRules.Add(new AppRule
 {

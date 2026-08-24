@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -566,6 +567,115 @@ public partial class MainWindow : Window
 
             _managementPin = setup.ResultPin;
         }
+    }
+
+    private async void RecoveryCodes_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_viewModel.HasAdminPin)
+        {
+            _viewModel.StatusMessage = LocalizationService.Get("RecoveryCodesRequirePin");
+            return;
+        }
+
+        AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
+        verification.Owner = this;
+        if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin))
+        {
+            return;
+        }
+
+        if (!await WindowsAdministratorVerificationService.RequestAsync("recovery.codes.generate"))
+        {
+            _viewModel.StatusMessage = LocalizationService.Get("WindowsAdminVerificationFailed");
+            return;
+        }
+
+        IReadOnlyList<string> codes = await _viewModel.GenerateRecoveryCodesAsync();
+        if (ProtectionServiceManager.GetState() == ProtectionServiceState.Running &&
+            !await ProtectionPolicyChannel.SyncAsync(_viewModel.ExportSettingsJson(), verification.ResultPin))
+        {
+            await RestoreAuthoritativeProtectedPolicyAsync();
+            return;
+        }
+
+        RecoveryCodesWindow window = new(codes) { Owner = this };
+        window.ShowDialog();
+        _viewModel.StatusMessage = LocalizationService.Get("RecoveryCodesGenerated");
+    }
+
+    private async void RestoreLastKnownGood_Click(object sender, RoutedEventArgs e)
+    {
+        string? authorizationPin = _managementPin;
+        if (_viewModel.HasAdminPin)
+        {
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
+            verification.Owner = this;
+            if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin)) return;
+            authorizationPin = verification.ResultPin;
+        }
+
+        if (!await WindowsAdministratorVerificationService.RequestAsync("recovery.last-known-good.restore"))
+        {
+            _viewModel.StatusMessage = LocalizationService.Get("WindowsAdminVerificationFailed");
+            return;
+        }
+
+        try
+        {
+            await _viewModel.RestoreLastKnownGoodSettingsAsync();
+            if (ProtectionServiceManager.GetState() == ProtectionServiceState.Running &&
+                (string.IsNullOrWhiteSpace(authorizationPin) ||
+                 !await ProtectionPolicyChannel.SyncAsync(_viewModel.ExportSettingsJson(), authorizationPin)))
+            {
+                await RestoreAuthoritativeProtectedPolicyAsync();
+                return;
+            }
+
+            _managementPin = authorizationPin;
+            _viewModel.StatusMessage = LocalizationService.Get("LastKnownGoodRestored");
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{LocalizationService.Get("LastKnownGoodRestoreFailed")}: {exception.Message}";
+        }
+    }
+
+    private async void ResetClockProtection_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.HasAdminPin)
+        {
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
+            verification.Owner = this;
+            if (verification.ShowDialog() != true) return;
+        }
+
+        if (!await WindowsAdministratorVerificationService.RequestAsync("recovery.clock-anomaly.clear"))
+        {
+            _viewModel.StatusMessage = LocalizationService.Get("WindowsAdminVerificationFailed");
+            return;
+        }
+
+        await _viewModel.ClearClockAnomalyAsync();
+        string auditPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Otium",
+            "security-audit.jsonl");
+        await new SecurityAuditLog(auditPath).AppendAsync("clock.anomaly", "admin-cleared");
+        _viewModel.StatusMessage = LocalizationService.Get("ClockProtectionReset");
+    }
+
+    private async void RepairInstallation_Click(object sender, RoutedEventArgs e)
+    {
+        bool repaired = await WindowsAdministratorVerificationService.RequestAsync("recovery.installer.repair");
+        if (!repaired)
+        {
+            _viewModel.StatusMessage = LocalizationService.Get("InstallationRepairFailed");
+        }
+        else
+        {
+            _viewModel.StatusMessage = LocalizationService.Get("InstallationRepaired");
+        }
+        RefreshProtectionStatus();
     }
 
     private async Task<bool> SyncProtectedPolicyAsync()

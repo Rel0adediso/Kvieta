@@ -9,14 +9,19 @@ public partial class AdminPinWindow : Window
 {
     private readonly bool _isSetup;
     private readonly Func<string, bool>? _verifier;
+    private readonly Func<Window, Task<string?>>? _recoveryAction;
     private int _failedAttempts;
 
-    private AdminPinWindow(bool isSetup, Func<string, bool>? verifier)
+    private AdminPinWindow(
+        bool isSetup,
+        Func<string, bool>? verifier,
+        Func<Window, Task<string?>>? recoveryAction = null)
     {
         InitializeComponent();
         Title = $"Otium · {LocalizationService.Get("AdminPin")}";
         _isSetup = isSetup;
         _verifier = verifier;
+        _recoveryAction = recoveryAction;
 
         if (isSetup)
         {
@@ -31,6 +36,7 @@ public partial class AdminPinWindow : Window
             DescriptionText.Text = LocalizationService.Get("AdminVerificationDescription");
             ConfirmPanel.Visibility = Visibility.Collapsed;
             ConfirmButton.Content = LocalizationService.Get("Unlock");
+            RecoveryButton.Visibility = recoveryAction is null ? Visibility.Collapsed : Visibility.Visible;
         }
     }
 
@@ -38,10 +44,37 @@ public partial class AdminPinWindow : Window
 
     public static AdminPinWindow CreateSetup() => new(true, null);
 
-    public static AdminPinWindow CreateVerification(Func<string, bool> verifier)
+    public static AdminPinWindow CreateVerification(
+        Func<string, bool> verifier,
+        Func<Window, Task<string?>>? recoveryAction = null)
     {
         ArgumentNullException.ThrowIfNull(verifier);
-        return new AdminPinWindow(false, verifier);
+        return new AdminPinWindow(false, verifier, recoveryAction);
+    }
+
+    private async void Recovery_Click(object sender, RoutedEventArgs e)
+    {
+        if (_recoveryAction is null)
+        {
+            return;
+        }
+
+        RecoveryButton.IsEnabled = false;
+        ConfirmButton.IsEnabled = false;
+        try
+        {
+            string? newPin = await _recoveryAction(this);
+            if (newPin is not null)
+            {
+                ResultPin = newPin;
+                DialogResult = true;
+            }
+        }
+        finally
+        {
+            RecoveryButton.IsEnabled = true;
+            ConfirmButton.IsEnabled = true;
+        }
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e) => PinBox.Focus();

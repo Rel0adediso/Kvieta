@@ -54,6 +54,9 @@ public static class ProtectionServiceManager
         }
     }
 
+    public static string? RegisteredSignerThumbprint =>
+        ReadInstallerValue("SignerThumbprint") as string;
+
     public static ProtectionVersionCompatibility GetVersionCompatibility()
     {
         if (!File.Exists(InstalledExecutablePath))
@@ -105,6 +108,37 @@ public static class ProtectionServiceManager
         try
         {
             return Process.Start(startInfo) is not null;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
+    }
+
+    public static async Task<bool> RunProductRepairAsync(bool requestElevation = true)
+    {
+        if (!IsInstallerManaged || ReadInstallerValue("ProductCode") is not string productCode ||
+            !Guid.TryParse(productCode.Trim('{', '}'), out _))
+        {
+            return false;
+        }
+
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = Path.Combine(Environment.SystemDirectory, "msiexec.exe"),
+            Arguments = $"/fa {productCode} /passive /norestart",
+            UseShellExecute = requestElevation,
+            Verb = requestElevation ? "runas" : string.Empty,
+            CreateNoWindow = !requestElevation,
+            WindowStyle = ProcessWindowStyle.Hidden
+        };
+
+        try
+        {
+            using Process? process = Process.Start(startInfo);
+            if (process is null) return false;
+            await process.WaitForExitAsync();
+            return process.ExitCode is 0 or 3010;
         }
         catch (System.ComponentModel.Win32Exception)
         {

@@ -11,7 +11,7 @@ public enum SessionState
 
 public sealed class UsageLedger
 {
-    public int SchemaVersion { get; set; } = 5;
+    public int SchemaVersion { get; set; } = 6;
     public long DataGeneration { get; set; }
     public DateOnly? RetainedFromDay { get; set; }
     public DateOnly LocalDay { get; set; } = DateOnly.FromDateTime(DateTime.Today);
@@ -29,6 +29,23 @@ public sealed class UsageLedger
     public SessionState State { get; set; } = SessionState.Ready;
     public DateTimeOffset LastUpdatedUtc { get; set; } = DateTimeOffset.MinValue;
     public DateTimeOffset? ClockRollbackUntilUtc { get; set; }
+    public DateTimeOffset LastTrustedUtc { get; set; } = DateTimeOffset.MinValue;
+    public DateTimeOffset? EstimatedBootUtc { get; set; }
+    public long? LastMonotonicMilliseconds { get; set; }
+    public string? LastBootId { get; set; }
+    public int? LastUtcOffsetMinutes { get; set; }
+    public ClockChangeKind LastClockChange { get; set; }
+    public DateTimeOffset? ClockChangeDetectedAtUtc { get; set; }
+    public bool ClockAnomalyRequiresRecovery { get; set; }
+}
+
+public enum ClockChangeKind
+{
+    None,
+    Reboot,
+    TimeZoneChanged,
+    ForwardJump,
+    Rollback
 }
 
 public enum UsageEventKind

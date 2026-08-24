@@ -12,10 +12,12 @@ public sealed class AppRuleRow : ObservableObject
     private string _executablePath;
     private string _mode;
     private int _dailyLimitMinutes;
+    private readonly AppRule _identity;
 
     public AppRuleRow(AppRule rule)
     {
         Id = rule.Id;
+        _identity = rule;
         _name = rule.Name;
         _executablePath = rule.ExecutablePath;
         _mode = ToDisplayMode(rule.Mode);
@@ -73,6 +75,15 @@ public sealed class AppRuleRow : ObservableObject
             Id = Id,
             Name = Name.Trim(),
             ExecutablePath = ExecutablePath.Trim(),
+            OriginalFileName = _identity.OriginalFileName,
+            ProductName = _identity.ProductName,
+            PublisherName = _identity.PublisherName,
+            PublisherThumbprint = _identity.PublisherThumbprint,
+            Sha256 = _identity.Sha256,
+            RequireSha256 = _identity.RequireSha256,
+            PackageFamilyName = _identity.PackageFamilyName,
+            IncludeChildProcesses = _identity.IncludeChildProcesses,
+            LauncherExecutablePaths = [.. _identity.LauncherExecutablePaths],
             Mode = FromDisplayMode(Mode),
             DailyLimitMinutes = DailyLimitMinutes
         };

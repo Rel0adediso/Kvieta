@@ -22,6 +22,7 @@ public sealed class CafeViewModel : ObservableObject
     private DateTimeOffset? _pendingApplyAfterUtc;
     private DateTime _settingsLastWriteUtc;
     private string? _persistenceWarning;
+    private bool _clockAnomalyAudited;
 
     public CafeViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
@@ -98,7 +99,8 @@ public sealed class CafeViewModel : ObservableObject
         }
         catch
         {
-            settings = new ControlSettings { SetupCompleted = true };
+            settings = CreateFailClosedSettings();
+            _persistenceWarning = LocalizationService.Get("SettingsRecoveryRequired");
         }
         _settings = settings;
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
@@ -106,6 +108,7 @@ public sealed class CafeViewModel : ObservableObject
         _pendingApplyAfterUtc = settings.PendingChange?.ApplyAfterUtc;
         UsageLedger ledger = await _usageStore.LoadAsync();
         _engine = new SessionEngine(settings, ledger, DateTimeOffset.Now);
+        _engine.ObserveClock(DateTimeOffset.Now, WindowsMonotonicClock.Uptime, WindowsMonotonicClock.GetBootId());
         _tickWatch.Restart();
         RefreshSnapshot(notifyStateChange: false);
         await SaveAsync();
@@ -129,6 +132,25 @@ public sealed class CafeViewModel : ObservableObject
 
         TimeSpan elapsed = _tickWatch.Elapsed;
         _tickWatch.Restart();
+        ClockChangeKind clockChange = _engine.ObserveClock(
+            DateTimeOffset.Now,
+            WindowsMonotonicClock.Uptime,
+            WindowsMonotonicClock.GetBootId());
+        if (clockChange is ClockChangeKind.Rollback or ClockChangeKind.ForwardJump)
+        {
+            _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
+            if (!_clockAnomalyAudited)
+            {
+                _clockAnomalyAudited = true;
+                string auditPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Otium",
+                    "security-audit.jsonl");
+                await new SecurityAuditLog(auditPath).AppendAsync(
+                    "clock.anomaly",
+                    clockChange == ClockChangeKind.Rollback ? "rollback" : "forward-jump");
+            }
+        }
         if (_settings is not null && _settings.Mode != ControlMode.Awareness &&
             _applicationRuleEnforcer.Enforce(_settings, _engine.Ledger, elapsed))
         {
@@ -234,6 +256,7 @@ public sealed class CafeViewModel : ObservableObject
         await SaveAsync();
     }
 
+#if OTIUM_DEVELOPMENT_BUILD
     public async Task ForceUnlockForTestingAsync()
     {
         if (_engine is null)
@@ -246,7 +269,7 @@ public sealed class CafeViewModel : ObservableObject
         {
             ControlSettings target = pending.TargetSettings;
             target.PendingChange = null;
-            target.SchemaVersion = 6;
+            target.SchemaVersion = 8;
             target.SetupCompleted = true;
             await _settingsStore.SaveAsync(target);
             _settings = target;
@@ -262,6 +285,7 @@ public sealed class CafeViewModel : ObservableObject
         RefreshSnapshot(notifyStateChange: true);
         await SaveAsync();
     }
+#endif
 
     public async Task SaveAsync()
     {
@@ -311,7 +335,8 @@ public sealed class CafeViewModel : ObservableObject
         }
         catch
         {
-            settings = _settings ?? new ControlSettings { SetupCompleted = true };
+            settings = _settings ?? CreateFailClosedSettings();
+            _persistenceWarning = LocalizationService.Get("SettingsRecoveryRequired");
         }
         _settings = settings;
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
@@ -403,6 +428,22 @@ public sealed class CafeViewModel : ObservableObject
         {
             SessionStateChanged?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    private static ControlSettings CreateFailClosedSettings()
+    {
+        ControlSettings settings = new()
+        {
+            SetupCompleted = true,
+            Mode = ControlMode.Protected,
+            DefaultDailyLimitMinutes = 0
+        };
+        foreach (DaySchedule day in settings.Schedule)
+        {
+            day.IsEnabled = false;
+            day.DailyLimitMinutes = 0;
+        }
+        return settings;
     }
 
     private static string FormatClock(long seconds)

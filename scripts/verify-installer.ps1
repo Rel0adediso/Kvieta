@@ -1,10 +1,32 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [string]$ManifestPath
+    [string]$ManifestPath,
+
+    [ValidatePattern('^(?:[A-Fa-f0-9]\s*){40}$')]
+    [string]$TrustedSignerThumbprint
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Get-NormalizedThumbprint([string]$Thumbprint) {
+    return ($Thumbprint -replace '\s', '').ToUpperInvariant()
+}
+
+function Get-VerificationSignerThumbprint {
+    if (-not [string]::IsNullOrWhiteSpace($TrustedSignerThumbprint)) {
+        return Get-NormalizedThumbprint $TrustedSignerThumbprint
+    }
+
+    $scriptSignature = Get-AuthenticodeSignature -LiteralPath $PSCommandPath
+    if ($scriptSignature.Status -ne 'Valid' -or $null -eq $scriptSignature.SignerCertificate) {
+        throw 'The verifier is not Authenticode-signed. Supply a trusted signer thumbprint explicitly for development verification.'
+    }
+
+    return Get-NormalizedThumbprint $scriptSignature.SignerCertificate.Thumbprint
+}
+
+$trustedSigner = Get-VerificationSignerThumbprint
 $resolvedManifestPath = (Resolve-Path -LiteralPath $ManifestPath).Path
 $manifest = Get-Content -LiteralPath $resolvedManifestPath -Raw | ConvertFrom-Json
 
@@ -39,10 +61,22 @@ if ($actualHash -ne ([string]$manifest.sha256).ToLowerInvariant()) {
     throw 'The installer SHA-256 hash does not match the release manifest.'
 }
 
+if ([string]::IsNullOrWhiteSpace([string]$manifest.signerThumbprint) -or
+    (Get-NormalizedThumbprint ([string]$manifest.signerThumbprint)) -ne $trustedSigner) {
+    throw 'The release manifest signer does not match the trusted Otium signer.'
+}
+
+$packageSignature = Get-AuthenticodeSignature -LiteralPath $resolvedPackagePath
+if ($packageSignature.Status -ne 'Valid' -or $null -eq $packageSignature.SignerCertificate -or
+    (Get-NormalizedThumbprint $packageSignature.SignerCertificate.Thumbprint) -ne $trustedSigner) {
+    throw 'The installer does not have a valid signature from the trusted Otium signer.'
+}
+
 [pscustomobject]@{
     PackagePath = $resolvedPackagePath
     Version = [string]$manifest.version
     Architecture = [string]$manifest.architecture
     SizeBytes = $package.Length
     Sha256 = $actualHash
+    SignerThumbprint = $trustedSigner
 }

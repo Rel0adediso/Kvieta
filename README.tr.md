@@ -90,7 +90,7 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 
 ## Güncel durum
 
-**v0.17.0 prototip**
+**v0.18.0 özellikleri tamamlanmış sürüm adayı**
 
 - Release build: `0` uyarı, `0` hata
 - Tek dosyalık, self-contained Windows paketi
@@ -99,6 +99,10 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 - v0.16 Ritim temeli tamamlandı: açık rızalı, yalnız yerel ön plan uygulaması farkındalığı ve ayrı kural sayaçları
 - v0.16.1 kısa, erişilebilir ve işlevsel Otium hareket dili tamamlandı
 - v0.17 isteğe bağlı masaüstü kısayolu, MSI yönetimli Guardian, korumalı kaldırma, doğrulanan güncelleme paketleri, rollback ve downgrade engeliyle tamamlandı
+- v0.18 sertleştirmesi tamamlandı: Public pakette test kilit açma yolu yok; tek kullanımlık kurtarma kodları Windows yönetici onayıyla PIN sıfırlayabiliyor
+- Guardian IPC imzalı kurulu istemciyi doğruluyor; nonce/HMAC/replay koruması, kalıcı bekleme ve yerel güvenlik audit'i kullanıyor
+- Monotonic saat denetimi reboot/saat dilimi değişimini ileri/geri saat manipülasyonundan ayırıyor ve yönetici kurtarma yolu bırakıyor
+- Uygulama Kimliği 2.0 yol, güvenilir publisher, original filename, ürün bilgisi, isteğe bağlı SHA-256, package family, launcher ve alt süreç ilişkilerini birleştiriyor
 
 Geliştirme sırası ve v1.0 hedefleri için [güncel yol haritasına](ROADMAP.md) bakın.
 
