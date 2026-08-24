@@ -359,37 +359,19 @@ public partial class MainWindow : Window
         Height = Math.Min(Height, MaxHeight);
     }
 
-    private async void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+#if OTIUM_DEVELOPMENT_BUILD
         if (e.Key == Key.F12 &&
             Keyboard.Modifiers.HasFlag(ModifierKeys.Control) &&
             Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) &&
             Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
         {
             e.Handled = true;
-            if (await _viewModel.ForceApplyPendingForTestingAsync())
-            {
-                try
-                {
-                    StartupRegistrationService.Apply(_viewModel.AppliedStartWithWindows);
-                }
-                catch (Exception exception)
-                {
-                    _viewModel.StatusMessage = $"Windows başlangıcı ayarlanamadı: {exception.Message}";
-                }
-
-                if (_backgroundSessionWindow is not null)
-                {
-                    await _backgroundSessionWindow.ReloadSettingsAsync();
-                }
-
-                EnsurePersonalBackgroundSession();
-                RefreshProtectionStatus();
-                _viewModel.RefreshOverview();
-                ResetSettingsScrollPosition();
-            }
+            ForceApplyPendingForTestingAsync();
             return;
         }
+#endif
 
         if (e.Key == Key.Escape && _applicationDetailsOpen)
         {
@@ -639,6 +621,35 @@ public partial class MainWindow : Window
             _viewModel.StatusMessage = $"{LocalizationService.Get("LastKnownGoodRestoreFailed")}: {exception.Message}";
         }
     }
+
+#if OTIUM_DEVELOPMENT_BUILD
+    private async void ForceApplyPendingForTestingAsync()
+    {
+        if (!await _viewModel.ForceApplyPendingForTestingAsync())
+        {
+            return;
+        }
+
+        try
+        {
+            StartupRegistrationService.Apply(_viewModel.AppliedStartWithWindows);
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"Windows başlangıcı ayarlanamadı: {exception.Message}";
+        }
+
+        if (_backgroundSessionWindow is not null)
+        {
+            await _backgroundSessionWindow.ReloadSettingsAsync();
+        }
+
+        EnsurePersonalBackgroundSession();
+        RefreshProtectionStatus();
+        _viewModel.RefreshOverview();
+        ResetSettingsScrollPosition();
+    }
+#endif
 
     private void RecoveryCenter_Click(object sender, RoutedEventArgs e)
     {

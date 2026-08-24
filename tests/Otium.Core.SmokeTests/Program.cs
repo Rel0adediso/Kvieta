@@ -716,11 +716,16 @@ PendingPolicyChange queuedMode = queuedModeSettings.PendingChange ?? throw new I
 Assert(queuedMode.TargetSettings.Mode == ControlMode.Protected, "Bekleyen mod hedefi yanlış.");
 Assert(queuedMode.TargetSettings.Schedule.Single(day => day.Day == DayOfWeek.Monday).DailyLimitMinutes == 90, "Mod değişikliği mevcut bekleyen ayarı kaybetti.");
 Assert(AdminPinService.Verify("4826", queuedMode.TargetSettings.AdminPin), "Bekleyen korumalı mod PIN'i güvenli biçimde saklanmadı.");
+#if OTIUM_DEVELOPMENT_BUILD
 Assert(await personalViewModel.ForceApplyPendingForTestingAsync(), "Kontrol merkezi test atlaması bekleyen değişikliği uygulamadı.");
 ControlSettings bypassedModeSettings = await personalSettingsStore.LoadAsync();
 Assert(bypassedModeSettings.Mode == ControlMode.Protected && bypassedModeSettings.PendingChange is null,
     "Kontrol merkezi test atlaması bekleme süresini kaldıramadı.");
 Assert(!await personalViewModel.ForceApplyPendingForTestingAsync(), "Bekleyen değişiklik yokken test atlaması başarılı göründü.");
+#else
+Assert(typeof(MainViewModel).GetMethod("ForceApplyPendingForTestingAsync") is null,
+    "Public pakette kontrol merkezi test atlaması derlenmiş.");
+#endif
 
 string blockedExecutable = Path.Combine(testDirectory, "otium-rule-test.exe");
 File.Copy(Path.Combine(Environment.SystemDirectory, "cmd.exe"), blockedExecutable);

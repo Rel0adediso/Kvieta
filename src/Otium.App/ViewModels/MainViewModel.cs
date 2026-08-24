@@ -1097,6 +1097,7 @@ public sealed class MainViewModel : ObservableObject
         StatusMessage = L("Bekleyen değişiklik iptal edildi", "Pending change canceled");
     }
 
+#if OTIUM_DEVELOPMENT_BUILD
     public async Task<bool> ForceApplyPendingForTestingAsync()
     {
         if (_settings.PendingChange is null)
@@ -1111,6 +1112,7 @@ public sealed class MainViewModel : ObservableObject
         StatusMessage = L("Test atlaması · Bekleyen değişiklik hemen uygulandı", "Test bypass · Pending change applied now");
         return true;
     }
+#endif
 
     public void ChangeLanguage(LanguagePreference language)
     {
