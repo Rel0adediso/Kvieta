@@ -1,5 +1,7 @@
 using Otium.App.Services;
 using Otium.Core.Models;
+using System.IO;
+using System.Windows.Media;
 
 namespace Otium.App.ViewModels;
 
@@ -24,8 +26,23 @@ public sealed class AppUsageHistoryRow
     public required string Name { get; init; }
     public long UsedSeconds { get; init; }
     public double RelativePercent { get; init; }
+    public ImageSource? Icon { get; init; }
+    public required System.Windows.Media.Brush FallbackBrush { get; init; }
     public string UsedText => UsageHistoryFormatting.FormatDuration(UsedSeconds);
     public string RankText => $"#{Rank}";
+    public bool HasIcon => Icon is not null;
+    public bool HasFallbackIcon => Icon is null;
+    public string Initials
+    {
+        get
+        {
+            string cleanName = Path.GetFileNameWithoutExtension(Name).Trim();
+            string[] words = cleanName.Split(['.', ' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries);
+            return words.Length > 1
+                ? string.Concat(words.Take(2).Select(word => char.ToUpperInvariant(word[0])))
+                : cleanName[..Math.Min(2, cleanName.Length)].ToUpperInvariant();
+        }
+    }
 }
 
 public sealed class UsageHistoryEventRow

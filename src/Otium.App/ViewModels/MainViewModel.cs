@@ -559,18 +559,16 @@ public sealed class MainViewModel : ObservableObject
         List<AppUsageHistoryRow> applications = records
             .SelectMany(item => item.ForegroundApplications)
             .GroupBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(group => new AppUsageHistoryRow { Name = group.Key, UsedSeconds = group.Sum(item => item.UsedSeconds), RelativePercent = 0 })
+            .Select(group => CreateAppUsageRow(0, group.Key, group.Sum(item => item.UsedSeconds), 0))
             .OrderByDescending(item => item.UsedSeconds)
             .ToList();
         long maximumApp = Math.Max(1, applications.Select(item => item.UsedSeconds).DefaultIfEmpty(0).Max());
         List<AppUsageHistoryRow> rankedApplications = applications
-            .Select((application, index) => new AppUsageHistoryRow
-            {
-                Rank = index + 1,
-                Name = application.Name,
-                UsedSeconds = application.UsedSeconds,
-                RelativePercent = Math.Clamp(application.UsedSeconds * 100d / maximumApp, 0, 100)
-            })
+            .Select((application, index) => CreateAppUsageRow(
+                index + 1,
+                application.Name,
+                application.UsedSeconds,
+                Math.Clamp(application.UsedSeconds * 100d / maximumApp, 0, 100)))
             .ToList();
         HistoryAllApplications.Clear();
         foreach (AppUsageHistoryRow application in rankedApplications)
@@ -617,6 +615,16 @@ public sealed class MainViewModel : ObservableObject
         _lastUsageLedger = ledger;
         BuildUsageHistory(ledger);
     }
+
+    private static AppUsageHistoryRow CreateAppUsageRow(int rank, string name, long usedSeconds, double relativePercent) => new()
+    {
+        Rank = rank,
+        Name = name,
+        UsedSeconds = usedSeconds,
+        RelativePercent = relativePercent,
+        Icon = ApplicationIconProvider.GetIcon(name),
+        FallbackBrush = ApplicationIconProvider.GetFallbackBrush(name)
+    };
 
     private static bool SettingsEquivalent(ControlSettings left, ControlSettings right)
     {
