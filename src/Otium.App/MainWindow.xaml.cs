@@ -51,6 +51,8 @@ public partial class MainWindow : Window
                 {
                     _viewModel.StatusMessage = $"Windows başlangıcı ayarlanamadı: {exception.Message}";
                 }
+
+                ResetSettingsScrollPosition();
             }
 
             await _viewModel.ReloadUsageAsync();
@@ -64,6 +66,7 @@ public partial class MainWindow : Window
         ((App)System.Windows.Application.Current).ThemeService.SetPreference(MainViewModel.FromDisplayTheme(_viewModel.ThemeMode));
         RefreshProtectionStatus();
         EnsurePersonalBackgroundSession();
+        ResetSettingsScrollPosition();
         _overviewTimer.Start();
         _isInitializing = false;
     }
@@ -228,6 +231,7 @@ public partial class MainWindow : Window
                 EnsurePersonalBackgroundSession();
                 RefreshProtectionStatus();
                 _viewModel.RefreshOverview();
+                ResetSettingsScrollPosition();
             }
             return;
         }
@@ -407,6 +411,7 @@ public partial class MainWindow : Window
         await _viewModel.SetControlModeAsync(targetMode, newPin);
         RefreshProtectionStatus();
         EnsurePersonalBackgroundSession();
+        ResetSettingsScrollPosition();
     }
 
     private async void ProtectionAction_Click(object sender, RoutedEventArgs e)
@@ -621,6 +626,12 @@ public partial class MainWindow : Window
         RestoreControlCenter();
         await _viewModel.InitializeAsync();
         _viewModel.RefreshOverview();
+        ResetSettingsScrollPosition();
+    }
+
+    private void ResetSettingsScrollPosition()
+    {
+        Dispatcher.BeginInvoke(() => SettingsScrollViewer.ScrollToTop(), DispatcherPriority.Loaded);
     }
 
     private void Window_Closing(object? sender, CancelEventArgs e)
