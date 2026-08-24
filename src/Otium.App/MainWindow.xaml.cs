@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private Forms.NotifyIcon? _trayIcon;
     private TrayMenuWindow? _trayMenuWindow;
     private bool _isInitializing = true;
+    private bool _applicationDetailsOpen;
 
     public MainWindow(CafeWindow? existingSessionWindow = null, string? managementPin = null)
     {
@@ -130,10 +131,83 @@ public partial class MainWindow : Window
             return;
         }
 
-        new ApplicationUsageDetailsWindow(_viewModel.HistoryAllApplications)
+        ShowApplicationDetails();
+        e.Handled = true;
+    }
+
+    private void ShowApplicationDetails()
+    {
+        _applicationDetailsOpen = true;
+        ApplicationDetailsOverlay.Visibility = Visibility.Visible;
+        ApplicationDetailsOverlay.IsHitTestVisible = true;
+        ApplicationDetailsOverlay.BeginAnimation(OpacityProperty, null);
+        ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+
+        if (!SystemParameters.ClientAreaAnimation)
         {
-            Owner = this
-        }.ShowDialog();
+            ApplicationDetailsOverlay.Opacity = 1;
+            ApplicationDetailsTranslate.X = 0;
+            return;
+        }
+
+        ApplicationDetailsOverlay.Opacity = 0;
+        ApplicationDetailsTranslate.X = 520;
+        ApplicationDetailsOverlay.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(170))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        });
+        ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(520, 0, TimeSpan.FromMilliseconds(260))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        });
+    }
+
+    private void CloseApplicationDetails()
+    {
+        if (!_applicationDetailsOpen)
+        {
+            return;
+        }
+
+        _applicationDetailsOpen = false;
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            ApplicationDetailsOverlay.Visibility = Visibility.Collapsed;
+            ApplicationDetailsOverlay.IsHitTestVisible = false;
+            return;
+        }
+
+        DoubleAnimation fade = new(0, TimeSpan.FromMilliseconds(150))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+        };
+        fade.Completed += (_, _) =>
+        {
+            ApplicationDetailsOverlay.Visibility = Visibility.Collapsed;
+            ApplicationDetailsOverlay.IsHitTestVisible = false;
+            ApplicationDetailsOverlay.BeginAnimation(OpacityProperty, null);
+            ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+            ApplicationDetailsOverlay.Opacity = 0;
+            ApplicationDetailsTranslate.X = 520;
+        };
+        ApplicationDetailsOverlay.BeginAnimation(OpacityProperty, fade);
+        ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, 520, TimeSpan.FromMilliseconds(210))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+        });
+    }
+
+    private void ApplicationDetailsScrim_Click(object sender, MouseButtonEventArgs e) => CloseApplicationDetails();
+
+    private void ApplicationDetailsClose_Click(object sender, RoutedEventArgs e) => CloseApplicationDetails();
+
+    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && _applicationDetailsOpen)
+        {
+            CloseApplicationDetails();
+            e.Handled = true;
+        }
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
