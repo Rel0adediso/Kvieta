@@ -94,4 +94,5 @@
     <sys:String x:Key="RepairInstallationRequirement">Gereken: MSI ile kurulmuş Otium + Windows yönetici onayı. Eksik dosya veya durmuş servis için kullan.</sys:String>
     <sys:String x:Key="RepairInstallationAction">Kurulumu onar</sys:String>
     <sys:String x:Key="RecoveryCenterPrivacyNote">Her kurtarma işlemi cihazdaki güvenlik günlüğüne yalnız işlem adı, sonuç ve zaman olarak yazılır; PIN, kurtarma kodu veya özel içerik kaydedilmez.</sys:String>
+    <sys:String x:Key="RecoveryCenterOpenFailed">Kurtarma Merkezi açılamadı</sys:String>
 </ResourceDictionary>

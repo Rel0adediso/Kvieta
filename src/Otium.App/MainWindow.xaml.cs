@@ -642,7 +642,17 @@ public partial class MainWindow : Window
 
     private void RecoveryCenter_Click(object sender, RoutedEventArgs e)
     {
-        RecoveryCenterWindow window = new() { Owner = this };
+        RecoveryCenterWindow window;
+        try
+        {
+            window = new RecoveryCenterWindow { Owner = this };
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{LocalizationService.Get("RecoveryCenterOpenFailed")}: {exception.Message}";
+            return;
+        }
+
         if (window.ShowDialog() != true || window.SelectedAction is null)
         {
             return;

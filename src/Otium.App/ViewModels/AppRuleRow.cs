@@ -10,9 +10,10 @@ public sealed class AppRuleRow : ObservableObject
 {
     private string _name;
     private string _executablePath;
-    private string _mode;
+    private AppRuleModeOption _mode;
     private int _dailyLimitMinutes;
     private readonly AppRule _identity;
+    private readonly IReadOnlyList<AppRuleModeOption> _modes;
 
     public AppRuleRow(AppRule rule)
     {
@@ -20,7 +21,13 @@ public sealed class AppRuleRow : ObservableObject
         _identity = rule;
         _name = rule.Name;
         _executablePath = rule.ExecutablePath;
-        _mode = ToDisplayMode(rule.Mode);
+        _modes =
+        [
+            new(AppRuleMode.Blocked, LocalizationService.Get("Blocked"), LocalizationService.Get("PermanentBlockModeDescription")),
+            new(AppRuleMode.Limited, LocalizationService.Get("Limited"), LocalizationService.Get("LimitedModeDescription")),
+            new(AppRuleMode.Unlimited, LocalizationService.Get("Unlimited"), LocalizationService.Get("UnlimitedModeDescription"))
+        ];
+        _mode = _modes.Single(option => option.Value == rule.Mode);
         _dailyLimitMinutes = rule.DailyLimitMinutes;
         Icon = ApplicationIconProvider.GetIcon(rule.ExecutablePath);
         FallbackBrush = ApplicationIconProvider.GetFallbackBrush(rule.Name);
@@ -31,7 +38,7 @@ public sealed class AppRuleRow : ObservableObject
     public WpfBrush FallbackBrush { get; }
     public bool HasIcon => Icon is not null;
     public bool HasFallbackIcon => Icon is null;
-    public bool IsLimitEditable => FromDisplayMode(Mode) == AppRuleMode.Limited;
+    public bool IsLimitEditable => Mode.Value == AppRuleMode.Limited;
     public string Initials
     {
         get
@@ -43,7 +50,7 @@ public sealed class AppRuleRow : ObservableObject
                 : cleanName[..Math.Min(2, cleanName.Length)].ToUpperInvariant();
         }
     }
-    public IReadOnlyList<string> Modes => [LocalizationService.Get("Blocked"), LocalizationService.Get("Limited"), LocalizationService.Get("Unlimited")];
+    public IReadOnlyList<AppRuleModeOption> Modes => _modes;
 
     public string Name
     {
@@ -57,7 +64,7 @@ public sealed class AppRuleRow : ObservableObject
         set => SetProperty(ref _executablePath, value);
     }
 
-    public string Mode
+    public AppRuleModeOption Mode
     {
         get => _mode;
         set
@@ -91,23 +98,11 @@ public sealed class AppRuleRow : ObservableObject
             PackageFamilyName = _identity.PackageFamilyName,
             IncludeChildProcesses = _identity.IncludeChildProcesses,
             LauncherExecutablePaths = [.. _identity.LauncherExecutablePaths],
-            Mode = FromDisplayMode(Mode),
+            Mode = Mode.Value,
             DailyLimitMinutes = DailyLimitMinutes
         };
     }
 
-    private static string ToDisplayMode(AppRuleMode mode) => mode switch
-    {
-        AppRuleMode.Blocked => LocalizationService.Get("Blocked"),
-        AppRuleMode.Limited => LocalizationService.Get("Limited"),
-        AppRuleMode.Unlimited => LocalizationService.Get("Unlimited"),
-        _ => LocalizationService.Get("Blocked")
-    };
-
-    private static AppRuleMode FromDisplayMode(string mode) => mode switch
-    {
-        var value when value == LocalizationService.Get("Limited") => AppRuleMode.Limited,
-        var value when value == LocalizationService.Get("Unlimited") => AppRuleMode.Unlimited,
-        _ => AppRuleMode.Blocked
-    };
 }
+
+public sealed record AppRuleModeOption(AppRuleMode Value, string Label, string Description);

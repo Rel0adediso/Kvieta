@@ -94,4 +94,5 @@
     <sys:String x:Key="RepairInstallationRequirement">Requires: Otium installed by MSI + Windows administrator approval. Use for missing files or a stopped service.</sys:String>
     <sys:String x:Key="RepairInstallationAction">Repair installation</sys:String>
     <sys:String x:Key="RecoveryCenterPrivacyNote">Recovery audit stores only the action name, result, and time on this device; it never stores the PIN, recovery code, or private content.</sys:String>
+    <sys:String x:Key="RecoveryCenterOpenFailed">Recovery Center could not be opened</sys:String>
 </ResourceDictionary>

@@ -4,6 +4,9 @@
         Width="780" Height="610" WindowStyle="None" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" Background="Transparent" AllowsTransparency="True"
         ShowInTaskbar="False" Title="Otium · Recovery">
+    <Window.Resources>
+        <Style x:Key="CaptionStyle" TargetType="TextBlock"><Setter Property="FontSize" Value="10.5"/><Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/></Style>
+    </Window.Resources>
     <Border Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
         <Grid>
             <Grid.RowDefinitions><RowDefinition Height="40"/><RowDefinition Height="*"/></Grid.RowDefinitions>
