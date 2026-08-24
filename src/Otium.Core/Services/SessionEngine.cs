@@ -63,7 +63,8 @@ public sealed class SessionEngine
         }
 
         ScheduleStatus schedule = ScheduleEvaluator.Evaluate(_settings, now);
-        if (!schedule.IsAllowed || Ledger.UsedSeconds >= GetLimitSeconds(now))
+        if (_settings.Mode != ControlMode.Awareness &&
+            (!schedule.IsAllowed || Ledger.UsedSeconds >= GetLimitSeconds(now)))
         {
             Refresh(now);
             return false;
@@ -110,6 +111,14 @@ public sealed class SessionEngine
         long seconds = Math.Max(0, (long)Math.Floor(elapsed.TotalSeconds));
         if (seconds == 0)
         {
+            return;
+        }
+
+        if (_settings.Mode == ControlMode.Awareness)
+        {
+            Ledger.UsedSeconds = Math.Min(24 * 60 * 60, Ledger.UsedSeconds + seconds);
+            Ledger.State = SessionState.Active;
+            Touch(now);
             return;
         }
 
@@ -204,6 +213,17 @@ public sealed class SessionEngine
             return;
         }
 
+        if (_settings.Mode == ControlMode.Awareness)
+        {
+            if (Ledger.State is SessionState.OutsideSchedule or SessionState.TimeExpired)
+            {
+                Ledger.State = SessionState.Ready;
+            }
+
+            Touch(now);
+            return;
+        }
+
         ScheduleStatus schedule = ScheduleEvaluator.Evaluate(_settings, now);
         if (!schedule.IsAllowed)
         {
@@ -233,6 +253,11 @@ public sealed class SessionEngine
 
     private long GetNormalLimitSeconds(DateTimeOffset now)
     {
+        if (_settings.Mode == ControlMode.Awareness)
+        {
+            return 24 * 60 * 60;
+        }
+
         DaySchedule? schedule = _settings.Schedule.FirstOrDefault(item => item.Day == now.DayOfWeek);
         DateOnly today = DateOnly.FromDateTime(now.LocalDateTime);
         int baseMinutes = schedule is { IsEnabled: true } ? schedule.DailyLimitMinutes : 0;

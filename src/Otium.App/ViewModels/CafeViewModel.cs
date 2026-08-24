@@ -126,11 +126,12 @@ public sealed class CafeViewModel : ObservableObject
 
         TimeSpan elapsed = _tickWatch.Elapsed;
         _tickWatch.Restart();
-        if (_settings is not null && _applicationRuleEnforcer.Enforce(_settings, _engine.Ledger, elapsed))
+        if (_settings is not null && _settings.Mode != ControlMode.Awareness &&
+            _applicationRuleEnforcer.Enforce(_settings, _engine.Ledger, elapsed))
         {
             _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
         }
-        if (_settings?.AwarenessTrackingEnabled == true &&
+        if ((_settings?.AwarenessTrackingEnabled == true || _settings?.Mode == ControlMode.Awareness) &&
             _foregroundApplicationTracker.Sample(_engine.Ledger, elapsed))
         {
             _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
@@ -242,7 +243,7 @@ public sealed class CafeViewModel : ObservableObject
         {
             ControlSettings target = pending.TargetSettings;
             target.PendingChange = null;
-            target.SchemaVersion = 5;
+            target.SchemaVersion = 6;
             target.SetupCompleted = true;
             await _settingsStore.SaveAsync(target);
             _settings = target;

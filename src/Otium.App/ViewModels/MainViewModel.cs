@@ -139,15 +139,17 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(ControlModeText));
                 OnPropertyChanged(nameof(IsPersonalMode));
                 OnPropertyChanged(nameof(IsProtectedMode));
+                OnPropertyChanged(nameof(IsAwarenessMode));
+                OnPropertyChanged(nameof(HasRestrictions));
             }
         }
     }
 
-    public string ControlModeText => SelectedControlMode == ControlMode.Personal
-        ? LocalizationService.Get("PersonalModeShort")
-        : LocalizationService.Get("ProtectedModeShort");
+    public string ControlModeText => ModeDisplayName(SelectedControlMode);
     public bool IsPersonalMode => SelectedControlMode == ControlMode.Personal;
     public bool IsProtectedMode => SelectedControlMode == ControlMode.Protected;
+    public bool IsAwarenessMode => SelectedControlMode == ControlMode.Awareness;
+    public bool HasRestrictions => SelectedControlMode != ControlMode.Awareness;
 
     public string ChangeDelay
     {
@@ -186,11 +188,11 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public string UsedTodayText => FormatMinutes(UsedTodayMinutes);
-    public string TodayLimitText => FormatMinutes(GetTodayLimit());
+    public string TodayLimitText => IsAwarenessMode ? L("Sınırsız", "Unlimited") : FormatMinutes(GetTodayLimit());
     public string UsedTodayDisplayText => $"{LocalizationService.Get("Used")}  {UsedTodayText}";
     public string TodayLimitDisplayText => $"{LocalizationService.Get("Total")}  {TodayLimitText}";
-    public string RemainingText => FormatMinutes(Math.Max(0, GetTodayLimit() - UsedTodayMinutes));
-    public double UsagePercent => GetTodayLimit() == 0
+    public string RemainingText => IsAwarenessMode ? L("Sınırsız", "Unlimited") : FormatMinutes(Math.Max(0, GetTodayLimit() - UsedTodayMinutes));
+    public double UsagePercent => IsAwarenessMode || GetTodayLimit() == 0
         ? 0
         : Math.Clamp((double)UsedTodayMinutes / GetTodayLimit() * 100, 0, 100);
     public int BlockedAppCount => AppRules.Count(rule => rule.ToModel().Mode == AppRuleMode.Blocked);
@@ -268,7 +270,7 @@ public sealed class MainViewModel : ObservableObject
         UsageLedger ledger = await _usageStore.LoadAsync();
         _lastUsageLedger = ledger;
         UsedTodayMinutes = ledger.LocalDay == DateOnly.FromDateTime(DateTime.Today)
-            ? (int)(ledger.UsedSeconds / 60)
+            ? (int)((IsAwarenessMode ? ledger.AwarenessUsedSeconds : ledger.UsedSeconds) / 60)
             : 0;
         BuildUsageHistory(ledger);
         BuildRhythm(ledger);
@@ -322,7 +324,7 @@ public sealed class MainViewModel : ObservableObject
 
             ControlSettings desired = new()
             {
-                SchemaVersion = 5,
+                SchemaVersion = 6,
                 SetupCompleted = true,
                 Mode = SelectedControlMode,
                 DeviceName = string.IsNullOrWhiteSpace(DeviceName) ? LocalizationService.Get("DefaultDeviceName") : DeviceName.Trim(),
@@ -331,7 +333,7 @@ public sealed class MainViewModel : ObservableObject
                 Theme = FromDisplayTheme(ThemeMode),
                 Language = FromDisplayLanguage(LanguageMode),
                 StartWithWindows = StartWithWindows,
-                AwarenessTrackingEnabled = AwarenessTrackingEnabled,
+                AwarenessTrackingEnabled = SelectedControlMode == ControlMode.Awareness || AwarenessTrackingEnabled,
                 UsageRetentionDays = _settings.UsageRetentionDays,
                 PersonalChangeDelayMinutes = FromDisplayDelay(ChangeDelay),
                 StrictPersonalMode = StrictPersonalMode,
@@ -469,10 +471,11 @@ public sealed class MainViewModel : ObservableObject
 
     public async Task SetControlModeAsync(ControlMode mode, string? newPin = null)
     {
-        if (SelectedControlMode == ControlMode.Personal && mode == ControlMode.Protected)
+        if (SelectedControlMode == ControlMode.Personal && mode != ControlMode.Personal)
         {
             ControlSettings target = CloneSettings(_settings.PendingChange?.TargetSettings ?? _settings);
-            target.Mode = ControlMode.Protected;
+            target.Mode = mode;
+            target.AwarenessTrackingEnabled = mode == ControlMode.Awareness || target.AwarenessTrackingEnabled;
             target.PendingChange = null;
             if (!string.IsNullOrWhiteSpace(newPin))
             {
@@ -500,18 +503,27 @@ public sealed class MainViewModel : ObservableObject
         }
 
         SelectedControlMode = mode;
+        if (mode == ControlMode.Awareness)
+        {
+            AwarenessTrackingEnabled = true;
+        }
         _settings.PendingChange = null;
         await SaveAsync();
-        StatusMessage = mode == ControlMode.Protected
-            ? L("Korumalı kullanıma geçildi", "Switched to protected mode")
-            : L("Kişisel kullanıma geçildi", "Switched to personal mode");
+        StatusMessage = mode switch
+        {
+            ControlMode.Protected => L("Korumalı kullanıma geçildi", "Switched to protected mode"),
+            ControlMode.Awareness => L("Farkındalık moduna geçildi · Kısıtlama yok", "Switched to awareness mode · No restrictions"),
+            _ => L("Kişisel kullanıma geçildi", "Switched to personal mode")
+        };
     }
 
     public void RefreshOverview()
     {
         ControlSettings previewSettings = BuildPreviewSettings();
         ScheduleStatus status = ScheduleEvaluator.Evaluate(previewSettings, DateTimeOffset.Now);
-        CurrentWindowStatus = status.Reason;
+        CurrentWindowStatus = IsAwarenessMode
+            ? L("Sadece yerel ölçüm açık · Hiçbir kısıtlama uygulanmıyor", "Local tracking only · No restrictions are applied")
+            : status.Reason;
 
         OnPropertyChanged(nameof(CurrentWindowStatus));
         OnPropertyChanged(nameof(UsedTodayText));
@@ -847,12 +859,8 @@ public sealed class MainViewModel : ObservableObject
         List<string> details = [];
         if (_settings.Mode != pending.TargetSettings.Mode)
         {
-            string currentMode = _settings.Mode == ControlMode.Personal
-                ? LocalizationService.Get("PersonalModeShort")
-                : LocalizationService.Get("ProtectedModeShort");
-            string targetMode = pending.TargetSettings.Mode == ControlMode.Personal
-                ? LocalizationService.Get("PersonalModeShort")
-                : LocalizationService.Get("ProtectedModeShort");
+            string currentMode = ModeDisplayName(_settings.Mode);
+            string targetMode = ModeDisplayName(pending.TargetSettings.Mode);
             details.Add($"• {LocalizationService.Get("UsageMode")} · {currentMode} → {targetMode}");
         }
 
@@ -1012,6 +1020,13 @@ public sealed class MainViewModel : ObservableObject
         ? LocalizationService.Get("RhythmNoGoal")
         : string.Format(LocalizationService.Get("RhythmGoalLessFormat"), percent);
 
+    private static string ModeDisplayName(ControlMode mode) => mode switch
+    {
+        ControlMode.Awareness => LocalizationService.Get("AwarenessModeShort"),
+        ControlMode.Personal => LocalizationService.Get("PersonalModeShort"),
+        _ => LocalizationService.Get("ProtectedModeShort")
+    };
+
     private static List<DaySchedule> CloneSchedule(IEnumerable<DaySchedule> schedule) => schedule.Select(day => new DaySchedule
     {
         Day = day.Day,
@@ -1076,6 +1091,7 @@ public sealed class MainViewModel : ObservableObject
 
         return new ControlSettings
         {
+            Mode = SelectedControlMode,
             DeviceName = DeviceName,
             DefaultDailyLimitMinutes = DefaultDailyLimitMinutes,
             Schedule = schedule.Count == 0 ? ControlSettings.CreateDefaultSchedule() : schedule,

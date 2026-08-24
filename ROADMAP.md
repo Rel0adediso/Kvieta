@@ -5,6 +5,7 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 ## Temel ürün ilkeleri
 
 - Otium hesap ve bulut zorunluluğu olmadan yerel çalışır.
+- Farkındalık modu hiçbir kısıtlama uygulamadan yalnız yerel kullanım verisini gösterir.
 - Kişisel mod kullanıcıyı suçlamadan kendi kararına sadık kalmasına yardım eder.
 - Korumalı mod standart Windows kullanıcısının basit kaçışlarına direnç gösterir.
 - Arayüz krem/haki ve zeytin/grafit kimliğini, kompakt bilgi hiyerarşisini ve sakin ürün dilini korur.
@@ -59,6 +60,7 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 - İlk 7–14 günlük başlangıç ritmi, haftalık günlük ortalama karşılaştırması, planla uyumlu günler ve geri kazanılan zaman hesaplanıyor.
 - Kullanıcı isterse %5/%10/%15 küçük azaltma hedefi seçebiliyor; hedefler suçlayıcı streak dili kullanmıyor.
 - Haftalık uygulama artış ve azalış eğilimleri yalnız yeterli karşılaştırma verisi olduğunda üretiliyor.
+- Üçüncü kullanım profili olan Farkındalık modu eklendi; plan, limit, uygulama engeli ve zorunlu mola uygulamadan yerel ön plan kullanımını ölçüyor.
 
 Sıradaki v0.16 dilimi: yoğun kullanım saatleri, hafta içi/hafta sonu farkı ve gizlilik/veri sahipliği merkezi.
 

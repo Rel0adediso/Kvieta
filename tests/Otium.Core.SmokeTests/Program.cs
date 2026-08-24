@@ -229,7 +229,7 @@ Assert(loadedLedger.UsedSeconds == ledger.UsedSeconds, "Kullanım kaydı geri y�
 string legacyPath = Path.Combine(testDirectory, "legacy-settings.json");
 await File.WriteAllTextAsync(legacyPath, "{\"SchemaVersion\":1,\"DeviceName\":\"Eski Kurulum\"}");
 ControlSettings migratedSettings = await new JsonSettingsStore(legacyPath).LoadAsync();
-Assert(migratedSettings.SchemaVersion == 5, "Eski ayar şeması yükseltilemedi.");
+Assert(migratedSettings.SchemaVersion == 6, "Eski ayar şeması yükseltilemedi.");
 Assert(!migratedSettings.AwarenessTrackingEnabled && migratedSettings.UsageRetentionDays == 90, "Migration açık rıza gerektiren ölçümü kendiliğinden etkinleştirdi.");
 Assert(migratedSettings.WeeklyReductionGoalPercent == 0, "Migration kullanıcı onayı olmadan azaltma hedefi oluşturdu.");
 
@@ -265,6 +265,55 @@ Assert(rhythm.IsGoalEnabled && rhythm.IsGoalMet && rhythm.GoalDailySeconds == 48
 Assert(rhythm.RisingApplication == "editor" && rhythm.FallingApplication == "browser", "Uygulama artış/azalış eğilimi yanlış bulundu.");
 Assert(migratedSettings.SetupCompleted, "Mevcut kullanıcıya ilk kurulum ekranı yeniden gösterilmemeli.");
 Assert(migratedSettings.Mode == ControlMode.Protected, "Mevcut kullanıcı korumalı kullanıma taşınmalı.");
+
+string awarenessSettingsPath = Path.Combine(testDirectory, "awareness-settings.json");
+ControlSettings awarenessModeSettings = new()
+{
+    SetupCompleted = true,
+    Mode = ControlMode.Awareness,
+    AwarenessTrackingEnabled = false
+};
+foreach (DaySchedule day in awarenessModeSettings.Schedule)
+{
+    day.IsEnabled = false;
+    day.DailyLimitMinutes = 0;
+}
+awarenessModeSettings.AppRules.Add(new AppRule
+{
+    Name = "Eski engel",
+    ExecutablePath = "C:\\Blocked.exe",
+    Mode = AppRuleMode.Blocked
+});
+JsonSettingsStore awarenessSettingsStore = new(awarenessSettingsPath);
+await awarenessSettingsStore.SaveAsync(awarenessModeSettings);
+ControlSettings loadedAwarenessSettings = await awarenessSettingsStore.LoadAsync();
+Assert(loadedAwarenessSettings.AwarenessTrackingEnabled, "Farkındalık modu yerel ölçümü zorunlu olarak açmadı.");
+UsageLedger awarenessModeLedger = new()
+{
+    LocalDay = DateOnly.FromDateTime(blockedTime.LocalDateTime),
+    UsedSeconds = 24 * 60 * 60,
+    State = SessionState.TimeExpired
+};
+SessionEngine awarenessModeEngine = new(loadedAwarenessSettings, awarenessModeLedger, blockedTime);
+Assert(awarenessModeEngine.StartOrResume(blockedTime), "Farkındalık modu plan dışında serbestçe başlayamadı.");
+awarenessModeEngine.Accrue(TimeSpan.FromMinutes(1), blockedTime.AddMinutes(1));
+Assert(awarenessModeEngine.GetSnapshot(blockedTime.AddMinutes(1)).State == SessionState.Active && awarenessModeLedger.LimitReachedCount == 0,
+    "Farkındalık modu günlük limit uyguladı.");
+Assert(!new ApplicationRuleEnforcer().Enforce(loadedAwarenessSettings, awarenessModeLedger, TimeSpan.FromSeconds(1)),
+    "Farkındalık modu eski uygulama engellerini uyguladı.");
+string awarenessUsagePath = Path.Combine(testDirectory, "awareness-mode-usage.json");
+await new JsonUsageStore(awarenessUsagePath).SaveAsync(new UsageLedger
+{
+    LocalDay = DateOnly.FromDateTime(DateTime.Today),
+    UsedSeconds = 3600,
+    AwarenessUsedSeconds = 600
+});
+MainViewModel awarenessViewModel = new(awarenessSettingsStore, new JsonUsageStore(awarenessUsagePath));
+await awarenessViewModel.InitializeAsync();
+Assert(awarenessViewModel.IsAwarenessMode && !awarenessViewModel.HasRestrictions,
+    "Farkındalık profili arayüz durumuna yansımadı.");
+Assert(awarenessViewModel.UsedTodayMinutes == 10 && awarenessViewModel.TodayLimitText is "Sınırsız" or "Unlimited",
+    "Farkındalık profili gerçek ön plan süresini sınırsız özet olarak göstermedi.");
 
 ControlSettings strictPolicy = new();
 strictPolicy.StartWithWindows = true;
@@ -376,6 +425,13 @@ strictPersonal.StrictPersonalMode = true;
 ControlSettings relaxedPersonal = CloneForTest(strictPersonal);
 relaxedPersonal.StrictPersonalMode = false;
 Assert(SettingsPolicyComparer.HasRelaxation(strictPersonal, relaxedPersonal), "Sıkı kişisel modu kapatma gevşetme olarak algılanmadı.");
+
+await personalViewModel.SetControlModeAsync(ControlMode.Awareness);
+ControlSettings queuedAwarenessSettings = await personalSettingsStore.LoadAsync();
+Assert(queuedAwarenessSettings.Mode == ControlMode.Personal, "Farkındalık moduna geçiş kişisel beklemeyi deldi.");
+Assert(queuedAwarenessSettings.PendingChange?.TargetSettings.Mode == ControlMode.Awareness &&
+       queuedAwarenessSettings.PendingChange.TargetSettings.AwarenessTrackingEnabled,
+    "Bekleyen farkındalık profili doğru hazırlanmadı.");
 
 string strictSettingsPath = Path.Combine(testDirectory, "strict-personal-settings.json");
 string strictUsagePath = Path.Combine(testDirectory, "strict-personal-usage.json");

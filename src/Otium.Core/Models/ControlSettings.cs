@@ -23,12 +23,13 @@ public enum LanguagePreference
 public enum ControlMode
 {
     Protected,
-    Personal
+    Personal,
+    Awareness
 }
 
 public sealed class ControlSettings
 {
-    public int SchemaVersion { get; set; } = 5;
+    public int SchemaVersion { get; set; } = 6;
     public bool SetupCompleted { get; set; }
     public ControlMode Mode { get; set; } = ControlMode.Protected;
     public string DeviceName { get; set; } = "Bu Bilgisayar";

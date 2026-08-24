@@ -10,7 +10,7 @@ public sealed class ApplicationRuleEnforcer
 
     public bool Enforce(ControlSettings settings, UsageLedger ledger, TimeSpan elapsed)
     {
-        if (settings.AppRules.Count == 0)
+        if (settings.Mode == ControlMode.Awareness || settings.AppRules.Count == 0)
         {
             return false;
         }

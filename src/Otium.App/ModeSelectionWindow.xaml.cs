@@ -9,7 +9,11 @@ public partial class ModeSelectionWindow : Window
     public ModeSelectionWindow(ControlMode? currentMode = null)
     {
         InitializeComponent();
-        if (currentMode == ControlMode.Personal)
+        if (currentMode == ControlMode.Awareness)
+        {
+            AwarenessButton.Style = (Style)AwarenessButton.FindResource("SelectedModeCardStyle");
+        }
+        else if (currentMode == ControlMode.Personal)
         {
             PersonalButton.Style = (Style)PersonalButton.FindResource("SelectedModeCardStyle");
         }
@@ -20,6 +24,12 @@ public partial class ModeSelectionWindow : Window
     }
 
     public ControlMode? SelectedMode { get; private set; }
+
+    private void Awareness_Click(object sender, RoutedEventArgs e)
+    {
+        SelectedMode = ControlMode.Awareness;
+        DialogResult = true;
+    }
 
     private void Personal_Click(object sender, RoutedEventArgs e)
     {

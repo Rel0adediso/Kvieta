@@ -51,8 +51,9 @@ public sealed class JsonSettingsStore
         {
             settings = pending.TargetSettings;
             settings.PendingChange = null;
-            settings.SchemaVersion = 5;
+            settings.SchemaVersion = 6;
             settings.SetupCompleted = true;
+            settings.AwarenessTrackingEnabled = settings.Mode == ControlMode.Awareness || settings.AwarenessTrackingEnabled;
             await SaveAsync(settings, cancellationToken);
         }
 
@@ -75,19 +76,25 @@ public sealed class JsonSettingsStore
         static () => new ControlSettings(),
         static settings =>
         {
-            if (settings.SchemaVersion > 5)
+            if (settings.SchemaVersion > 6)
             {
                 throw new InvalidDataException($"Desteklenmeyen ayar şeması: {settings.SchemaVersion}");
             }
 
-            bool changed = settings.SchemaVersion < 5;
+            bool changed = settings.SchemaVersion < 6;
             if (settings.SchemaVersion < 2)
             {
                 settings.SetupCompleted = true;
                 settings.Mode = ControlMode.Protected;
             }
 
-            settings.SchemaVersion = 5;
+            settings.SchemaVersion = 6;
+            if (settings.Mode == ControlMode.Awareness)
+            {
+                changed |= !settings.AwarenessTrackingEnabled || settings.PendingChange is not null;
+                settings.AwarenessTrackingEnabled = true;
+                settings.PendingChange = null;
+            }
             settings.WeeklyReductionGoalPercent = settings.WeeklyReductionGoalPercent is 0 or 5 or 10 or 15
                 ? settings.WeeklyReductionGoalPercent
                 : 0;

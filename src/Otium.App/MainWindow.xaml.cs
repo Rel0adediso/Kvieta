@@ -364,7 +364,7 @@ public partial class MainWindow : Window
             newPin = setup.ResultPin;
         }
 
-        if (targetMode == ControlMode.Personal &&
+        if (targetMode != ControlMode.Protected &&
             ProtectionServiceManager.GetState() != ProtectionServiceState.NotInstalled)
         {
             if (!await ProtectionServiceManager.RunElevatedInstallerAsync(install: false))
@@ -551,7 +551,7 @@ public partial class MainWindow : Window
 
     private void EnsurePersonalBackgroundSession()
     {
-        if (!_viewModel.IsPersonalMode)
+        if (!_viewModel.IsPersonalMode && !_viewModel.IsAwarenessMode)
         {
             return;
         }
@@ -596,7 +596,7 @@ public partial class MainWindow : Window
 
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
-        if (_viewModel.IsPersonalMode && _backgroundSessionWindow is not null)
+        if ((_viewModel.IsPersonalMode || _viewModel.IsAwarenessMode) && _backgroundSessionWindow is not null)
         {
             e.Cancel = true;
             HideControlCenterToTray();
