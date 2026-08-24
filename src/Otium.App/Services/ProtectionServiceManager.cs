@@ -133,7 +133,7 @@ public static class ProtectionServiceManager
             StopServiceIfPresent();
             Directory.CreateDirectory(InstallDirectory);
             Directory.CreateDirectory(ProtectionDataDirectory);
-            HardenProtectionDataAcl();
+            HardenProtectionDataAcl(request.UserSid);
             File.WriteAllText(EnrollmentPath, JsonSerializer.Serialize(
                 new GuardianEnrollment(request.UserSid, request.SettingsPath, settings.AdminPin)));
             File.Copy(request.SettingsPath, ProtectedSettingsPath, overwrite: true);
@@ -242,7 +242,7 @@ public static class ProtectionServiceManager
         }
     }
 
-    private static void HardenProtectionDataAcl()
+    private static void HardenProtectionDataAcl(string userSid)
     {
         ProcessStartInfo startInfo = new()
         {
@@ -252,10 +252,12 @@ public static class ProtectionServiceManager
         };
         startInfo.ArgumentList.Add(ProtectionDataDirectory);
         startInfo.ArgumentList.Add("/inheritance:r");
+        startInfo.ArgumentList.Add("/remove:g");
+        startInfo.ArgumentList.Add("*S-1-5-32-545");
         startInfo.ArgumentList.Add("/grant:r");
         startInfo.ArgumentList.Add("*S-1-5-18:(OI)(CI)F");
         startInfo.ArgumentList.Add("*S-1-5-32-544:(OI)(CI)F");
-        startInfo.ArgumentList.Add("*S-1-5-32-545:(OI)(CI)R");
+        startInfo.ArgumentList.Add($"*{userSid}:(OI)(CI)R");
 
         using Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("Protection folder permissions could not be configured.");
@@ -286,4 +288,8 @@ public static class ProtectionServiceManager
 }
 
 public sealed record GuardianInstallRequest(string UserSid, string SettingsPath);
-public sealed record GuardianEnrollment(string UserSid, string SettingsPath, AdminCredential AdminPin);
+public sealed record GuardianEnrollment(
+    string UserSid,
+    string SettingsPath,
+    AdminCredential AdminPin,
+    AdminCredential? PreviousAdminPin = null);

@@ -44,6 +44,38 @@ Assert(!ScheduleEvaluator.Evaluate(allowanceSettings, new DateTimeOffset(2026, 8
 SessionEngine allowanceEngine = new(allowanceSettings, new UsageLedger { LocalDay = new DateOnly(2026, 8, 24) }, new DateTimeOffset(2026, 8, 24, 19, 0, 0, TimeSpan.FromHours(3)));
 Assert(allowanceEngine.GetSnapshot(new DateTimeOffset(2026, 8, 24, 19, 0, 0, TimeSpan.FromHours(3))).LimitSeconds == 75 * 60, "Geçici izin oturum limitine eklenmedi.");
 
+ControlSettings overnightSettings = new();
+DaySchedule overnightMonday = overnightSettings.Schedule.Single(item => item.Day == DayOfWeek.Monday);
+overnightMonday.AllowedFrom = new TimeOnly(22, 0);
+overnightMonday.AllowedUntil = new TimeOnly(2, 0);
+overnightMonday.DailyLimitMinutes = 180;
+overnightSettings.Schedule.Single(item => item.Day == DayOfWeek.Tuesday).IsEnabled = false;
+DateTimeOffset overnightTuesday = new(2026, 8, 25, 1, 0, 0, TimeSpan.FromHours(3));
+ScheduleStatus overnightAllowed = ScheduleEvaluator.Evaluate(overnightSettings, overnightTuesday);
+Assert(overnightAllowed.IsAllowed && overnightAllowed.DailyLimitMinutes == 180,
+    "Önceki gün başlayan gece planı gece yarısından sonra devam etmedi.");
+Assert(overnightAllowed.AllowedUntil?.Hour == 2 && overnightAllowed.AllowedUntil?.Day == 25,
+    "Gece planının bitiş zamanı ertesi güne taşınmadı.");
+SessionEngine overnightEngine = new(
+    overnightSettings,
+    new UsageLedger { LocalDay = new DateOnly(2026, 8, 25) },
+    overnightTuesday);
+Assert(overnightEngine.StartOrResume(overnightTuesday) && overnightEngine.GetSnapshot(overnightTuesday).LimitSeconds == 180 * 60,
+    "Gece planı oturum motorunda başlatılamadı.");
+
+ControlSettings overnightAllowanceSettings = new();
+overnightAllowanceSettings.Schedule.ForEach(day => day.IsEnabled = false);
+overnightAllowanceSettings.TemporaryAllowances.Add(new TemporaryAllowance
+{
+    Date = new DateOnly(2026, 8, 24),
+    AllowedFrom = new TimeOnly(23, 0),
+    AllowedUntil = new TimeOnly(2, 0),
+    BonusMinutes = 45
+});
+ScheduleStatus overnightAllowance = ScheduleEvaluator.Evaluate(overnightAllowanceSettings, overnightTuesday);
+Assert(overnightAllowance.IsAllowed && overnightAllowance.DailyLimitMinutes == 45,
+    "Gece yarısını aşan geçici izin ertesi gün devam etmedi.");
+
 string testDirectory = Path.Combine(Path.GetTempPath(), "Otium-SmokeTests", Guid.NewGuid().ToString("N"));
 string testPath = Path.Combine(testDirectory, "settings.json");
 JsonSettingsStore store = new(testPath);
@@ -508,11 +540,20 @@ ControlSettings queuedPersonalSettings = await personalSettingsStore.LoadAsync()
 Assert(queuedPersonalSettings.Schedule.Single(day => day.Day == DayOfWeek.Monday).DailyLimitMinutes == 60, "Gevşeten değişiklik hemen uygulandı.");
 Assert(queuedPersonalSettings.PendingChange?.TargetSettings.Schedule.Single(day => day.Day == DayOfWeek.Monday).DailyLimitMinutes == 90, "Gevşeten değişiklik beklemeye alınmadı.");
 
-ControlSettings shorterDelay = CloneForTest(queuedPersonalSettings);
-shorterDelay.PersonalChangeDelayMinutes = 15;
-Assert(SettingsPolicyComparer.HasRelaxation(queuedPersonalSettings, shorterDelay), "Bekleme süresini azaltma gevşetme olarak algılanmadı.");
+personalViewModel.ScheduleRows.Single(day => day.Day == DayOfWeek.Tuesday).DailyLimitMinutes = 90;
+Assert(await personalViewModel.SaveAsync(), "Bekleyen değişiklik sırasında yeni sıkılaştırma kaydedilemedi.");
+ControlSettings tightenedWhilePending = await personalSettingsStore.LoadAsync();
+Assert(tightenedWhilePending.Schedule.Single(day => day.Day == DayOfWeek.Tuesday).DailyLimitMinutes == 90,
+    "Yeni sıkılaştırma hemen uygulanmadı.");
+Assert(tightenedWhilePending.PendingChange?.TargetSettings.Schedule.Single(day => day.Day == DayOfWeek.Monday).DailyLimitMinutes == 90 &&
+       tightenedWhilePending.PendingChange.TargetSettings.Schedule.Single(day => day.Day == DayOfWeek.Tuesday).DailyLimitMinutes == 90,
+    "Yeni sıkılaştırma bekleyen hedefe birleştirilmedi veya önceki hedef kayboldu.");
 
-ControlSettings strictPersonal = CloneForTest(queuedPersonalSettings);
+ControlSettings shorterDelay = CloneForTest(tightenedWhilePending);
+shorterDelay.PersonalChangeDelayMinutes = 15;
+Assert(SettingsPolicyComparer.HasRelaxation(tightenedWhilePending, shorterDelay), "Bekleme süresini azaltma gevşetme olarak algılanmadı.");
+
+ControlSettings strictPersonal = CloneForTest(tightenedWhilePending);
 strictPersonal.StrictPersonalMode = true;
 ControlSettings relaxedPersonal = CloneForTest(strictPersonal);
 relaxedPersonal.StrictPersonalMode = false;

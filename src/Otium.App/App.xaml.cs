@@ -84,9 +84,9 @@ public partial class App : System.Windows.Application
             }
 
             settings.Mode = ControlMode.Protected;
-            settings.AdminPin = enrollment.AdminPin;
+            settings.AdminPin = settings.AdminPin.IsConfigured ? settings.AdminPin : enrollment.AdminPin;
             settings.SetupCompleted = true;
-            _guardianCredential = enrollment.AdminPin;
+            _guardianCredential = settings.AdminPin;
         }
 
         if (!settings.SetupCompleted)

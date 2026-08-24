@@ -404,9 +404,22 @@ public sealed class MainViewModel : ObservableObject
                 return true;
             }
 
-            desired.PendingChange = SelectedControlMode == ControlMode.Personal
-                ? _settings.PendingChange
-                : null;
+            if (SelectedControlMode == ControlMode.Personal && _settings.PendingChange is { } existingPending)
+            {
+                ControlSettings updatedTarget = CloneSettings(existingPending.TargetSettings);
+                MergeImmediateChangesIntoPendingTarget(_settings, desired, updatedTarget);
+                desired.PendingChange = new PendingPolicyChange
+                {
+                    Id = existingPending.Id,
+                    RequestedAtUtc = existingPending.RequestedAtUtc,
+                    ApplyAfterUtc = existingPending.ApplyAfterUtc,
+                    TargetSettings = updatedTarget
+                };
+            }
+            else
+            {
+                desired.PendingChange = null;
+            }
             _settings = desired;
 
             await _settingsStore.SaveAsync(_settings);
@@ -487,6 +500,13 @@ public sealed class MainViewModel : ObservableObject
             Converters = { new JsonStringEnumConverter() }
         };
         return JsonSerializer.Serialize(_settings, options);
+    }
+
+    public async Task RestoreSettingsAsync(ControlSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        await _settingsStore.SaveAsync(CloneSettings(settings));
+        await InitializeAsync();
     }
 
     public async Task<string> ExportUsageJsonAsync()
@@ -874,6 +894,84 @@ public sealed class MainViewModel : ObservableObject
         return JsonSerializer.Serialize(leftCopy, options) == JsonSerializer.Serialize(rightCopy, options);
     }
 
+    private static void MergeImmediateChangesIntoPendingTarget(
+        ControlSettings current,
+        ControlSettings desired,
+        ControlSettings target)
+    {
+        if (current.Mode != desired.Mode) target.Mode = desired.Mode;
+        if (current.DeviceName != desired.DeviceName) target.DeviceName = desired.DeviceName;
+        if (current.DefaultDailyLimitMinutes != desired.DefaultDailyLimitMinutes) target.DefaultDailyLimitMinutes = desired.DefaultDailyLimitMinutes;
+        if (current.LimitAction != desired.LimitAction) target.LimitAction = desired.LimitAction;
+        if (current.Theme != desired.Theme) target.Theme = desired.Theme;
+        if (current.Language != desired.Language) target.Language = desired.Language;
+        if (current.StartWithWindows != desired.StartWithWindows) target.StartWithWindows = desired.StartWithWindows;
+        if (current.AwarenessTrackingEnabled != desired.AwarenessTrackingEnabled) target.AwarenessTrackingEnabled = desired.AwarenessTrackingEnabled;
+        if (current.UsageRetentionDays != desired.UsageRetentionDays) target.UsageRetentionDays = desired.UsageRetentionDays;
+        if (current.PersonalChangeDelayMinutes != desired.PersonalChangeDelayMinutes) target.PersonalChangeDelayMinutes = desired.PersonalChangeDelayMinutes;
+        if (current.StrictPersonalMode != desired.StrictPersonalMode) target.StrictPersonalMode = desired.StrictPersonalMode;
+        if (current.WeeklyReductionGoalPercent != desired.WeeklyReductionGoalPercent) target.WeeklyReductionGoalPercent = desired.WeeklyReductionGoalPercent;
+        if (!JsonEquivalent(current.AdminPin, desired.AdminPin)) target.AdminPin = desired.AdminPin;
+        if (!JsonEquivalent(current.WarningMinutes, desired.WarningMinutes)) target.WarningMinutes = [.. desired.WarningMinutes];
+
+        MergeChangedItems(
+            current.Schedule,
+            desired.Schedule,
+            target.Schedule,
+            item => item.Day,
+            CloneDaySchedule);
+        MergeChangedItems(
+            current.TemporaryAllowances,
+            desired.TemporaryAllowances,
+            target.TemporaryAllowances,
+            item => item.Id,
+            CloneTemporaryAllowance);
+        MergeChangedItems(
+            current.AppRules,
+            desired.AppRules,
+            target.AppRules,
+            item => item.Id,
+            CloneAppRule);
+    }
+
+    private static void MergeChangedItems<T, TKey>(
+        IReadOnlyCollection<T> current,
+        IReadOnlyCollection<T> desired,
+        List<T> target,
+        Func<T, TKey> keySelector,
+        Func<T, T> clone)
+        where TKey : notnull
+    {
+        Dictionary<TKey, T> currentByKey = current.ToDictionary(keySelector);
+        Dictionary<TKey, T> desiredByKey = desired.ToDictionary(keySelector);
+
+        foreach (TKey removedKey in currentByKey.Keys.Except(desiredByKey.Keys))
+        {
+            target.RemoveAll(item => EqualityComparer<TKey>.Default.Equals(keySelector(item), removedKey));
+        }
+
+        foreach ((TKey key, T desiredItem) in desiredByKey)
+        {
+            if (currentByKey.TryGetValue(key, out T? currentItem) && JsonEquivalent(currentItem, desiredItem))
+            {
+                continue;
+            }
+
+            int targetIndex = target.FindIndex(item => EqualityComparer<TKey>.Default.Equals(keySelector(item), key));
+            if (targetIndex >= 0)
+            {
+                target[targetIndex] = clone(desiredItem);
+            }
+            else
+            {
+                target.Add(clone(desiredItem));
+            }
+        }
+    }
+
+    private static bool JsonEquivalent<T>(T left, T right) =>
+        JsonSerializer.Serialize(left) == JsonSerializer.Serialize(right);
+
     public async Task CancelPendingChangeAsync()
     {
         if (_settings.PendingChange is null)
@@ -1202,25 +1300,31 @@ public sealed class MainViewModel : ObservableObject
         _ => LocalizationService.Get("ProtectedModeShort")
     };
 
-    private static List<DaySchedule> CloneSchedule(IEnumerable<DaySchedule> schedule) => schedule.Select(day => new DaySchedule
+    private static DaySchedule CloneDaySchedule(DaySchedule day) => new()
     {
         Day = day.Day,
         IsEnabled = day.IsEnabled,
         AllowedFrom = day.AllowedFrom,
         AllowedUntil = day.AllowedUntil,
         DailyLimitMinutes = day.DailyLimitMinutes
-    }).ToList();
+    };
 
-    private static List<AppRule> CloneAppRules(IEnumerable<AppRule> rules) => rules.Select(rule => new AppRule
+    private static List<DaySchedule> CloneSchedule(IEnumerable<DaySchedule> schedule) =>
+        schedule.Select(CloneDaySchedule).ToList();
+
+    private static AppRule CloneAppRule(AppRule rule) => new()
     {
         Id = rule.Id,
         Name = rule.Name,
         ExecutablePath = rule.ExecutablePath,
         Mode = rule.Mode,
         DailyLimitMinutes = rule.DailyLimitMinutes
-    }).ToList();
+    };
 
-    private static List<TemporaryAllowance> CloneTemporaryAllowances(IEnumerable<TemporaryAllowance> allowances) => allowances.Select(item => new TemporaryAllowance
+    private static List<AppRule> CloneAppRules(IEnumerable<AppRule> rules) =>
+        rules.Select(CloneAppRule).ToList();
+
+    private static TemporaryAllowance CloneTemporaryAllowance(TemporaryAllowance item) => new()
     {
         Id = item.Id,
         Date = item.Date,
@@ -1228,7 +1332,10 @@ public sealed class MainViewModel : ObservableObject
         AllowedUntil = item.AllowedUntil,
         BonusMinutes = item.BonusMinutes,
         Note = item.Note
-    }).ToList();
+    };
+
+    private static List<TemporaryAllowance> CloneTemporaryAllowances(IEnumerable<TemporaryAllowance> allowances) =>
+        allowances.Select(CloneTemporaryAllowance).ToList();
 
     private static ControlSettings CloneSettings(ControlSettings settings) => new()
     {
@@ -1246,11 +1353,26 @@ public sealed class MainViewModel : ObservableObject
         PersonalChangeDelayMinutes = settings.PersonalChangeDelayMinutes,
         StrictPersonalMode = settings.StrictPersonalMode,
         WeeklyReductionGoalPercent = settings.WeeklyReductionGoalPercent,
-        AdminPin = settings.AdminPin,
+        AdminPin = new AdminCredential
+        {
+            Version = settings.AdminPin.Version,
+            Iterations = settings.AdminPin.Iterations,
+            SaltBase64 = settings.AdminPin.SaltBase64,
+            HashBase64 = settings.AdminPin.HashBase64
+        },
         WarningMinutes = [.. settings.WarningMinutes],
         Schedule = CloneSchedule(settings.Schedule),
         TemporaryAllowances = CloneTemporaryAllowances(settings.TemporaryAllowances),
-        AppRules = CloneAppRules(settings.AppRules)
+        AppRules = CloneAppRules(settings.AppRules),
+        PendingChange = settings.PendingChange is null
+            ? null
+            : new PendingPolicyChange
+            {
+                Id = settings.PendingChange.Id,
+                RequestedAtUtc = settings.PendingChange.RequestedAtUtc,
+                ApplyAfterUtc = settings.PendingChange.ApplyAfterUtc,
+                TargetSettings = CloneSettings(settings.PendingChange.TargetSettings)
+            }
     };
 
     private ControlSettings BuildPreviewSettings()

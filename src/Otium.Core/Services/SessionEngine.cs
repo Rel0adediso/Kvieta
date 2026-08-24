@@ -259,13 +259,8 @@ public sealed class SessionEngine
             return 24 * 60 * 60;
         }
 
-        DaySchedule? schedule = _settings.Schedule.FirstOrDefault(item => item.Day == now.DayOfWeek);
-        DateOnly today = DateOnly.FromDateTime(now.LocalDateTime);
-        int baseMinutes = schedule is { IsEnabled: true } ? schedule.DailyLimitMinutes : 0;
-        int temporaryMinutes = _settings.TemporaryAllowances
-            .Where(item => item.Date == today)
-            .Sum(item => item.BonusMinutes);
-        return Math.Clamp(baseMinutes + temporaryMinutes + Ledger.BonusMinutes, 0, 1440) * 60L;
+        int scheduledMinutes = ScheduleEvaluator.Evaluate(_settings, now).DailyLimitMinutes;
+        return Math.Clamp(scheduledMinutes + Ledger.BonusMinutes, 0, 1440) * 60L;
     }
 
     private void Touch(DateTimeOffset now)

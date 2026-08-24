@@ -10,6 +10,7 @@ using Otium.App.ViewModels;
 using Otium.App.Services;
 using Microsoft.Win32;
 using Otium.Core.Models;
+using Otium.Core.Services;
 using Forms = System.Windows.Forms;
 
 namespace Otium.App;
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
     private TrayMenuWindow? _trayMenuWindow;
     private bool _isInitializing = true;
     private bool _applicationDetailsOpen;
+    private IInputElement? _applicationDetailsPreviousFocus;
 
     public MainWindow(CafeWindow? existingSessionWindow = null, string? managementPin = null)
     {
@@ -62,6 +64,13 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        ConstrainToWorkArea();
+        if (ActualWidth < 960)
+        {
+            _viewModel.IsSidebarExpanded = false;
+            UpdateSidebarVisuals();
+        }
+
         await _viewModel.InitializeAsync();
         ((App)System.Windows.Application.Current).ThemeService.SetPreference(MainViewModel.FromDisplayTheme(_viewModel.ThemeMode));
         RefreshProtectionStatus();
@@ -115,6 +124,11 @@ public partial class MainWindow : Window
     private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
     {
         _viewModel.IsSidebarExpanded = !_viewModel.IsSidebarExpanded;
+        UpdateSidebarVisuals();
+    }
+
+    private void UpdateSidebarVisuals()
+    {
         SidebarColumn.Width = new GridLength(_viewModel.IsSidebarExpanded ? 184 : 64);
         SidebarToggle.HorizontalAlignment = _viewModel.IsSidebarExpanded
             ? System.Windows.HorizontalAlignment.Right
@@ -138,13 +152,27 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void HistoryApplicationsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.HistoryAllApplications.Count > 0)
+        {
+            ShowApplicationDetails();
+        }
+
+        e.Handled = true;
+    }
+
     private void ShowApplicationDetails()
     {
+        _applicationDetailsPreviousFocus = Keyboard.FocusedElement;
         _applicationDetailsOpen = true;
         ApplicationDetailsOverlay.Visibility = Visibility.Visible;
         ApplicationDetailsOverlay.IsHitTestVisible = true;
         ApplicationDetailsOverlay.BeginAnimation(OpacityProperty, null);
         ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+        Dispatcher.BeginInvoke(
+            () => ApplicationDetailsCloseButton.Focus(),
+            DispatcherPriority.Input);
 
         if (!SystemParameters.ClientAreaAnimation)
         {
@@ -177,6 +205,7 @@ public partial class MainWindow : Window
         {
             ApplicationDetailsOverlay.Visibility = Visibility.Collapsed;
             ApplicationDetailsOverlay.IsHitTestVisible = false;
+            RestoreApplicationDetailsFocus();
             return;
         }
 
@@ -192,6 +221,7 @@ public partial class MainWindow : Window
             ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, null);
             ApplicationDetailsOverlay.Opacity = 0;
             ApplicationDetailsTranslate.X = 520;
+            RestoreApplicationDetailsFocus();
         };
         ApplicationDetailsOverlay.BeginAnimation(OpacityProperty, fade);
         ApplicationDetailsTranslate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, 520, TimeSpan.FromMilliseconds(210))
@@ -203,6 +233,27 @@ public partial class MainWindow : Window
     private void ApplicationDetailsScrim_Click(object sender, MouseButtonEventArgs e) => CloseApplicationDetails();
 
     private void ApplicationDetailsClose_Click(object sender, RoutedEventArgs e) => CloseApplicationDetails();
+
+    private void RestoreApplicationDetailsFocus()
+    {
+        if (_applicationDetailsPreviousFocus is { } previousFocus)
+        {
+            Keyboard.Focus(previousFocus);
+        }
+
+        _applicationDetailsPreviousFocus = null;
+    }
+
+    private void ConstrainToWorkArea()
+    {
+        Rect workArea = SystemParameters.WorkArea;
+        MaxWidth = Math.Max(320, workArea.Width - 16);
+        MaxHeight = Math.Max(240, workArea.Height - 16);
+        MinWidth = Math.Min(MinWidth, MaxWidth);
+        MinHeight = Math.Min(MinHeight, MaxHeight);
+        Width = Math.Min(Width, MaxWidth);
+        Height = Math.Min(Height, MaxHeight);
+    }
 
     private async void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
@@ -373,7 +424,7 @@ public partial class MainWindow : Window
                 if (authorizationPin is null ||
                     !await ProtectionPolicyChannel.SyncAsync(_viewModel.ExportSettingsJson(), authorizationPin))
                 {
-                    _viewModel.StatusMessage = LocalizationService.Get("ProtectedPolicySyncFailed");
+                    await RestoreAuthoritativeProtectedPolicyAsync();
                     return;
                 }
             }
@@ -405,10 +456,28 @@ public partial class MainWindow : Window
         bool synced = await ProtectionPolicyChannel.SyncAsync(_viewModel.ExportSettingsJson(), _managementPin);
         if (!synced)
         {
-            _viewModel.StatusMessage = LocalizationService.Get("ProtectedPolicySyncFailed");
+            await RestoreAuthoritativeProtectedPolicyAsync();
         }
 
         return synced;
+    }
+
+    private async Task RestoreAuthoritativeProtectedPolicyAsync()
+    {
+        try
+        {
+            ControlSettings authoritative = await new JsonSettingsStore(
+                ProtectionServiceManager.ProtectedSettingsPath).LoadAsync();
+            await _viewModel.RestoreSettingsAsync(authoritative);
+            ((App)System.Windows.Application.Current).ThemeService.SetPreference(
+                MainViewModel.FromDisplayTheme(_viewModel.ThemeMode));
+            ResetSettingsScrollPosition();
+            _viewModel.StatusMessage = LocalizationService.Get("ProtectedPolicySyncFailed");
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{LocalizationService.Get("ProtectedPolicySyncFailed")}: {exception.Message}";
+        }
     }
 
     private async void ChangeMode_Click(object sender, RoutedEventArgs e)

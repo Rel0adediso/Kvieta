@@ -21,6 +21,7 @@ public sealed class CafeViewModel : ObservableObject
     private DateTimeOffset? _pauseStartedAt;
     private DateTimeOffset? _pendingApplyAfterUtc;
     private DateTime _settingsLastWriteUtc;
+    private string? _persistenceWarning;
 
     public CafeViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
@@ -68,7 +69,7 @@ public sealed class CafeViewModel : ObservableObject
         _ => LocalizationService.Get("HeadlineReady")
     };
 
-    public string Description => _snapshot?.Reason ?? "Kullanım bilgileri yükleniyor…";
+    public string Description => _persistenceWarning ?? _snapshot?.Reason ?? "Kullanım bilgileri yükleniyor…";
     public string RemainingText => FormatClock(_snapshot?.RemainingSeconds ?? 0);
     public string UsedText => FormatDuration(_snapshot?.UsedSeconds ?? 0);
     public string LimitText => FormatDuration(_snapshot?.LimitSeconds ?? 0);
@@ -262,11 +263,35 @@ public sealed class CafeViewModel : ObservableObject
         await SaveAsync();
     }
 
-    public Task SaveAsync()
+    public async Task SaveAsync()
     {
-        return _engine is null
-            ? Task.CompletedTask
-            : _usageStore.SaveAsync(_engine.Ledger);
+        if (_engine is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _usageStore.SaveAsync(_engine.Ledger);
+            if (_persistenceWarning is not null)
+            {
+                _persistenceWarning = null;
+                OnPropertyChanged(nameof(Description));
+            }
+        }
+        catch (Exception exception)
+        {
+            ReportRuntimeError(exception);
+        }
+    }
+
+    public void ReportRuntimeError(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        _persistenceWarning = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? "Usage data could not be saved. Otium will retry automatically."
+            : "Kullanım verisi kaydedilemedi. Otium otomatik olarak yeniden deneyecek.";
+        OnPropertyChanged(nameof(Description));
     }
 
     public async Task ReloadSettingsAsync()

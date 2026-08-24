@@ -11,7 +11,7 @@
     <SolidColorBrush x:Key="PrimarySoftBrush" Color="#343725" />
     <SolidColorBrush x:Key="TextBrush" Color="#F1EEE3" />
     <SolidColorBrush x:Key="MutedTextBrush" Color="#B0AC9F" />
-    <SolidColorBrush x:Key="FaintTextBrush" Color="#7E7C70" />
+    <SolidColorBrush x:Key="FaintTextBrush" Color="#949184" />
     <SolidColorBrush x:Key="BorderBrush" Color="#37392F" />
     <SolidColorBrush x:Key="InputBrush" Color="#282A23" />
     <SolidColorBrush x:Key="InputHoverBrush" Color="#303229" />

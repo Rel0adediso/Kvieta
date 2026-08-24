@@ -15,41 +15,57 @@ public static class ScheduleEvaluator
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        DaySchedule? schedule = settings.Schedule.FirstOrDefault(item => item.Day == now.DayOfWeek);
-        TimeOnly current = TimeOnly.FromDateTime(now.LocalDateTime);
         DateOnly today = DateOnly.FromDateTime(now.LocalDateTime);
-        List<TemporaryAllowance> todaysAllowances = settings.TemporaryAllowances
-            .Where(item => item.Date == today)
-            .ToList();
-        List<TemporaryAllowance> activeAllowances = todaysAllowances
-            .Where(item => IsInsideWindow(current, item.AllowedFrom, item.AllowedUntil))
-            .ToList();
-        bool insideRegularWindow = schedule is { IsEnabled: true } &&
-            IsInsideWindow(current, schedule.AllowedFrom, schedule.AllowedUntil);
-        int dailyLimit = Math.Clamp(
-            (schedule is { IsEnabled: true } ? schedule.DailyLimitMinutes : 0) +
-            todaysAllowances.Sum(item => item.BonusMinutes),
-            0,
-            1440);
+        DateOnly yesterday = today.AddDays(-1);
+        DaySchedule? todaysSchedule = settings.Schedule.FirstOrDefault(item => item.Day == now.DayOfWeek);
+        DaySchedule? yesterdaysSchedule = settings.Schedule.FirstOrDefault(item => item.Day == now.AddDays(-1).DayOfWeek);
 
-        if (!insideRegularWindow && activeAllowances.Count == 0)
+        (DaySchedule Schedule, DateOnly AnchorDate)? activeRegularWindow =
+            FindActiveRegularWindow(now, today, todaysSchedule) ??
+            FindActiveRegularWindow(now, yesterday, yesterdaysSchedule);
+
+        List<(TemporaryAllowance Allowance, DateOnly AnchorDate)> activeAllowances = settings.TemporaryAllowances
+            .Where(item => item.Date == today || item.Date == yesterday)
+            .Select(item => (Allowance: item, AnchorDate: item.Date))
+            .Where(item => IsInsideWindow(
+                now,
+                item.AnchorDate,
+                item.Allowance.AllowedFrom,
+                item.Allowance.AllowedUntil))
+            .ToList();
+
+        int baseLimit = activeRegularWindow?.Schedule.DailyLimitMinutes ??
+            (todaysSchedule is { IsEnabled: true } ? todaysSchedule.DailyLimitMinutes : 0);
+        int allowanceMinutes = settings.TemporaryAllowances
+            .Where(item => item.Date == today)
+            .Sum(item => item.BonusMinutes) +
+            activeAllowances
+                .Where(item => item.AnchorDate == yesterday)
+                .Sum(item => item.Allowance.BonusMinutes);
+        int dailyLimit = Math.Clamp(baseLimit + allowanceMinutes, 0, 1440);
+
+        if (activeRegularWindow is null && activeAllowances.Count == 0)
         {
-            string reason = schedule is { IsEnabled: true }
-                ? $"{Localize("İzin verilen saatler", "Allowed hours")}: {schedule.AllowedFrom:HH\\:mm}–{schedule.AllowedUntil:HH\\:mm}"
+            string reason = todaysSchedule is { IsEnabled: true }
+                ? $"{Localize("İzin verilen saatler", "Allowed hours")}: {todaysSchedule.AllowedFrom:HH:mm}–{todaysSchedule.AllowedUntil:HH:mm}"
                 : Localize("Bu gün için kullanım kapalı.", "Usage is disabled for this day.");
-            return new ScheduleStatus(
-                false,
-                dailyLimit,
-                reason,
-                null);
+            return new ScheduleStatus(false, dailyLimit, reason, null);
         }
 
         List<DateTimeOffset> endings = activeAllowances
-            .Select(item => BuildAllowedUntil(now, item.AllowedUntil))
+            .Select(item => BuildAllowedUntil(
+                now,
+                item.AnchorDate,
+                item.Allowance.AllowedFrom,
+                item.Allowance.AllowedUntil))
             .ToList();
-        if (insideRegularWindow && schedule is not null)
+        if (activeRegularWindow is { } regularWindow)
         {
-            endings.Add(BuildAllowedUntil(now, schedule.AllowedUntil));
+            endings.Add(BuildAllowedUntil(
+                now,
+                regularWindow.AnchorDate,
+                regularWindow.Schedule.AllowedFrom,
+                regularWindow.Schedule.AllowedUntil));
         }
 
         return new ScheduleStatus(
@@ -64,23 +80,41 @@ public static class ScheduleEvaluator
     private static string Localize(string turkish, string english) =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" ? english : turkish;
 
-    private static bool IsInsideWindow(TimeOnly current, TimeOnly from, TimeOnly until)
+    private static (DaySchedule Schedule, DateOnly AnchorDate)? FindActiveRegularWindow(
+        DateTimeOffset now,
+        DateOnly anchorDate,
+        DaySchedule? schedule)
     {
-        if (from == until)
-        {
-            return true;
-        }
-
-        return from < until
-            ? current >= from && current < until
-            : current >= from || current < until;
+        return schedule is { IsEnabled: true } &&
+            IsInsideWindow(now, anchorDate, schedule.AllowedFrom, schedule.AllowedUntil)
+                ? (schedule, anchorDate)
+                : null;
     }
 
-    private static DateTimeOffset BuildAllowedUntil(DateTimeOffset now, TimeOnly until)
+    private static bool IsInsideWindow(
+        DateTimeOffset now,
+        DateOnly anchorDate,
+        TimeOnly from,
+        TimeOnly until)
     {
-        DateTime localDate = now.LocalDateTime.Date;
-        DateTime candidate = localDate.Add(until.ToTimeSpan());
-        if (candidate <= now.LocalDateTime)
+        DateTime start = anchorDate.ToDateTime(from);
+        DateTime end = anchorDate.ToDateTime(until);
+        if (until <= from)
+        {
+            end = end.AddDays(1);
+        }
+
+        return now.LocalDateTime >= start && now.LocalDateTime < end;
+    }
+
+    private static DateTimeOffset BuildAllowedUntil(
+        DateTimeOffset now,
+        DateOnly anchorDate,
+        TimeOnly from,
+        TimeOnly until)
+    {
+        DateTime candidate = anchorDate.ToDateTime(until);
+        if (until <= from)
         {
             candidate = candidate.AddDays(1);
         }

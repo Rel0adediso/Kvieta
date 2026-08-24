@@ -80,6 +80,11 @@ public partial class CafeWindow : Window
             await _viewModel.TickAsync();
             EnsureCorrectSurface();
         }
+        catch (Exception exception)
+        {
+            _viewModel.ReportRuntimeError(exception);
+            EnsureCorrectSurface();
+        }
         finally
         {
             _tickInProgress = false;
