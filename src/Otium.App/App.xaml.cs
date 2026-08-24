@@ -254,10 +254,10 @@ public partial class App : System.Windows.Application
 
     private void SingleInstance_ActivationRequested(object? sender, EventArgs e)
     {
-        Dispatcher.InvokeAsync(OpenControlCenterFromExternalRequestAsync);
+        Dispatcher.InvokeAsync(() => OpenControlCenterFromExternalRequestAsync());
     }
 
-    private async Task OpenControlCenterFromExternalRequestAsync()
+    private async Task OpenControlCenterFromExternalRequestAsync(string? verifiedPin = null)
     {
         if (MainWindow is MainWindow controlCenter)
         {
@@ -293,25 +293,33 @@ public partial class App : System.Windows.Application
         string? managementPin = null;
         if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                pin => AdminPinService.Verify(pin, settings.AdminPin),
-                owner => RunRecoveryPinResetAsync(
-                    owner,
-                    File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
-                        ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
-                        : new JsonSettingsStore(),
-                    settings,
-                    ProtectionServiceManager.GetState() == ProtectionServiceState.Running));
-            verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            verification.ShowInTaskbar = true;
-            verification.Topmost = true;
-            if (verification.ShowDialog() != true)
+            if (!string.IsNullOrWhiteSpace(verifiedPin) && AdminPinService.Verify(verifiedPin, settings.AdminPin))
             {
-                return;
+                managementPin = verifiedPin;
+            }
+            else
+            {
+                AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                    pin => AdminPinService.Verify(pin, settings.AdminPin),
+                    owner => RunRecoveryPinResetAsync(
+                        owner,
+                        File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+                            ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
+                            : new JsonSettingsStore(),
+                        settings,
+                        ProtectionServiceManager.GetState() == ProtectionServiceState.Running));
+                verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                verification.ShowInTaskbar = true;
+                verification.Topmost = true;
+                if (verification.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                managementPin = verification.ResultPin;
             }
 
             _guardianCredential = settings.AdminPin;
-            managementPin = verification.ResultPin;
             RestoreProtectedSettingsToUserProfile();
         }
 
@@ -322,9 +330,9 @@ public partial class App : System.Windows.Application
         _activatedControlCenter.Activate();
     }
 
-    private void DirectSession_ControlCenterRequested(object? sender, EventArgs e)
+    private void DirectSession_ControlCenterRequested(object? sender, ControlCenterRequestEventArgs e)
     {
-        Dispatcher.InvokeAsync(OpenControlCenterFromExternalRequestAsync);
+        Dispatcher.InvokeAsync(() => OpenControlCenterFromExternalRequestAsync(e.VerifiedPin));
     }
 
     private static void RestoreProtectedSettingsToUserProfile()

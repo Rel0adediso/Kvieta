@@ -475,15 +475,9 @@ public partial class CafeWindow : Window
     {
         if (_returnToControlCenter)
         {
-            if (!_viewModel.IsActive && !await _viewModel.StartOrResumeAsync())
-            {
-                EnsureCorrectSurface();
-                return;
-            }
-
             _forceSurfaceVisible = false;
             EnsureCorrectSurface();
-            ControlCenterRequested?.Invoke(this, EventArgs.Empty);
+            ControlCenterRequested?.Invoke(this, new ControlCenterRequestEventArgs());
             return;
         }
 
@@ -512,6 +506,13 @@ public partial class CafeWindow : Window
                 {
                     return;
                 }
+
+                _forceSurfaceVisible = false;
+                EnsureCorrectSurface();
+                ControlCenterRequested?.Invoke(
+                    this,
+                    new ControlCenterRequestEventArgs(verification.ResultPin));
+                return;
             }
         }
 
@@ -525,7 +526,7 @@ public partial class CafeWindow : Window
         Close();
     }
 
-    public event EventHandler? ControlCenterRequested;
+    public event EventHandler<ControlCenterRequestEventArgs>? ControlCenterRequested;
 
 #if OTIUM_DEVELOPMENT_BUILD
     private async void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -546,7 +547,7 @@ public partial class CafeWindow : Window
         await _viewModel.ForceUnlockForTestingAsync();
         _forceSurfaceVisible = false;
         EnsureCorrectSurface();
-        ControlCenterRequested?.Invoke(this, EventArgs.Empty);
+        ControlCenterRequested?.Invoke(this, new ControlCenterRequestEventArgs());
 #endif
     }
 
@@ -573,4 +574,9 @@ public partial class CafeWindow : Window
         Owner?.Show();
         Owner?.Activate();
     }
+}
+
+public sealed class ControlCenterRequestEventArgs(string? verifiedPin = null) : EventArgs
+{
+    public string? VerifiedPin { get; } = verifiedPin;
 }
