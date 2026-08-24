@@ -188,6 +188,8 @@ public sealed class SessionEngine
             Ledger.UsedSeconds = 0;
             Ledger.BonusMinutes = 0;
             Ledger.AppUsedSeconds.Clear();
+            Ledger.AwarenessUsedSeconds = 0;
+            Ledger.ForegroundAppUsedSeconds.Clear();
             Ledger.BreakCount = 0;
             Ledger.LimitReachedCount = 0;
             Ledger.ExtraTimeGrantCount = 0;
@@ -247,7 +249,7 @@ public sealed class SessionEngine
 
     private void ArchiveCurrentDay()
     {
-        if (Ledger.UsedSeconds <= 0 && Ledger.AppUsedSeconds.Count == 0 && Ledger.BreakCount == 0 &&
+        if (Ledger.UsedSeconds <= 0 && Ledger.AppUsedSeconds.Count == 0 && Ledger.AwarenessUsedSeconds <= 0 && Ledger.BreakCount == 0 &&
             Ledger.LimitReachedCount == 0 && Ledger.ExtraTimeGrantCount == 0)
         {
             return;
@@ -262,12 +264,23 @@ public sealed class SessionEngine
             BreakCount = Ledger.BreakCount,
             LimitReachedCount = Ledger.LimitReachedCount,
             ExtraTimeGrantCount = Ledger.ExtraTimeGrantCount,
+            AwarenessUsedSeconds = Ledger.AwarenessUsedSeconds,
             Applications = Ledger.AppUsedSeconds
                 .Where(item => item.Value > 0)
                 .Select(item => new AppUsageRecord
                 {
                     RuleId = item.Key,
                     Name = names.GetValueOrDefault(item.Key, Localize("Uygulama", "Application")),
+                    UsedSeconds = item.Value
+                })
+                .OrderByDescending(item => item.UsedSeconds)
+                .ToList(),
+            ForegroundApplications = Ledger.ForegroundAppUsedSeconds
+                .Where(item => item.Value > 0)
+                .Select(item => new AwarenessAppUsageRecord
+                {
+                    ApplicationId = item.Key,
+                    Name = Path.GetFileNameWithoutExtension(item.Key),
                     UsedSeconds = item.Value
                 })
                 .OrderByDescending(item => item.UsedSeconds)
@@ -278,7 +291,7 @@ public sealed class SessionEngine
         Ledger.History.Add(record);
         Ledger.History = Ledger.History
             .OrderByDescending(item => item.LocalDay)
-            .Take(90)
+            .Take(Math.Clamp(_settings.UsageRetentionDays, 30, 180))
             .OrderBy(item => item.LocalDay)
             .ToList();
     }

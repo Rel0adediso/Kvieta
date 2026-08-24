@@ -96,6 +96,7 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 - Tek dosyalık, self-contained Windows paketi
 - Türkçe ve English kaynakları eşleşiyor
 - Veri kurtarma, migration, dosya kilidi ve eşzamanlı yazma smoke testleri mevcut
+- v0.16 Ritim temeli geliştiriliyor: açık rızalı, yalnız yerel ön plan uygulaması farkındalığı ve ayrı kural sayaçları
 
 Geliştirme sırası ve v1.0 hedefleri için [güncel yol haritasına](ROADMAP.md) bakın.
 

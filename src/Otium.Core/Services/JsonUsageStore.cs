@@ -79,12 +79,13 @@ public sealed class JsonUsageStore
 
         UsageLedger newest = incoming.LastUpdatedUtc >= current.LastUpdatedUtc ? incoming : current;
         UsageLedger other = ReferenceEquals(newest, incoming) ? current : incoming;
-        newest.SchemaVersion = 2;
+        newest.SchemaVersion = 3;
         newest.UsedSeconds = Math.Max(newest.UsedSeconds, other.UsedSeconds);
         newest.BonusMinutes = Math.Max(newest.BonusMinutes, other.BonusMinutes);
         newest.BreakCount = Math.Max(newest.BreakCount, other.BreakCount);
         newest.LimitReachedCount = Math.Max(newest.LimitReachedCount, other.LimitReachedCount);
         newest.ExtraTimeGrantCount = Math.Max(newest.ExtraTimeGrantCount, other.ExtraTimeGrantCount);
+        newest.AwarenessUsedSeconds = Math.Max(newest.AwarenessUsedSeconds, other.AwarenessUsedSeconds);
         newest.LastUpdatedUtc = newest.LastUpdatedUtc >= other.LastUpdatedUtc ? newest.LastUpdatedUtc : other.LastUpdatedUtc;
         if (other.ClockRollbackUntilUtc is { } otherRollback &&
             (newest.ClockRollbackUntilUtc is null || otherRollback > newest.ClockRollbackUntilUtc))
@@ -95,6 +96,11 @@ public sealed class JsonUsageStore
         foreach ((Guid ruleId, long seconds) in other.AppUsedSeconds)
         {
             newest.AppUsedSeconds[ruleId] = Math.Max(newest.AppUsedSeconds.GetValueOrDefault(ruleId), seconds);
+        }
+
+        foreach ((string applicationId, long seconds) in other.ForegroundAppUsedSeconds)
+        {
+            newest.ForegroundAppUsedSeconds[applicationId] = Math.Max(newest.ForegroundAppUsedSeconds.GetValueOrDefault(applicationId), seconds);
         }
 
         MergeHistoricalData(newest, other);
@@ -109,7 +115,7 @@ public sealed class JsonUsageStore
             .ToDictionary(group => group.Key, group => MergeDay(group));
         target.History = history.Values
             .OrderByDescending(item => item.LocalDay)
-            .Take(90)
+            .Take(180)
             .OrderBy(item => item.LocalDay)
             .ToList();
 
@@ -125,7 +131,7 @@ public sealed class JsonUsageStore
 
     private static void AddCurrentDayToHistory(UsageLedger target, UsageLedger source)
     {
-        if (source.UsedSeconds <= 0 && source.AppUsedSeconds.Count == 0 && source.BreakCount == 0 &&
+        if (source.UsedSeconds <= 0 && source.AppUsedSeconds.Count == 0 && source.AwarenessUsedSeconds <= 0 && source.BreakCount == 0 &&
             source.LimitReachedCount == 0 && source.ExtraTimeGrantCount == 0)
         {
             return;
@@ -139,9 +145,16 @@ public sealed class JsonUsageStore
             BreakCount = source.BreakCount,
             LimitReachedCount = source.LimitReachedCount,
             ExtraTimeGrantCount = source.ExtraTimeGrantCount,
+            AwarenessUsedSeconds = source.AwarenessUsedSeconds,
             Applications = source.AppUsedSeconds.Select(item => new AppUsageRecord
             {
                 RuleId = item.Key,
+                UsedSeconds = item.Value
+            }).ToList(),
+            ForegroundApplications = source.ForegroundAppUsedSeconds.Select(item => new AwarenessAppUsageRecord
+            {
+                ApplicationId = item.Key,
+                Name = Path.GetFileNameWithoutExtension(item.Key),
                 UsedSeconds = item.Value
             }).ToList()
         });
@@ -159,6 +172,7 @@ public sealed class JsonUsageStore
             BreakCount = values.Max(item => item.BreakCount),
             LimitReachedCount = values.Max(item => item.LimitReachedCount),
             ExtraTimeGrantCount = values.Max(item => item.ExtraTimeGrantCount),
+            AwarenessUsedSeconds = values.Max(item => item.AwarenessUsedSeconds),
             Applications = values
                 .SelectMany(item => item.Applications)
                 .GroupBy(item => item.RuleId)
@@ -166,6 +180,17 @@ public sealed class JsonUsageStore
                 {
                     RuleId = group.Key,
                     Name = group.Select(item => item.Name).LastOrDefault(name => !string.IsNullOrWhiteSpace(name)) ?? string.Empty,
+                    UsedSeconds = group.Max(item => item.UsedSeconds)
+                })
+                .OrderByDescending(item => item.UsedSeconds)
+                .ToList(),
+            ForegroundApplications = values
+                .SelectMany(item => item.ForegroundApplications)
+                .GroupBy(item => item.ApplicationId, StringComparer.OrdinalIgnoreCase)
+                .Select(group => new AwarenessAppUsageRecord
+                {
+                    ApplicationId = group.Key,
+                    Name = group.Select(item => item.Name).LastOrDefault(name => !string.IsNullOrWhiteSpace(name)) ?? Path.GetFileNameWithoutExtension(group.Key),
                     UsedSeconds = group.Max(item => item.UsedSeconds)
                 })
                 .OrderByDescending(item => item.UsedSeconds)
@@ -179,15 +204,21 @@ public sealed class JsonUsageStore
         static () => new UsageLedger(),
         static ledger =>
         {
-            if (ledger.SchemaVersion > 2)
+            if (ledger.SchemaVersion > 3)
             {
                 throw new InvalidDataException($"Desteklenmeyen kullanım şeması: {ledger.SchemaVersion}");
             }
 
-            bool changed = ledger.SchemaVersion < 2;
-            ledger.SchemaVersion = 2;
+            bool changed = ledger.SchemaVersion < 3;
+            ledger.SchemaVersion = 3;
             ledger.AppUsedSeconds ??= [];
+            ledger.ForegroundAppUsedSeconds ??= new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             ledger.History ??= [];
+            foreach (DailyUsageRecord day in ledger.History)
+            {
+                day.Applications ??= [];
+                day.ForegroundApplications ??= [];
+            }
             ledger.RecentEvents ??= [];
             return new MigrationResult<UsageLedger>(ledger, changed);
         });

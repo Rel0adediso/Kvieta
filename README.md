@@ -96,6 +96,7 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 - Single-file, self-contained Windows package
 - Matching Turkish and English localization resources
 - Smoke coverage for recovery, migration, locking, and concurrent writes
+- v0.16 rhythm foundation in development: opt-in, local-only foreground app awareness with separate policy counters
 
 See the [current roadmap](ROADMAP.md) for the development sequence and v1.0 goals.
 

@@ -53,6 +53,8 @@ settings.Language = LanguagePreference.English;
 settings.SetupCompleted = true;
 settings.Mode = ControlMode.Personal;
 settings.StartWithWindows = true;
+settings.AwarenessTrackingEnabled = true;
+settings.UsageRetentionDays = 180;
 settings.AppRules.Add(new AppRule { Name = "Test", ExecutablePath = "C:\\Test.exe" });
 await store.SaveAsync(settings);
 ControlSettings loaded = await store.LoadAsync();
@@ -61,6 +63,7 @@ Assert(loaded.Theme == ThemePreference.Light, "Tema tercihi geri yüklenemedi.")
 Assert(loaded.Language == LanguagePreference.English, "Dil tercihi geri yüklenemedi.");
 Assert(loaded.SetupCompleted && loaded.Mode == ControlMode.Personal, "Kullanım biçimi geri yüklenemedi.");
 Assert(loaded.StartWithWindows, "Windows başlangıç tercihi geri yüklenemedi.");
+Assert(loaded.AwarenessTrackingEnabled && loaded.UsageRetentionDays == 180, "Ritim gizlilik tercihleri geri yüklenemedi.");
 Assert(AdminPinService.Verify("4826", loaded.AdminPin), "Yönetici PIN'i güvenli biçimde geri yüklenemedi.");
 Assert(loaded.AppRules.Count == 1, "Uygulama kuralları geri yüklenemedi.");
 
@@ -98,8 +101,14 @@ await File.WriteAllTextAsync(migrationUsagePath, """
 """);
 JsonUsageStore migrationUsageStore = new(migrationUsagePath);
 UsageLedger migratedUsage = await migrationUsageStore.LoadAsync();
-Assert(migratedUsage.SchemaVersion == 2 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 2'ye taşınmadı.");
+Assert(migratedUsage.SchemaVersion == 3 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 3'e taşınmadı.");
 Assert(File.Exists(migrationUsageStore.BackupPath), "Migration sonrasında sağlam kullanım yedeği oluşturulmadı.");
+
+UsageLedger awarenessLedger = new();
+Assert(AwarenessUsageCounter.Accrue(awarenessLedger, @"C:\Program Files\Browser\browser.exe", TimeSpan.FromSeconds(3.8)), "Ön plan farkındalık süresi eklenemedi.");
+Assert(awarenessLedger.AwarenessUsedSeconds == 3, "Farkındalık toplamı yanlış hesaplandı.");
+Assert(awarenessLedger.ForegroundAppUsedSeconds.GetValueOrDefault("browser.exe") == 3, "Farkındalık kaydında yalnız güvenli uygulama kimliği tutulmadı.");
+Assert(awarenessLedger.AppUsedSeconds.Count == 0 && awarenessLedger.UsedSeconds == 0, "Farkındalık sayacı kural veya oturum sayacına karıştı.");
 
 string concurrentUsagePath = Path.Combine(testDirectory, "concurrent-usage.json");
 JsonUsageStore concurrentStoreA = new(concurrentUsagePath);
@@ -218,7 +227,8 @@ Assert(loadedLedger.UsedSeconds == ledger.UsedSeconds, "Kullanım kaydı geri y�
 string legacyPath = Path.Combine(testDirectory, "legacy-settings.json");
 await File.WriteAllTextAsync(legacyPath, "{\"SchemaVersion\":1,\"DeviceName\":\"Eski Kurulum\"}");
 ControlSettings migratedSettings = await new JsonSettingsStore(legacyPath).LoadAsync();
-Assert(migratedSettings.SchemaVersion == 2, "Eski ayar şeması yükseltilemedi.");
+Assert(migratedSettings.SchemaVersion == 3, "Eski ayar şeması yükseltilemedi.");
+Assert(!migratedSettings.AwarenessTrackingEnabled && migratedSettings.UsageRetentionDays == 90, "Migration açık rıza gerektiren ölçümü kendiliğinden etkinleştirdi.");
 Assert(migratedSettings.SetupCompleted, "Mevcut kullanıcıya ilk kurulum ekranı yeniden gösterilmemeli.");
 Assert(migratedSettings.Mode == ControlMode.Protected, "Mevcut kullanıcı korumalı kullanıma taşınmalı.");
 
@@ -392,14 +402,18 @@ UsageLedger historyLedger = new()
     BreakCount = 2,
     LimitReachedCount = 1,
     ExtraTimeGrantCount = 1,
-    AppUsedSeconds = new Dictionary<Guid, long> { [historyRule.Id] = 900 }
+    AppUsedSeconds = new Dictionary<Guid, long> { [historyRule.Id] = 900 },
+    AwarenessUsedSeconds = 1200,
+    ForegroundAppUsedSeconds = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase) { ["browser.exe"] = 1200 }
 };
 DateTimeOffset historyNow = new(2026, 8, 24, 12, 0, 0, TimeSpan.FromHours(3));
 SessionEngine historyEngine = new(historySettings, historyLedger, historyNow);
 DailyUsageRecord archivedDay = historyLedger.History.Single(item => item.LocalDay == new DateOnly(2026, 8, 23));
 Assert(archivedDay.UsedSeconds == 3600 && archivedDay.BreakCount == 2, "Önceki gün kullanım geçmişine arşivlenmedi.");
 Assert(archivedDay.Applications.Single().Name == "Geçmiş uygulaması", "Uygulama geçmişi adıyla arşivlenmedi.");
+Assert(archivedDay.AwarenessUsedSeconds == 1200 && archivedDay.ForegroundApplications.Single().ApplicationId == "browser.exe", "Ön plan farkındalık verisi ayrı biçimde arşivlenmedi.");
 Assert(historyLedger.UsedSeconds == 0 && historyLedger.BreakCount == 0, "Yeni günde aktif sayaçlar sıfırlanmadı.");
+Assert(historyLedger.AwarenessUsedSeconds == 0 && historyLedger.ForegroundAppUsedSeconds.Count == 0, "Yeni günde farkındalık sayaçları sıfırlanmadı.");
 Assert(historyEngine.StartOrResume(historyNow), "Geçmiş testi oturumu başlatılamadı.");
 Assert(historyEngine.Pause(historyNow.AddMinutes(1)), "Geçmiş testi molası başlatılamadı.");
 historyEngine.AddBonusMinutes(15, historyNow.AddMinutes(2));

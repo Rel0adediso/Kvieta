@@ -12,6 +12,7 @@ public sealed class CafeViewModel : ObservableObject
     private readonly JsonUsageStore _usageStore;
     private readonly Stopwatch _tickWatch = Stopwatch.StartNew();
     private readonly ApplicationRuleEnforcer _applicationRuleEnforcer = new();
+    private readonly ForegroundApplicationTracker _foregroundApplicationTracker = new();
     private ControlSettings? _settings;
     private SessionEngine? _engine;
     private SessionSnapshot? _snapshot;
@@ -128,6 +129,11 @@ public sealed class CafeViewModel : ObservableObject
         {
             _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
         }
+        if (_settings?.AwarenessTrackingEnabled == true &&
+            _foregroundApplicationTracker.Sample(_engine.Ledger, elapsed))
+        {
+            _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
+        }
         _uncommittedSeconds += elapsed.TotalSeconds;
         _secondsSinceSave += elapsed.TotalSeconds;
 
@@ -234,7 +240,7 @@ public sealed class CafeViewModel : ObservableObject
         {
             ControlSettings target = pending.TargetSettings;
             target.PendingChange = null;
-            target.SchemaVersion = 2;
+            target.SchemaVersion = 3;
             target.SetupCompleted = true;
             await _settingsStore.SaveAsync(target);
             _settings = target;

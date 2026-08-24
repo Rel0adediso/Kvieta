@@ -28,7 +28,7 @@ public enum ControlMode
 
 public sealed class ControlSettings
 {
-    public int SchemaVersion { get; set; } = 2;
+    public int SchemaVersion { get; set; } = 3;
     public bool SetupCompleted { get; set; }
     public ControlMode Mode { get; set; } = ControlMode.Protected;
     public string DeviceName { get; set; } = "Bu Bilgisayar";
@@ -37,6 +37,8 @@ public sealed class ControlSettings
     public ThemePreference Theme { get; set; } = ThemePreference.System;
     public LanguagePreference Language { get; set; } = LanguagePreference.Turkish;
     public bool StartWithWindows { get; set; }
+    public bool AwarenessTrackingEnabled { get; set; }
+    public int UsageRetentionDays { get; set; } = 90;
     public int PersonalChangeDelayMinutes { get; set; } = 60;
     public PendingPolicyChange? PendingChange { get; set; }
     public AdminCredential AdminPin { get; set; } = new();

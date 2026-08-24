@@ -51,7 +51,7 @@ public sealed class JsonSettingsStore
         {
             settings = pending.TargetSettings;
             settings.PendingChange = null;
-            settings.SchemaVersion = 2;
+            settings.SchemaVersion = 3;
             settings.SetupCompleted = true;
             await SaveAsync(settings, cancellationToken);
         }
@@ -75,18 +75,22 @@ public sealed class JsonSettingsStore
         static () => new ControlSettings(),
         static settings =>
         {
-            if (settings.SchemaVersion > 2)
+            if (settings.SchemaVersion > 3)
             {
                 throw new InvalidDataException($"Desteklenmeyen ayar şeması: {settings.SchemaVersion}");
             }
 
-            bool changed = settings.SchemaVersion < 2;
-            if (changed)
+            bool changed = settings.SchemaVersion < 3;
+            if (settings.SchemaVersion < 2)
             {
-                settings.SchemaVersion = 2;
                 settings.SetupCompleted = true;
                 settings.Mode = ControlMode.Protected;
             }
+
+            settings.SchemaVersion = 3;
+            settings.UsageRetentionDays = settings.UsageRetentionDays is 30 or 90 or 180
+                ? settings.UsageRetentionDays
+                : 90;
 
             settings.WarningMinutes ??= [15, 5, 1];
             settings.Schedule ??= ControlSettings.CreateDefaultSchedule();

@@ -21,6 +21,7 @@ public sealed class MainViewModel : ObservableObject
     private string _themeMode = "Sistem";
     private string _languageMode = "Türkçe";
     private bool _startWithWindows;
+    private bool _awarenessTrackingEnabled;
     private ControlMode _controlMode = ControlMode.Protected;
     private string _changeDelay = "1 saat";
     private bool _isSidebarExpanded = true;
@@ -98,6 +99,12 @@ public sealed class MainViewModel : ObservableObject
     {
         get => _startWithWindows;
         set => SetProperty(ref _startWithWindows, value);
+    }
+
+    public bool AwarenessTrackingEnabled
+    {
+        get => _awarenessTrackingEnabled;
+        set => SetProperty(ref _awarenessTrackingEnabled, value);
     }
 
     public ControlMode SelectedControlMode
@@ -203,6 +210,7 @@ public sealed class MainViewModel : ObservableObject
             ThemeMode = ToDisplayTheme(_settings.Theme);
             LanguageMode = _settings.Language == LanguagePreference.English ? "English" : "Türkçe";
             StartWithWindows = _settings.StartWithWindows;
+            AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
             SelectedControlMode = _settings.Mode;
             ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
             RefreshLocalizedCollections(_settings.LimitAction, _settings.Theme);
@@ -244,6 +252,7 @@ public sealed class MainViewModel : ObservableObject
 
         _settings = await _settingsStore.LoadAsync();
         StartWithWindows = _settings.StartWithWindows;
+        AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
         SelectedControlMode = _settings.Mode;
         ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
         LoadPolicyRows(_settings);
@@ -280,7 +289,7 @@ public sealed class MainViewModel : ObservableObject
 
             ControlSettings desired = new()
             {
-                SchemaVersion = 2,
+                SchemaVersion = 3,
                 SetupCompleted = true,
                 Mode = SelectedControlMode,
                 DeviceName = string.IsNullOrWhiteSpace(DeviceName) ? LocalizationService.Get("DefaultDeviceName") : DeviceName.Trim(),
@@ -289,6 +298,8 @@ public sealed class MainViewModel : ObservableObject
                 Theme = FromDisplayTheme(ThemeMode),
                 Language = FromDisplayLanguage(LanguageMode),
                 StartWithWindows = StartWithWindows,
+                AwarenessTrackingEnabled = AwarenessTrackingEnabled,
+                UsageRetentionDays = _settings.UsageRetentionDays,
                 PersonalChangeDelayMinutes = FromDisplayDelay(ChangeDelay),
                 AdminPin = _settings.AdminPin,
                 WarningMinutes = [15, 5, 1],
@@ -497,10 +508,17 @@ public sealed class MainViewModel : ObservableObject
                 BreakCount = ledger.BreakCount,
                 LimitReachedCount = ledger.LimitReachedCount,
                 ExtraTimeGrantCount = ledger.ExtraTimeGrantCount,
+                AwarenessUsedSeconds = ledger.AwarenessUsedSeconds,
                 Applications = ledger.AppUsedSeconds.Select(item => new AppUsageRecord
                 {
                     RuleId = item.Key,
                     Name = names.GetValueOrDefault(item.Key, L("Uygulama", "Application")),
+                    UsedSeconds = item.Value
+                }).ToList(),
+                ForegroundApplications = ledger.ForegroundAppUsedSeconds.Select(item => new AwarenessAppUsageRecord
+                {
+                    ApplicationId = item.Key,
+                    Name = Path.GetFileNameWithoutExtension(item.Key),
                     UsedSeconds = item.Value
                 }).ToList()
             });
@@ -527,7 +545,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         List<AppUsageHistoryRow> applications = records
-            .SelectMany(item => item.Applications)
+            .SelectMany(item => item.ForegroundApplications)
             .GroupBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
             .Select(group => new AppUsageHistoryRow { Name = group.Key, UsedSeconds = group.Sum(item => item.UsedSeconds), RelativePercent = 0 })
             .OrderByDescending(item => item.UsedSeconds)
@@ -891,6 +909,8 @@ public sealed class MainViewModel : ObservableObject
         Theme = settings.Theme,
         Language = settings.Language,
         StartWithWindows = settings.StartWithWindows,
+        AwarenessTrackingEnabled = settings.AwarenessTrackingEnabled,
+        UsageRetentionDays = settings.UsageRetentionDays,
         PersonalChangeDelayMinutes = settings.PersonalChangeDelayMinutes,
         AdminPin = settings.AdminPin,
         WarningMinutes = [.. settings.WarningMinutes],

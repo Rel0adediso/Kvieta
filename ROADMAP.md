@@ -47,6 +47,16 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 
 ## v0.16 — Ritim ve kullanıcı farkındalığı
 
+**Durum:** Geliştirme başladı. İlk uçtan uca temel dilim tamamlandı.
+
+- Kural sayacı ile farkındalık sayacı veri modelinde ayrıldı.
+- Ön plan uygulaması ölçümü açık rızaya bağlandı ve varsayılan olarak kapalı tutuldu.
+- Yalnız güvenli uygulama adı ve süre saklanıyor; pencere başlığı, belge, yazılan metin ve site bilgisi kaydedilmiyor.
+- Şema 3 migration'ı eski ayarları ve kullanım geçmişini koruyor.
+- Ritim ekranındaki uygulama özeti yalnız farkındalık verisini kullanıyor; kural motoru verisiyle karıştırılmıyor.
+
+Sıradaki v0.16 dilimi: başlangıç ritmi, haftalık karşılaştırmalar, küçük azaltma hedefleri ve gizlilik/veri sahipliği merkezi.
+
 ### Ritim
 
 - İlk 7–14 günlük kişisel başlangıç ritmi.
