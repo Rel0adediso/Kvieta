@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
+using Otium.App.Services;
 using Forms = System.Windows.Forms;
 
 namespace Otium.App;
@@ -29,6 +30,7 @@ public partial class TrayMenuWindow : Window
 
         Left = Math.Clamp(cursorX - ActualWidth + 14, workLeft + 6, workRight - ActualWidth - 6);
         Top = Math.Clamp(cursorY - ActualHeight + 8, workTop + 6, workBottom - ActualHeight - 6);
+        MotionService.Enter(TraySurface, 0, 8, 260);
     }
 
     private void OpenControlCenter_Click(object sender, RoutedEventArgs e)

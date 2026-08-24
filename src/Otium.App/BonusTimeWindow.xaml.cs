@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using Otium.App.Services;
 
 namespace Otium.App;
 
@@ -14,6 +15,7 @@ public partial class BonusTimeWindow : Window
         Minutes60.Content = $"+60 {unit}";
     }
     public int SelectedMinutes { get; private set; }
+    private void Window_Loaded(object sender, RoutedEventArgs e) => MotionService.RevealWindow(DialogSurface);
     private void Select_Click(object sender, RoutedEventArgs e) { SelectedMinutes = int.Parse((string)((System.Windows.Controls.Button)sender).Tag); DialogResult = true; }
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); }

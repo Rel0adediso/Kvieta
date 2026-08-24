@@ -16,6 +16,8 @@ public partial class TemporaryAllowanceWindow : Window
 
     public TemporaryAllowance? Result { get; private set; }
 
+    private void Window_Loaded(object sender, RoutedEventArgs e) => MotionService.RevealWindow(DialogSurface);
+
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         if (DateInput.SelectedDate is not DateTime date || date.Date < DateTime.Today ||
@@ -26,6 +28,7 @@ public partial class TemporaryAllowanceWindow : Window
             ErrorText.Text = LocalizationService.CurrentLanguage == LanguagePreference.English
                 ? "Choose a valid date, use HH:mm for hours, and enter 1–1440 minutes."
                 : "Geçerli bir tarih seç; saatleri HH:mm, ek süreyi 1–1440 dakika olarak gir.";
+            MotionService.Shake(ErrorText);
             return;
         }
 

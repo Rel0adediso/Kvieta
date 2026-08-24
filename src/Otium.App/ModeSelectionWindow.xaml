@@ -1,10 +1,11 @@
 <Window x:Class="Otium.App.ModeSelectionWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:services="clr-namespace:Otium.App.Services"
         Width="920" Height="455" MinWidth="460" MinHeight="340" WindowStyle="None" ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen" Background="Transparent" AllowsTransparency="True"
         ShowInTaskbar="True" Title="Otium" Loaded="Window_Loaded">
-    <Border Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
+    <Border x:Name="ModeSurface" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
         <Border.Resources>
             <Style x:Key="ModeCardStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}"><Setter Property="Padding" Value="22" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="VerticalContentAlignment" Value="Stretch" /></Style>
             <Style x:Key="SelectedModeCardStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}"><Setter Property="Padding" Value="22" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="VerticalContentAlignment" Value="Stretch" /></Style>
@@ -19,14 +20,14 @@
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <TextBlock Text="{DynamicResource ChooseModeTitle}" FontSize="25" FontWeight="SemiBold" HorizontalAlignment="Center" />
                 <TextBlock Grid.Row="1" Text="{DynamicResource ChooseModeDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" HorizontalAlignment="Center" Margin="0,7,0,22" />
-                <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                    <Button x:Name="AwarenessButton" Style="{StaticResource ModeCardStyle}" Click="Awareness_Click">
+                <Grid x:Name="ModeCards" Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /><ColumnDefinition Width="12" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Button x:Name="AwarenessButton" Style="{StaticResource ModeCardStyle}" Click="Awareness_Click" services:MotionAssist.HoverLift="True">
                         <StackPanel><TextBlock Text="{DynamicResource AwarenessMode}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{DynamicResource AwarenessModeDescription}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="19" Opacity="0.78" /><TextBlock Text="{DynamicResource AwarenessModeHint}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="11" Margin="0,18,0,0" TextWrapping="Wrap" Opacity="0.9" /></StackPanel>
                     </Button>
-                    <Button x:Name="PersonalButton" Grid.Column="2" Style="{StaticResource ModeCardStyle}" Click="Personal_Click">
+                    <Button x:Name="PersonalButton" Grid.Column="2" Style="{StaticResource ModeCardStyle}" Click="Personal_Click" services:MotionAssist.HoverLift="True">
                         <StackPanel><TextBlock Text="{DynamicResource PersonalMode}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{DynamicResource PersonalModeDescription}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="19" Opacity="0.78" /><TextBlock Text="{DynamicResource PersonalModeHint}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="11" Margin="0,18,0,0" TextWrapping="Wrap" Opacity="0.9" /></StackPanel>
                     </Button>
-                    <Button x:Name="ProtectedButton" Grid.Column="4" Style="{StaticResource ModeCardStyle}" Click="Protected_Click">
+                    <Button x:Name="ProtectedButton" Grid.Column="4" Style="{StaticResource ModeCardStyle}" Click="Protected_Click" services:MotionAssist.HoverLift="True">
                         <StackPanel><TextBlock Text="{DynamicResource ProtectedMode}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="{DynamicResource ProtectedModeDescription}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="19" Opacity="0.78" /><TextBlock Text="{DynamicResource ProtectedModeHint}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="11" Margin="0,18,0,0" TextWrapping="Wrap" Opacity="0.9" /></StackPanel>
                     </Button>
                 </Grid>

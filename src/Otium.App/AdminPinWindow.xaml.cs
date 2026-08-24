@@ -44,7 +44,11 @@ public partial class AdminPinWindow : Window
         return new AdminPinWindow(false, verifier);
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e) => PinBox.Focus();
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        MotionService.RevealWindow(DialogSurface);
+        PinBox.Focus();
+    }
 
     private async void Confirm_Click(object sender, RoutedEventArgs e)
     {
@@ -117,5 +121,9 @@ public partial class AdminPinWindow : Window
         e.Handled = e.Text.Any(character => !char.IsAsciiDigit(character));
     }
 
-    private void ShowError(string message) => ErrorText.Text = message;
+    private void ShowError(string message)
+    {
+        ErrorText.Text = message;
+        MotionService.Shake(ErrorText);
+    }
 }
