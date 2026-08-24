@@ -12,7 +12,7 @@ Calm, local-first screen-time management for Windows — no account required.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/version-v0.15.1-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/version-v0.16.0-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
@@ -90,7 +90,7 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 
 ## Current status
 
-**v0.15.1 prototype**
+**v0.16.0 prototype**
 
 - Release build: `0` warnings, `0` errors
 - Single-file, self-contained Windows package

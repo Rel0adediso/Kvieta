@@ -4,7 +4,7 @@ namespace Otium.Core.Services;
 
 public static class AwarenessUsageCounter
 {
-    public static bool Accrue(UsageLedger ledger, string applicationId, TimeSpan elapsed)
+    public static bool Accrue(UsageLedger ledger, string applicationId, TimeSpan elapsed, DateTimeOffset? observedAt = null)
     {
         ArgumentNullException.ThrowIfNull(ledger);
         if (string.IsNullOrWhiteSpace(applicationId))
@@ -26,6 +26,8 @@ public static class AwarenessUsageCounter
 
         ledger.AwarenessUsedSeconds += seconds;
         ledger.ForegroundAppUsedSeconds[safeId] = ledger.ForegroundAppUsedSeconds.GetValueOrDefault(safeId) + seconds;
+        int localHour = (observedAt ?? DateTimeOffset.Now).LocalDateTime.Hour;
+        ledger.AwarenessHourlyUsedSeconds[localHour] = ledger.AwarenessHourlyUsedSeconds.GetValueOrDefault(localHour) + seconds;
         return true;
     }
 }

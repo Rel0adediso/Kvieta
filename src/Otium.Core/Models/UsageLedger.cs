@@ -11,13 +11,14 @@ public enum SessionState
 
 public sealed class UsageLedger
 {
-    public int SchemaVersion { get; set; } = 3;
+    public int SchemaVersion { get; set; } = 4;
     public DateOnly LocalDay { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     public long UsedSeconds { get; set; }
     public int BonusMinutes { get; set; }
     public Dictionary<Guid, long> AppUsedSeconds { get; set; } = [];
     public long AwarenessUsedSeconds { get; set; }
     public Dictionary<string, long> ForegroundAppUsedSeconds { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<int, long> AwarenessHourlyUsedSeconds { get; set; } = [];
     public int BreakCount { get; set; }
     public int LimitReachedCount { get; set; }
     public int ExtraTimeGrantCount { get; set; }
@@ -54,6 +55,7 @@ public sealed class DailyUsageRecord
     public List<AppUsageRecord> Applications { get; set; } = [];
     public long AwarenessUsedSeconds { get; set; }
     public List<AwarenessAppUsageRecord> ForegroundApplications { get; set; } = [];
+    public Dictionary<int, long> AwarenessHourlyUsedSeconds { get; set; } = [];
 }
 
 public sealed class AppUsageRecord

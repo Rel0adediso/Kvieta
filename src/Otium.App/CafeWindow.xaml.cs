@@ -312,6 +312,12 @@ public partial class CafeWindow : Window
         EnsureCorrectSurface();
     }
 
+    public async Task ReloadUsageAfterClearAsync()
+    {
+        await _viewModel.ReloadUsageAfterClearAsync();
+        EnsureCorrectSurface();
+    }
+
     private SessionWidgetWindow CreateWidget()
     {
         SessionWidgetWindow widget = new(_viewModel);

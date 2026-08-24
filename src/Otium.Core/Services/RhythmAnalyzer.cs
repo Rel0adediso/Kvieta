@@ -17,7 +17,14 @@ public sealed record RhythmSummary(
     bool IsGoalEnabled,
     bool IsGoalMet,
     string? RisingApplication,
-    string? FallingApplication);
+    string? FallingApplication,
+    int? PeakHour,
+    long PeakHourSeconds,
+    int WeekdayObservedDays,
+    long WeekdayDailyAverageSeconds,
+    int WeekendObservedDays,
+    long WeekendDailyAverageSeconds,
+    double? WeekendDifferencePercent);
 
 public static class RhythmAnalyzer
 {
@@ -38,6 +45,7 @@ public static class RhythmAnalyzer
                 UsedSeconds = ledger.UsedSeconds,
                 BonusMinutes = ledger.BonusMinutes,
                 AwarenessUsedSeconds = ledger.AwarenessUsedSeconds,
+                AwarenessHourlyUsedSeconds = new Dictionary<int, long>(ledger.AwarenessHourlyUsedSeconds),
                 ForegroundApplications = ledger.ForegroundAppUsedSeconds.Select(item => new AwarenessAppUsageRecord
                 {
                     ApplicationId = item.Key,
@@ -95,6 +103,28 @@ public static class RhythmAnalyzer
             ? (long)Math.Round(baselineAverage * (1 - settings.WeeklyReductionGoalPercent / 100d))
             : 0;
         long currentAverage = currentObservedDays == 0 ? 0 : currentSeconds / currentObservedDays;
+        KeyValuePair<int, long>? peak = current
+            .SelectMany(record => record.AwarenessHourlyUsedSeconds)
+            .GroupBy(item => item.Key)
+            .Select(group => new KeyValuePair<int, long>(group.Key, group.Sum(item => item.Value)))
+            .OrderByDescending(item => item.Value)
+            .ThenBy(item => item.Key)
+            .Cast<KeyValuePair<int, long>?>()
+            .FirstOrDefault();
+        List<DailyUsageRecord> comparisonWindow = records
+            .Where(record => record.LocalDay >= today.AddDays(-27) && record.LocalDay <= today && record.AwarenessUsedSeconds > 0)
+            .ToList();
+        List<DailyUsageRecord> weekdays = comparisonWindow
+            .Where(record => record.LocalDay.DayOfWeek is not (DayOfWeek.Saturday or DayOfWeek.Sunday))
+            .ToList();
+        List<DailyUsageRecord> weekends = comparisonWindow
+            .Where(record => record.LocalDay.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            .ToList();
+        long weekdayAverage = weekdays.Count == 0 ? 0 : weekdays.Sum(record => record.AwarenessUsedSeconds) / weekdays.Count;
+        long weekendAverage = weekends.Count == 0 ? 0 : weekends.Sum(record => record.AwarenessUsedSeconds) / weekends.Count;
+        double? weekendDifference = weekdays.Count >= 2 && weekends.Count >= 1 && weekdayAverage > 0
+            ? (weekendAverage - weekdayAverage) / (double)weekdayAverage * 100
+            : null;
 
         return new RhythmSummary(
             baselineDays,
@@ -111,7 +141,14 @@ public static class RhythmAnalyzer
             goalEnabled,
             goalEnabled && currentObservedDays > 0 && currentAverage <= goalDailySeconds,
             FindTrendApplication(current, previous, rising: true),
-            FindTrendApplication(current, previous, rising: false));
+            FindTrendApplication(current, previous, rising: false),
+            peak?.Key,
+            peak?.Value ?? 0,
+            weekdays.Count,
+            weekdayAverage,
+            weekends.Count,
+            weekendAverage,
+            weekendDifference);
     }
 
     private static string? FindTrendApplication(

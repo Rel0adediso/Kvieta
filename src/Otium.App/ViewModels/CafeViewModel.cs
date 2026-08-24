@@ -291,7 +291,8 @@ public sealed class CafeViewModel : ObservableObject
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
         _settingsLastWriteUtc = GetSettingsLastWriteUtc();
         _pendingApplyAfterUtc = settings.PendingChange?.ApplyAfterUtc;
-        _engine = new SessionEngine(settings, _engine.Ledger, DateTimeOffset.Now);
+        UsageLedger latestLedger = await _usageStore.LoadAsync();
+        _engine = new SessionEngine(settings, latestLedger, DateTimeOffset.Now);
         if (wasActive)
         {
             _engine.StartOrResume(DateTimeOffset.Now);
@@ -300,6 +301,27 @@ public sealed class CafeViewModel : ObservableObject
         _tickWatch.Restart();
         RefreshSnapshot(notifyStateChange: true);
         await SaveAsync();
+    }
+
+    public async Task ReloadUsageAfterClearAsync()
+    {
+        if (_settings is null)
+        {
+            return;
+        }
+
+        bool wasActive = IsActive;
+        UsageLedger ledger = await _usageStore.LoadAsync();
+        _engine = new SessionEngine(_settings, ledger, DateTimeOffset.Now);
+        if (wasActive || _settings.Mode == ControlMode.Awareness)
+        {
+            _engine.StartOrResume(DateTimeOffset.Now);
+        }
+
+        _uncommittedSeconds = 0;
+        _secondsSinceSave = 0;
+        _tickWatch.Restart();
+        RefreshSnapshot(notifyStateChange: true);
     }
 
     private void CommitPendingActiveTime()

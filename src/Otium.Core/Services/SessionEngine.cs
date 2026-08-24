@@ -199,6 +199,7 @@ public sealed class SessionEngine
             Ledger.AppUsedSeconds.Clear();
             Ledger.AwarenessUsedSeconds = 0;
             Ledger.ForegroundAppUsedSeconds.Clear();
+            Ledger.AwarenessHourlyUsedSeconds.Clear();
             Ledger.BreakCount = 0;
             Ledger.LimitReachedCount = 0;
             Ledger.ExtraTimeGrantCount = 0;
@@ -290,6 +291,7 @@ public sealed class SessionEngine
             LimitReachedCount = Ledger.LimitReachedCount,
             ExtraTimeGrantCount = Ledger.ExtraTimeGrantCount,
             AwarenessUsedSeconds = Ledger.AwarenessUsedSeconds,
+            AwarenessHourlyUsedSeconds = new Dictionary<int, long>(Ledger.AwarenessHourlyUsedSeconds),
             Applications = Ledger.AppUsedSeconds
                 .Where(item => item.Value > 0)
                 .Select(item => new AppUsageRecord

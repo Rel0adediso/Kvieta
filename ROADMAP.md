@@ -48,12 +48,12 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 
 ## v0.16 — Ritim ve kullanıcı farkındalığı
 
-**Durum:** Geliştirme başladı. İlk uçtan uca temel dilim tamamlandı.
+**Durum:** Tamamlandı.
 
 - Kural sayacı ile farkındalık sayacı veri modelinde ayrıldı.
 - Ön plan uygulaması ölçümü açık rızaya bağlandı ve varsayılan olarak kapalı tutuldu.
 - Yalnız güvenli uygulama adı ve süre saklanıyor; pencere başlığı, belge, yazılan metin ve site bilgisi kaydedilmiyor.
-- Şema 3 migration'ı eski ayarları ve kullanım geçmişini koruyor.
+- Şema 4 migration'ı eski ayarları ve kullanım geçmişini koruyor; yeni kayıtlar saatlik kullanım dağılımını da tutuyor.
 - Ritim ekranındaki uygulama özeti yalnız farkındalık verisini kullanıyor; kural motoru verisiyle karıştırılmıyor.
 - İsteğe bağlı sıkı kişisel mod, anında öz-ek süreyi kapatıyor; modu gevşetmek bekleme süresine tabi.
 - Uygulama özeti ilk üç kayıtla sınırlı; tüm sıralama ayrı ayrıntı panelinde açılıyor ve hareket listesi sabit uzunlukta tutuluyor.
@@ -61,8 +61,11 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 - Kullanıcı isterse %5/%10/%15 küçük azaltma hedefi seçebiliyor; hedefler suçlayıcı streak dili kullanmıyor.
 - Haftalık uygulama artış ve azalış eğilimleri yalnız yeterli karşılaştırma verisi olduğunda üretiliyor.
 - Üçüncü kullanım profili olan Farkındalık modu eklendi; plan, limit, uygulama engeli ve zorunlu mola uygulamadan yerel ön plan kullanımını ölçüyor.
+- Son yedi günün saatlik dağılımından yoğun kullanım aralığı hesaplanıyor; eski veride sonuç uydurulmuyor.
+- Son 28 gündeki gözlemlerle hafta içi ve hafta sonu günlük ortalamaları karşılaştırılıyor.
+- Gizlilik ve veri merkezi 30/90/180 günlük saklama, JSON/CSV dışa aktarma ve bugün dahil geçmişi silme sunuyor.
 
-Sıradaki v0.16 dilimi: yoğun kullanım saatleri, hafta içi/hafta sonu farkı ve gizlilik/veri sahipliği merkezi.
+Sıradaki aşama: v0.16.1 Otium hareket dili ve erişilebilir animasyonlar.
 
 ### Ritim
 

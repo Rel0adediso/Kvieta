@@ -61,6 +61,23 @@ public sealed class JsonUsageStore
         await _file.UpdateAsync(current => Merge(current, ledger), cancellationToken);
     }
 
+    public async Task ReplaceAsync(UsageLedger ledger, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(ledger);
+        await _file.SaveAsync(ledger, cancellationToken);
+    }
+
+    public async Task TrimHistoryAsync(int retentionDays, CancellationToken cancellationToken = default)
+    {
+        int safeDays = retentionDays is 30 or 90 or 180 ? retentionDays : 90;
+        DateOnly cutoff = DateOnly.FromDateTime(DateTime.Today).AddDays(-(safeDays - 1));
+        await _file.UpdateAsync(ledger =>
+        {
+            ledger.History = ledger.History.Where(day => day.LocalDay >= cutoff).ToList();
+            return ledger;
+        }, cancellationToken);
+    }
+
     private static UsageLedger Merge(UsageLedger current, UsageLedger incoming)
     {
         if (current.LocalDay > incoming.LocalDay)
@@ -79,7 +96,7 @@ public sealed class JsonUsageStore
 
         UsageLedger newest = incoming.LastUpdatedUtc >= current.LastUpdatedUtc ? incoming : current;
         UsageLedger other = ReferenceEquals(newest, incoming) ? current : incoming;
-        newest.SchemaVersion = 3;
+        newest.SchemaVersion = 4;
         newest.UsedSeconds = Math.Max(newest.UsedSeconds, other.UsedSeconds);
         newest.BonusMinutes = Math.Max(newest.BonusMinutes, other.BonusMinutes);
         newest.BreakCount = Math.Max(newest.BreakCount, other.BreakCount);
@@ -101,6 +118,11 @@ public sealed class JsonUsageStore
         foreach ((string applicationId, long seconds) in other.ForegroundAppUsedSeconds)
         {
             newest.ForegroundAppUsedSeconds[applicationId] = Math.Max(newest.ForegroundAppUsedSeconds.GetValueOrDefault(applicationId), seconds);
+        }
+
+        foreach ((int hour, long seconds) in other.AwarenessHourlyUsedSeconds)
+        {
+            newest.AwarenessHourlyUsedSeconds[hour] = Math.Max(newest.AwarenessHourlyUsedSeconds.GetValueOrDefault(hour), seconds);
         }
 
         MergeHistoricalData(newest, other);
@@ -146,6 +168,7 @@ public sealed class JsonUsageStore
             LimitReachedCount = source.LimitReachedCount,
             ExtraTimeGrantCount = source.ExtraTimeGrantCount,
             AwarenessUsedSeconds = source.AwarenessUsedSeconds,
+            AwarenessHourlyUsedSeconds = new Dictionary<int, long>(source.AwarenessHourlyUsedSeconds),
             Applications = source.AppUsedSeconds.Select(item => new AppUsageRecord
             {
                 RuleId = item.Key,
@@ -173,6 +196,10 @@ public sealed class JsonUsageStore
             LimitReachedCount = values.Max(item => item.LimitReachedCount),
             ExtraTimeGrantCount = values.Max(item => item.ExtraTimeGrantCount),
             AwarenessUsedSeconds = values.Max(item => item.AwarenessUsedSeconds),
+            AwarenessHourlyUsedSeconds = values
+                .SelectMany(item => item.AwarenessHourlyUsedSeconds)
+                .GroupBy(item => item.Key)
+                .ToDictionary(group => group.Key, group => group.Max(item => item.Value)),
             Applications = values
                 .SelectMany(item => item.Applications)
                 .GroupBy(item => item.RuleId)
@@ -204,20 +231,22 @@ public sealed class JsonUsageStore
         static () => new UsageLedger(),
         static ledger =>
         {
-            if (ledger.SchemaVersion > 3)
+            if (ledger.SchemaVersion > 4)
             {
                 throw new InvalidDataException($"Desteklenmeyen kullanım şeması: {ledger.SchemaVersion}");
             }
 
-            bool changed = ledger.SchemaVersion < 3;
-            ledger.SchemaVersion = 3;
+            bool changed = ledger.SchemaVersion < 4;
+            ledger.SchemaVersion = 4;
             ledger.AppUsedSeconds ??= [];
             ledger.ForegroundAppUsedSeconds ??= new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+            ledger.AwarenessHourlyUsedSeconds ??= [];
             ledger.History ??= [];
             foreach (DailyUsageRecord day in ledger.History)
             {
                 day.Applications ??= [];
                 day.ForegroundApplications ??= [];
+                day.AwarenessHourlyUsedSeconds ??= [];
             }
             ledger.RecentEvents ??= [];
             return new MigrationResult<UsageLedger>(ledger, changed);

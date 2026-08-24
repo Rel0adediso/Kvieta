@@ -22,7 +22,7 @@ public sealed class ForegroundApplicationTracker
         _uncommittedSeconds -= wholeSeconds;
         string? applicationId = TryGetForegroundApplicationId();
         return applicationId is not null &&
-            AwarenessUsageCounter.Accrue(ledger, applicationId, TimeSpan.FromSeconds(wholeSeconds));
+            AwarenessUsageCounter.Accrue(ledger, applicationId, TimeSpan.FromSeconds(wholeSeconds), DateTimeOffset.Now);
     }
 
     private static string? TryGetForegroundApplicationId()

@@ -292,6 +292,62 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ExportUsage_Click(object sender, RoutedEventArgs e)
+    {
+        bool csv = sender is System.Windows.Controls.Button { Tag: "csv" };
+        Microsoft.Win32.SaveFileDialog dialog = new()
+        {
+            Title = LocalizationService.Get("ExportUsage"),
+            FileName = $"otium-usage-{DateTime.Now:yyyy-MM-dd}",
+            DefaultExt = csv ? ".csv" : ".json",
+            Filter = csv ? "CSV (*.csv)|*.csv" : "JSON (*.json)|*.json"
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            string content = csv
+                ? await _viewModel.ExportUsageCsvAsync()
+                : await _viewModel.ExportUsageJsonAsync();
+            await System.IO.File.WriteAllTextAsync(dialog.FileName, content);
+            _viewModel.StatusMessage = LocalizationService.Get("ExportCompleted");
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{LocalizationService.Get("ExportFailed")}: {exception.Message}";
+        }
+    }
+
+    private async void ClearUsageHistory_Click(object sender, RoutedEventArgs e)
+    {
+        MessageBoxResult confirmation = System.Windows.MessageBox.Show(
+            LocalizationService.Get("ClearHistoryConfirmation"),
+            LocalizationService.Get("ClearHistory"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            await _viewModel.ClearUsageHistoryAsync();
+            if (_backgroundSessionWindow is not null)
+            {
+                await _backgroundSessionWindow.ReloadUsageAfterClearAsync();
+            }
+            _viewModel.RefreshOverview();
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{LocalizationService.Get("ClearHistoryFailed")}: {exception.Message}";
+        }
+    }
+
     private async void AdminPin_Click(object sender, RoutedEventArgs e)
     {
         string? authorizationPin = _managementPin;

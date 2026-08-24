@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text;
 using Otium.Core.Models;
 using Otium.Core.Services;
 using Otium.App.Services;
@@ -24,6 +25,7 @@ public sealed class MainViewModel : ObservableObject
     private bool _awarenessTrackingEnabled;
     private bool _strictPersonalMode;
     private string _reductionGoal = "Hedef yok";
+    private string _retentionPeriod = "90 gün";
     private ControlMode _controlMode = ControlMode.Protected;
     private string _changeDelay = "1 saat";
     private bool _isSidebarExpanded = true;
@@ -46,6 +48,7 @@ public sealed class MainViewModel : ObservableObject
     public IReadOnlyList<string> LanguageModes { get; } = ["Türkçe", "English"];
     public ObservableCollection<string> ChangeDelayOptions { get; } = [];
     public ObservableCollection<string> ReductionGoalOptions { get; } = [];
+    public ObservableCollection<string> RetentionOptions { get; } = [];
     public ObservableCollection<UsageHistoryDayRow> HistoryDays { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryApplications { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryAllApplications { get; } = [];
@@ -129,6 +132,12 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    public string RetentionPeriod
+    {
+        get => _retentionPeriod;
+        set => SetProperty(ref _retentionPeriod, value);
+    }
+
     public ControlMode SelectedControlMode
     {
         get => _controlMode;
@@ -142,6 +151,7 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsAwarenessMode));
                 OnPropertyChanged(nameof(HasRestrictions));
                 OnPropertyChanged(nameof(TodayDescriptionText));
+                OnPropertyChanged(nameof(RhythmPlanMetricLabel));
                 if (value == ControlMode.Awareness && SelectedPageIndex is 1 or 2)
                 {
                     SelectedPageIndex = 0;
@@ -158,6 +168,7 @@ public sealed class MainViewModel : ObservableObject
     public string TodayDescriptionText => IsAwarenessMode
         ? L("Bugünkü gerçek uygulama kullanımını tek bakışta gör.", "See today's actual application usage at a glance.")
         : LocalizationService.Get("TodayDescription");
+    public string RhythmPlanMetricLabel => LocalizationService.Get(IsAwarenessMode ? "RhythmObservedDays" : "RhythmPlanAligned");
 
     public string ChangeDelay
     {
@@ -231,6 +242,10 @@ public sealed class MainViewModel : ObservableObject
     public string RhythmReclaimedText { get; private set; } = "—";
     public string RhythmInsightText { get; private set; } = "—";
     public string RhythmGoalStatusText { get; private set; } = "—";
+    public string RhythmPeakHourText { get; private set; } = "—";
+    public string RhythmPeakHourDetailText { get; private set; } = "—";
+    public string RhythmWeekPatternText { get; private set; } = "—";
+    public string RhythmWeekPatternDetailText { get; private set; } = "—";
     public bool HasHistoryApplications => HistoryApplications.Count > 0;
     public bool HasHistoryEvents => HistoryEvents.Count > 0;
 
@@ -251,9 +266,11 @@ public sealed class MainViewModel : ObservableObject
             AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
             StrictPersonalMode = _settings.StrictPersonalMode;
             ReductionGoal = ToDisplayGoal(_settings.WeeklyReductionGoalPercent);
+            RetentionPeriod = ToDisplayRetention(_settings.UsageRetentionDays);
             SelectedControlMode = _settings.Mode;
             ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
             RefreshLocalizedCollections(_settings.LimitAction, _settings.Theme, _settings.WeeklyReductionGoalPercent);
+            RefreshRetentionOptions(_settings.UsageRetentionDays);
             NotifyPendingChange();
             OnPropertyChanged(nameof(HasAdminPin));
             OnPropertyChanged(nameof(AdminPinActionText));
@@ -296,6 +313,7 @@ public sealed class MainViewModel : ObservableObject
         AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
         StrictPersonalMode = _settings.StrictPersonalMode;
         ReductionGoal = ToDisplayGoal(_settings.WeeklyReductionGoalPercent);
+        RetentionPeriod = ToDisplayRetention(_settings.UsageRetentionDays);
         SelectedControlMode = _settings.Mode;
         ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
         LoadPolicyRows(_settings);
@@ -342,7 +360,7 @@ public sealed class MainViewModel : ObservableObject
                 Language = FromDisplayLanguage(LanguageMode),
                 StartWithWindows = StartWithWindows,
                 AwarenessTrackingEnabled = SelectedControlMode == ControlMode.Awareness || AwarenessTrackingEnabled,
-                UsageRetentionDays = _settings.UsageRetentionDays,
+                UsageRetentionDays = FromDisplayRetention(RetentionPeriod),
                 PersonalChangeDelayMinutes = FromDisplayDelay(ChangeDelay),
                 StrictPersonalMode = StrictPersonalMode,
                 WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal),
@@ -372,6 +390,7 @@ public sealed class MainViewModel : ObservableObject
                 };
                 _settings = immediate;
                 await _settingsStore.SaveAsync(_settings);
+                await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
                 if (policyChanged)
                 {
                     await RecordPolicyChangeAsync();
@@ -391,6 +410,7 @@ public sealed class MainViewModel : ObservableObject
             _settings = desired;
 
             await _settingsStore.SaveAsync(_settings);
+            await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
             if (policyChanged)
             {
                 await RecordPolicyChangeAsync();
@@ -467,6 +487,82 @@ public sealed class MainViewModel : ObservableObject
             Converters = { new JsonStringEnumConverter() }
         };
         return JsonSerializer.Serialize(_settings, options);
+    }
+
+    public async Task<string> ExportUsageJsonAsync()
+    {
+        UsageLedger ledger = await _usageStore.LoadAsync();
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        return JsonSerializer.Serialize(ledger, options);
+    }
+
+    public async Task<string> ExportUsageCsvAsync()
+    {
+        UsageLedger ledger = await _usageStore.LoadAsync();
+        List<DailyUsageRecord> days = [.. ledger.History];
+        if (ledger.LocalDay == DateOnly.FromDateTime(DateTime.Today))
+        {
+            days.RemoveAll(day => day.LocalDay == ledger.LocalDay);
+            days.Add(new DailyUsageRecord
+            {
+                LocalDay = ledger.LocalDay,
+                UsedSeconds = ledger.UsedSeconds,
+                AwarenessUsedSeconds = ledger.AwarenessUsedSeconds,
+                AwarenessHourlyUsedSeconds = new Dictionary<int, long>(ledger.AwarenessHourlyUsedSeconds),
+                ForegroundApplications = ledger.ForegroundAppUsedSeconds.Select(item => new AwarenessAppUsageRecord
+                {
+                    ApplicationId = item.Key,
+                    Name = Path.GetFileNameWithoutExtension(item.Key),
+                    UsedSeconds = item.Value
+                }).ToList()
+            });
+        }
+
+        StringBuilder csv = new("date,type,name,seconds,minutes\r\n");
+        foreach (DailyUsageRecord day in days.OrderBy(item => item.LocalDay))
+        {
+            AppendCsvRow(csv, day.LocalDay, "total", string.Empty, day.AwarenessUsedSeconds);
+            foreach (AwarenessAppUsageRecord application in day.ForegroundApplications.OrderByDescending(item => item.UsedSeconds))
+            {
+                AppendCsvRow(csv, day.LocalDay, "application", application.Name, application.UsedSeconds);
+            }
+            foreach ((int hour, long seconds) in day.AwarenessHourlyUsedSeconds.OrderBy(item => item.Key))
+            {
+                AppendCsvRow(csv, day.LocalDay, "hour", $"{hour:00}:00-{(hour + 1) % 24:00}:00", seconds);
+            }
+        }
+        return csv.ToString();
+    }
+
+    public async Task ClearUsageHistoryAsync()
+    {
+        UsageLedger empty = new()
+        {
+            SchemaVersion = 4,
+            LocalDay = DateOnly.FromDateTime(DateTime.Today),
+            LastUpdatedUtc = DateTimeOffset.UtcNow
+        };
+        await _usageStore.ReplaceAsync(empty);
+        _lastUsageLedger = empty;
+        BuildUsageHistory(empty);
+        BuildRhythm(empty);
+        UsedTodayMinutes = 0;
+        StatusMessage = L("Kullanım geçmişi bu cihazdan silindi", "Usage history was deleted from this device");
+    }
+
+    private static void AppendCsvRow(StringBuilder csv, DateOnly date, string type, string name, long seconds)
+    {
+        string escapedName = $"\"{name.Replace("\"", "\"\"")}\"";
+        csv.Append(date.ToString("yyyy-MM-dd"))
+            .Append(',').Append(type)
+            .Append(',').Append(escapedName)
+            .Append(',').Append(seconds)
+            .Append(',').Append((seconds / 60d).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))
+            .Append("\r\n");
     }
 
     public async Task SetAdminPinAsync(string pin)
@@ -565,6 +661,7 @@ public sealed class MainViewModel : ObservableObject
                 LimitReachedCount = ledger.LimitReachedCount,
                 ExtraTimeGrantCount = ledger.ExtraTimeGrantCount,
                 AwarenessUsedSeconds = ledger.AwarenessUsedSeconds,
+                AwarenessHourlyUsedSeconds = new Dictionary<int, long>(ledger.AwarenessHourlyUsedSeconds),
                 Applications = ledger.AppUsedSeconds.Select(item => new AppUsageRecord
                 {
                     RuleId = item.Key,
@@ -583,17 +680,18 @@ public sealed class MainViewModel : ObservableObject
         Dictionary<DateOnly, DailyUsageRecord> byDay = records
             .GroupBy(item => item.LocalDay)
             .ToDictionary(group => group.Key, group => group.Last());
-        long maximum = Math.Max(1, byDay.Values.Select(item => item.UsedSeconds).DefaultIfEmpty(0).Max());
+        long maximum = Math.Max(1, byDay.Values.Select(item => IsAwarenessMode ? item.AwarenessUsedSeconds : item.UsedSeconds).DefaultIfEmpty(0).Max());
         HistoryDays.Clear();
         for (int offset = 6; offset >= 0; offset--)
         {
             DateOnly day = today.AddDays(-offset);
             DailyUsageRecord record = byDay.GetValueOrDefault(day) ?? new DailyUsageRecord { LocalDay = day };
+            long displaySeconds = IsAwarenessMode ? record.AwarenessUsedSeconds : record.UsedSeconds;
             HistoryDays.Add(new UsageHistoryDayRow
             {
                 Day = day,
-                UsedSeconds = record.UsedSeconds,
-                RelativePercent = Math.Clamp(record.UsedSeconds * 100d / maximum, 0, 100),
+                UsedSeconds = displaySeconds,
+                RelativePercent = Math.Clamp(displaySeconds * 100d / maximum, 0, 100),
                 BreakCount = record.BreakCount,
                 LimitReachedCount = record.LimitReachedCount,
                 ExtraTimeGrantCount = record.ExtraTimeGrantCount
@@ -632,7 +730,7 @@ public sealed class MainViewModel : ObservableObject
             HistoryEvents.Add(new UsageHistoryEventRow { Event = historyEvent });
         }
 
-        long weekSeconds = records.Sum(item => item.UsedSeconds);
+        long weekSeconds = records.Sum(item => IsAwarenessMode ? item.AwarenessUsedSeconds : item.UsedSeconds);
         HistoryWeekTotalText = UsageHistoryFormatting.FormatDuration(weekSeconds);
         HistoryDailyAverageText = UsageHistoryFormatting.FormatDuration(weekSeconds / 7);
         HistoryMostUsedAppText = rankedApplications.FirstOrDefault()?.Name ?? "—";
@@ -658,7 +756,9 @@ public sealed class MainViewModel : ObservableObject
             : "—";
         RhythmPlanAlignedText = summary.CurrentObservedDays == 0
             ? "—"
-            : $"{summary.PlanAlignedDays}/{summary.CurrentObservedDays} {L("gün", "days")}";
+            : IsAwarenessMode
+                ? $"{summary.CurrentObservedDays}/7 {L("gün", "days")}"
+                : $"{summary.PlanAlignedDays}/{summary.CurrentObservedDays} {L("gün", "days")}";
         RhythmReclaimedText = summary.IsBaselineReady
             ? UsageHistoryFormatting.FormatDuration(summary.ReclaimedSeconds)
             : "—";
@@ -699,12 +799,33 @@ public sealed class MainViewModel : ObservableObject
                     ? L($"Hedef ritminde · günlük {UsageHistoryFormatting.FormatDuration(summary.GoalDailySeconds)}", $"On target · {UsageHistoryFormatting.FormatDuration(summary.GoalDailySeconds)} daily")
                     : L($"Nazik hedef · günlük {UsageHistoryFormatting.FormatDuration(summary.GoalDailySeconds)}", $"Gentle target · {UsageHistoryFormatting.FormatDuration(summary.GoalDailySeconds)} daily");
 
+        RhythmPeakHourText = summary.PeakHour is { } peakHour
+            ? $"{peakHour:00}:00–{(peakHour + 1) % 24:00}:00"
+            : L("Veri oluşuyor", "Building data");
+        RhythmPeakHourDetailText = summary.PeakHour is not null
+            ? UsageHistoryFormatting.FormatDuration(summary.PeakHourSeconds)
+            : L("Saatlik ölçüm yeni başladı", "Hourly tracking has just started");
+        RhythmWeekPatternText = summary.WeekendDifferencePercent is { } weekendDifference
+            ? weekendDifference >= 0
+                ? L($"Hafta sonu +%{weekendDifference:0}", $"Weekend +{weekendDifference:0}%")
+                : L($"Hafta içi +%{Math.Abs(weekendDifference):0}", $"Weekdays +{Math.Abs(weekendDifference):0}%")
+            : L("Veri oluşuyor", "Building data");
+        RhythmWeekPatternDetailText = summary.WeekendDifferencePercent is not null
+            ? L(
+                $"Hafta içi {UsageHistoryFormatting.FormatDuration(summary.WeekdayDailyAverageSeconds)} · hafta sonu {UsageHistoryFormatting.FormatDuration(summary.WeekendDailyAverageSeconds)}",
+                $"Weekdays {UsageHistoryFormatting.FormatDuration(summary.WeekdayDailyAverageSeconds)} · weekend {UsageHistoryFormatting.FormatDuration(summary.WeekendDailyAverageSeconds)}")
+            : L($"{summary.WeekdayObservedDays} hafta içi · {summary.WeekendObservedDays} hafta sonu günü", $"{summary.WeekdayObservedDays} weekday · {summary.WeekendObservedDays} weekend days");
+
         OnPropertyChanged(nameof(RhythmBaselineText));
         OnPropertyChanged(nameof(RhythmWeekChangeText));
         OnPropertyChanged(nameof(RhythmPlanAlignedText));
         OnPropertyChanged(nameof(RhythmReclaimedText));
         OnPropertyChanged(nameof(RhythmInsightText));
         OnPropertyChanged(nameof(RhythmGoalStatusText));
+        OnPropertyChanged(nameof(RhythmPeakHourText));
+        OnPropertyChanged(nameof(RhythmPeakHourDetailText));
+        OnPropertyChanged(nameof(RhythmWeekPatternText));
+        OnPropertyChanged(nameof(RhythmWeekPatternDetailText));
     }
 
     private async Task RecordPolicyChangeAsync()
@@ -777,6 +898,7 @@ public sealed class MainViewModel : ObservableObject
         bool usesDefaultDeviceName = DeviceName is "Kardeş Bilgisayarı" or "Oyun Bilgisayarı" or "Bu Bilgisayar" or "This Computer";
         int changeDelayMinutes = FromDisplayDelay(ChangeDelay);
         int reductionGoalPercent = FromDisplayGoal(ReductionGoal);
+        int retentionDays = FromDisplayRetention(RetentionPeriod);
         LimitReachedAction currentAction = FromDisplayAction(LimitAction);
         ThemePreference currentTheme = FromDisplayTheme(ThemeMode);
         List<DaySchedule> schedule = ScheduleRows.Select(row =>
@@ -792,6 +914,7 @@ public sealed class MainViewModel : ObservableObject
             DeviceName = LocalizationService.Get("DefaultDeviceName");
         }
         RefreshLocalizedCollections(currentAction, currentTheme, reductionGoalPercent);
+        RefreshRetentionOptions(retentionDays);
         ChangeDelay = ToDisplayDelay(changeDelayMinutes);
 
         ScheduleRows.Clear();
@@ -809,6 +932,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(AdminPinActionText));
         OnPropertyChanged(nameof(ControlModeText));
         OnPropertyChanged(nameof(TodayDescriptionText));
+        OnPropertyChanged(nameof(RhythmPlanMetricLabel));
         NotifyPendingChange();
         if (_lastUsageLedger is not null)
         {
@@ -843,6 +967,15 @@ public sealed class MainViewModel : ObservableObject
         ReductionGoalOptions.Add(ToDisplayGoal(10));
         ReductionGoalOptions.Add(ToDisplayGoal(15));
         ReductionGoal = ToDisplayGoal(reductionGoalPercent);
+    }
+
+    private void RefreshRetentionOptions(int retentionDays)
+    {
+        RetentionOptions.Clear();
+        RetentionOptions.Add(ToDisplayRetention(30));
+        RetentionOptions.Add(ToDisplayRetention(90));
+        RetentionOptions.Add(ToDisplayRetention(180));
+        RetentionPeriod = ToDisplayRetention(retentionDays);
     }
 
     private void NotifyPendingChange()
@@ -1043,6 +1176,15 @@ public sealed class MainViewModel : ObservableObject
     private static string ToDisplayGoal(int percent) => percent == 0
         ? LocalizationService.Get("RhythmNoGoal")
         : string.Format(LocalizationService.Get("RhythmGoalLessFormat"), percent);
+
+    private static int FromDisplayRetention(string retention) => retention switch
+    {
+        var value when value == ToDisplayRetention(30) => 30,
+        var value when value == ToDisplayRetention(180) => 180,
+        _ => 90
+    };
+
+    private static string ToDisplayRetention(int days) => string.Format(LocalizationService.Get("RetentionDaysFormat"), days);
 
     private static string ModeDisplayName(ControlMode mode) => mode switch
     {
