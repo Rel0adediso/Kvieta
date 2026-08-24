@@ -896,21 +896,27 @@ public partial class MainWindow : Window
 
     private void AddApplication_Click(object sender, RoutedEventArgs e)
     {
-        Microsoft.Win32.OpenFileDialog dialog = new()
+        _viewModel.RefreshApplicationSuggestions();
+        ApplicationSuggestionsPanel.BringIntoView();
+        if (_viewModel.HasApplicationSuggestions)
         {
-            Title = LocalizationService.CurrentLanguage == Otium.Core.Models.LanguagePreference.English
-                ? "Choose a program to permanently block"
-                : "Kalıcı kapatılacak programı seç",
-            Filter = LocalizationService.CurrentLanguage == Otium.Core.Models.LanguagePreference.English
-                ? "Windows applications (*.exe)|*.exe"
-                : "Windows uygulamaları (*.exe)|*.exe",
-            CheckFileExists = true,
-            Multiselect = false
-        };
+            System.Windows.Media.Color glowColor = FindResource("PrimaryBrush") is SolidColorBrush brush
+                ? brush.Color
+                : System.Windows.Media.Color.FromRgb(180, 188, 130);
+            MotionService.Highlight(ApplicationSuggestionsPanel, glowColor);
+            return;
+        }
 
-        if (dialog.ShowDialog(this) == true)
+        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? "Open the application you want to manage, then refresh the suggestions."
+            : "Yönetmek istediğin uygulamayı aç, ardından önerileri yenile.";
+    }
+
+    private void AddSuggestedApplication_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: ApplicationSuggestionRow suggestion })
         {
-            _viewModel.AddApplication(dialog.FileName);
+            _viewModel.AddSuggestedApplication(suggestion);
         }
     }
 
