@@ -134,7 +134,9 @@ dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c
 
 Otium'un korumalı modu esas olarak ayrı bir yönetici hesabı tarafından yönetilen **standart Windows kullanıcısı** için tasarlanır. Fiziksel erişimi ve Windows yönetici yetkisi bulunan bir kişiye karşı hiçbir masaüstü uygulaması mutlak kaldırılamazlık garanti edemez.
 
-Development paketlerindeki test geçitleri public sürüm hedefi değildir. Yol haritasında test ve public build'lerin tamamen ayrılması planlanmıştır.
+Development paketlerindeki test geçitleri public sürümde derlenmez. Ayrıntılar için [güvenlik sınırları belgesine](docs/SECURITY.tr.md) bakın.
+
+Kurulum, ilk kullanım ve kurtarma adımları için [kullanım rehberine](docs/KULLANIM.tr.md) bakın.
 
 ## Geliştirme yaklaşımı
 

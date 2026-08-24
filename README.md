@@ -135,7 +135,9 @@ dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c
 
 Protected mode is primarily designed for a **standard Windows account** managed through a separate administrator account. No desktop application can guarantee absolute resistance against someone with physical access and Windows administrator privileges.
 
-Development-only test gates are not intended for public releases. A complete separation between test and public builds is included in the roadmap.
+Development-only test gates are not compiled into Public builds. See the [security boundaries](docs/SECURITY.md) for details.
+
+See the [Turkish user guide](docs/KULLANIM.tr.md) for installation, first-use, and recovery steps.
 
 ## Development approach
 

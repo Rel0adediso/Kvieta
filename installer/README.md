@@ -8,7 +8,7 @@ Build a release package from the repository root:
 
 ```powershell
 .\scripts\build-installer.ps1 `
-  -Version 0.17.0 `
+  -Version 1.0.0 `
   -SigningCertificateThumbprint <trusted-code-signing-certificate-thumbprint>
 ```
 
@@ -24,16 +24,16 @@ timestamped and Authenticode-signed with that certificate.
 Verify a package before install or update:
 
 ```powershell
-.\artifacts\installer\0.17.0\verify-installer.ps1 `
-  -ManifestPath .\artifacts\installer\0.17.0\release-manifest.json
+.\artifacts\installer\1.0.0\verify-installer.ps1 `
+  -ManifestPath .\artifacts\installer\1.0.0\release-manifest.json
 ```
 
 Perform a verified manual update with an automatic rollback package:
 
 ```powershell
-.\artifacts\installer\0.17.1\install-update.ps1 `
-  -ManifestPath .\artifacts\installer\0.17.1\release-manifest.json `
-  -RollbackManifestPath .\artifacts\installer\0.17.0\release-manifest.json
+.\artifacts\installer\1.0.1\install-update.ps1 `
+  -ManifestPath .\artifacts\installer\1.0.1\release-manifest.json `
+  -RollbackManifestPath .\artifacts\installer\1.0.0\release-manifest.json
 ```
 
 The updater rejects same-version and downgrade attempts, verifies both packages
@@ -47,7 +47,7 @@ The desktop shortcut is disabled by default and can be selected from the MSI's
 feature screen. It can also be enabled in an unattended install with:
 
 ```powershell
-msiexec /i Otium-0.17.0-win-x64.msi ADDLOCAL=MainFeature,DesktopShortcutFeature
+msiexec /i Otium-1.0.0-win-x64.msi ADDLOCAL=MainFeature,DesktopShortcutFeature
 ```
 
 User settings and usage history remain under the user's local application-data
