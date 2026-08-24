@@ -237,7 +237,6 @@ Tamamlandı. Kurallar yolun yanında WinTrust ile doğrulanan publisher imzası,
 - Plan, Ritim, pending kartı ve tray menüsü.
 - Farklı DPI, çözünürlük ve metin uzunlukları.
 - Erişilebilirlik ve `Reduce motion` davranışı.
-- Uygulama önerilerini, açık program ve kullanım verisi değiştiğinde güvenilir biçimde otomatik/canlı yenileme.
 
 ### Çoklu monitör, DPI ve Windows oturum sağlamlığı
 
@@ -258,6 +257,7 @@ Tamamlandı. Kurallar yolun yanında WinTrust ile doğrulanan publisher imzası,
 
 ## v1.0 sonrasına bırakılanlar
 
+- Uygulama önerilerini, açık program ve kullanım verisi değiştiğinde güvenilir biçimde otomatik/canlı yenileme.
 - Tarayıcı eklentisi ve site kuralları.
 - Aynı Wi-Fi üzerinden telefon kontrolü.
 - İnternet üzerinden uzaktan yönetim.
