@@ -4,7 +4,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using Otium.App.ViewModels;
 using Otium.App.Services;
@@ -28,6 +27,10 @@ public partial class MainWindow : Window
     private bool _isInitializing = true;
     private bool _applicationDetailsOpen;
     private IInputElement? _applicationDetailsPreviousFocus;
+    private int _lastAnimatedPageIndex = -1;
+    private bool _sidebarAnimationRunning;
+    private bool _baselineMilestoneShown;
+    private bool _goalMilestoneShown;
 
     public MainWindow(CafeWindow? existingSessionWindow = null, string? managementPin = null)
     {
@@ -72,6 +75,7 @@ public partial class MainWindow : Window
         }
 
         await _viewModel.InitializeAsync();
+        MotionService.SetUserPreference(_viewModel.AnimationsEnabled);
         ((App)System.Windows.Application.Current).ThemeService.SetPreference(MainViewModel.FromDisplayTheme(_viewModel.ThemeMode));
         RefreshProtectionStatus();
         EnsurePersonalBackgroundSession();
@@ -98,12 +102,56 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Theme_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void Theme_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (IsLoaded)
+        if (IsLoaded && !_isInitializing)
         {
-            ((App)System.Windows.Application.Current).ThemeService.SetPreference(MainViewModel.FromDisplayTheme(_viewModel.ThemeMode));
+            await MotionService.FadeThemeAsync(
+                RootFrame,
+                () => ((App)System.Windows.Application.Current).ThemeService.SetPreference(
+                    MainViewModel.FromDisplayTheme(_viewModel.ThemeMode)));
         }
+    }
+
+    private void MainTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded || e.Source != MainTabs)
+        {
+            return;
+        }
+
+        int nextIndex = MainTabs.SelectedIndex;
+        int direction = _lastAnimatedPageIndex < 0 || nextIndex >= _lastAnimatedPageIndex ? 1 : -1;
+        _lastAnimatedPageIndex = nextIndex;
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (MainTabs.SelectedContent is FrameworkElement selectedPage)
+            {
+                MotionService.Enter(selectedPage, direction * 10, 0);
+            }
+
+            if (nextIndex == 3)
+            {
+                ShowRhythmMilestoneIfNeeded();
+            }
+        }, DispatcherPriority.Loaded);
+    }
+
+    private void ShowRhythmMilestoneIfNeeded()
+    {
+        bool shouldCelebrate = (!_baselineMilestoneShown && _viewModel.IsRhythmBaselineReady) ||
+            (!_goalMilestoneShown && _viewModel.IsRhythmGoalMet);
+        _baselineMilestoneShown |= _viewModel.IsRhythmBaselineReady;
+        _goalMilestoneShown |= _viewModel.IsRhythmGoalMet;
+        if (!shouldCelebrate)
+        {
+            return;
+        }
+
+        System.Windows.Media.Color accent = FindResource("PrimaryBrush") is SolidColorBrush brush
+            ? brush.Color
+            : System.Windows.Media.Color.FromRgb(180, 188, 130);
+        MotionService.Highlight(RhythmInsightCard, accent);
     }
 
     private void Language_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -121,15 +169,44 @@ public partial class MainWindow : Window
         RefreshProtectionStatus();
     }
 
-    private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
+    private async void ToggleSidebar_Click(object sender, RoutedEventArgs e)
     {
-        _viewModel.IsSidebarExpanded = !_viewModel.IsSidebarExpanded;
-        UpdateSidebarVisuals();
+        if (_sidebarAnimationRunning)
+        {
+            return;
+        }
+
+        _sidebarAnimationRunning = true;
+        bool expand = !_viewModel.IsSidebarExpanded;
+        try
+        {
+            if (expand)
+            {
+                _viewModel.IsSidebarExpanded = true;
+                UpdateSidebarVisuals(updateWidth: false);
+            }
+
+            await MotionService.AnimateColumnWidthAsync(SidebarColumn, expand ? 184 : 64);
+            if (!expand)
+            {
+                _viewModel.IsSidebarExpanded = false;
+            }
+
+            UpdateSidebarVisuals();
+        }
+        finally
+        {
+            _sidebarAnimationRunning = false;
+        }
     }
 
-    private void UpdateSidebarVisuals()
+    private void UpdateSidebarVisuals(bool updateWidth = true)
     {
-        SidebarColumn.Width = new GridLength(_viewModel.IsSidebarExpanded ? 184 : 64);
+        if (updateWidth)
+        {
+            SidebarColumn.Width = new GridLength(_viewModel.IsSidebarExpanded ? 184 : 64);
+        }
+
         SidebarToggle.HorizontalAlignment = _viewModel.IsSidebarExpanded
             ? System.Windows.HorizontalAlignment.Right
             : System.Windows.HorizontalAlignment.Center;
@@ -174,7 +251,7 @@ public partial class MainWindow : Window
             () => ApplicationDetailsCloseButton.Focus(),
             DispatcherPriority.Input);
 
-        if (!SystemParameters.ClientAreaAnimation)
+        if (!MotionService.IsEnabled)
         {
             ApplicationDetailsOverlay.Opacity = 1;
             ApplicationDetailsTranslate.X = 0;
@@ -201,7 +278,7 @@ public partial class MainWindow : Window
         }
 
         _applicationDetailsOpen = false;
-        if (!SystemParameters.ClientAreaAnimation)
+        if (!MotionService.IsEnabled)
         {
             ApplicationDetailsOverlay.Visibility = Visibility.Collapsed;
             ApplicationDetailsOverlay.IsHitTestVisible = false;
@@ -340,6 +417,30 @@ public partial class MainWindow : Window
         if (_backgroundSessionWindow is not null)
         {
             await _backgroundSessionWindow.ReloadSettingsAsync();
+        }
+
+        MotionService.Pulse(SaveButton);
+    }
+
+    private void Animations_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing)
+        {
+            return;
+        }
+
+        MotionService.SetUserPreference(_viewModel.AnimationsEnabled);
+        if (_viewModel.AnimationsEnabled && sender is FrameworkElement toggle)
+        {
+            MotionService.Pulse(toggle);
+        }
+    }
+
+    private void ReductionGoal_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_isInitializing && IsLoaded)
+        {
+            MotionService.Pulse(RhythmInsightCard);
         }
     }
 
@@ -613,26 +714,7 @@ public partial class MainWindow : Window
             System.Windows.Media.Color glowColor = FindResource("PrimaryBrush") is SolidColorBrush brush
                 ? brush.Color
                 : System.Windows.Media.Color.FromRgb(180, 188, 130);
-            DropShadowEffect glow = new()
-            {
-                Color = glowColor,
-                BlurRadius = 22,
-                ShadowDepth = 0,
-                Opacity = 0
-            };
-            PendingChangesCard.Effect = glow;
-
-            DoubleAnimation pulse = new()
-            {
-                From = 0,
-                To = 0.72,
-                Duration = TimeSpan.FromMilliseconds(260),
-                AutoReverse = true,
-                RepeatBehavior = new RepeatBehavior(2),
-                FillBehavior = FillBehavior.Stop
-            };
-            pulse.Completed += (_, _) => PendingChangesCard.Effect = null;
-            glow.BeginAnimation(DropShadowEffect.OpacityProperty, pulse);
+            MotionService.Highlight(PendingChangesCard, glowColor);
         }, DispatcherPriority.Loaded);
     }
 

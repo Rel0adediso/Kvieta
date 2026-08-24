@@ -65,7 +65,9 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 - Son 28 gündeki gözlemlerle hafta içi ve hafta sonu günlük ortalamaları karşılaştırılıyor.
 - Gizlilik ve veri merkezi 30/90/180 günlük saklama, JSON/CSV dışa aktarma ve bugün dahil geçmişi silme sunuyor.
 
-Sıradaki aşama: v0.16.1 Otium hareket dili ve erişilebilir animasyonlar.
+Tamamlanan aşama: v0.16.1 Otium hareket dili ve erişilebilir animasyonlar.
+
+Sıradaki aşama: v0.17 kurulum, güvenli güncelleme ve rollback.
 
 ### Ritim
 
@@ -101,6 +103,8 @@ Sıradaki aşama: v0.16.1 Otium hareket dili ve erişilebilir animasyonlar.
 
 ## v0.16.1 — Otium hareket dili ve animasyonlar
 
+**Durum:** Tamamlandı.
+
 - Sayfa geçişlerinde kısa fade + hafif yönlü hareket.
 - Ritim grafiklerinin ilk açılışta sakin biçimde dolması.
 - Sayaç ve ilerleme değerlerinde sert sıçrama yerine kontrollü geçiş.
@@ -113,6 +117,8 @@ Sıradaki aşama: v0.16.1 Otium hareket dili ve erişilebilir animasyonlar.
 - Animasyonların sayaç, servis veya kural motorunu hiçbir şekilde geciktirmemesi.
 
 ## v0.17 — Kurulum, güvenli güncelleme ve rollback
+
+**Durum:** Sıradaki aşama.
 
 ### Installer
 

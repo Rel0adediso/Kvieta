@@ -12,7 +12,7 @@ Calm, local-first screen-time management for Windows — no account required.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/version-v0.16.0-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/version-v0.16.1-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
@@ -90,13 +90,15 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 
 ## Current status
 
-**v0.16.0 prototype**
+**v0.16.1 prototype**
 
 - Release build: `0` warnings, `0` errors
 - Single-file, self-contained Windows package
 - Matching Turkish and English localization resources
-- Smoke coverage for recovery, migration, locking, and concurrent writes
-- v0.16 rhythm foundation in development: opt-in, local-only foreground app awareness with separate policy counters
+- Smoke coverage for recovery, migration, locking, concurrent writes, overnight schedules, and pending policy merges
+- Hardened Guardian IPC, protected policy synchronization, ProgramData access, and credential transitions
+- Completed v0.16 rhythm foundation with opt-in, local-only foreground app awareness and separate policy counters
+- Completed v0.16.1 motion language with short, accessible, non-blocking transitions and micro-interactions
 
 See the [current roadmap](ROADMAP.md) for the development sequence and v1.0 goals.
 

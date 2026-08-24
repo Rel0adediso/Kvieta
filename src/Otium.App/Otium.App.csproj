@@ -4,7 +4,7 @@
     <AssemblyName>Otium</AssemblyName>
     <Product>Otium</Product>
     <Description>Yerel ekran süresi ve oturum yönetimi</Description>
-    <Version>0.16.0</Version>
+    <Version>0.16.1</Version>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>

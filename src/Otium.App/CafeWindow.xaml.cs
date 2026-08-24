@@ -64,6 +64,7 @@ public partial class CafeWindow : Window
 
         _timer.Start();
         EnsureCorrectSurface();
+        MotionService.Enter(SessionSurface, 0, 9, 220);
         await HandleLimitReachedAsync();
     }
 
@@ -179,6 +180,7 @@ public partial class CafeWindow : Window
     private void PowerMenu_Click(object sender, RoutedEventArgs e)
     {
         PowerOverlay.Visibility = Visibility.Visible;
+        MotionService.Enter(PowerCard, 0, 8, 180);
     }
 
     private void ClosePowerMenu_Click(object sender, RoutedEventArgs e)

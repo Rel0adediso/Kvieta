@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using Otium.App.Services;
 using Otium.App.ViewModels;
 
 namespace Otium.App;
@@ -22,6 +23,7 @@ public partial class SessionWidgetWindow : Window
         base.OnContentRendered(e);
         Left = SystemParameters.WorkArea.Right - ActualWidth - 18;
         Top = SystemParameters.WorkArea.Top + 18;
+        MotionService.Enter(WidgetSurface, 8, 0, 190);
     }
 
     public void CloseFromController()

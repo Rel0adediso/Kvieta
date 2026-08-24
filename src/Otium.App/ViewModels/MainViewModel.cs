@@ -21,6 +21,7 @@ public sealed class MainViewModel : ObservableObject
     private string _limitAction = "Oturumu kapat";
     private string _themeMode = "Sistem";
     private string _languageMode = "Türkçe";
+    private bool _animationsEnabled = true;
     private bool _startWithWindows;
     private bool _awarenessTrackingEnabled;
     private bool _strictPersonalMode;
@@ -29,6 +30,8 @@ public sealed class MainViewModel : ObservableObject
     private ControlMode _controlMode = ControlMode.Protected;
     private string _changeDelay = "1 saat";
     private bool _isSidebarExpanded = true;
+    private bool _isRhythmBaselineReady;
+    private bool _isRhythmGoalMet;
     private string _statusMessage = "Hazır";
     private AppRuleRow? _selectedAppRule;
     private int _usedTodayMinutes;
@@ -106,6 +109,12 @@ public sealed class MainViewModel : ObservableObject
     {
         get => _startWithWindows;
         set => SetProperty(ref _startWithWindows, value);
+    }
+
+    public bool AnimationsEnabled
+    {
+        get => _animationsEnabled;
+        set => SetProperty(ref _animationsEnabled, value);
     }
 
     public bool AwarenessTrackingEnabled
@@ -248,6 +257,8 @@ public sealed class MainViewModel : ObservableObject
     public string RhythmWeekPatternDetailText { get; private set; } = "—";
     public bool HasHistoryApplications => HistoryApplications.Count > 0;
     public bool HasHistoryEvents => HistoryEvents.Count > 0;
+    public bool IsRhythmBaselineReady => _isRhythmBaselineReady;
+    public bool IsRhythmGoalMet => _isRhythmGoalMet;
 
     public async Task InitializeAsync()
     {
@@ -262,6 +273,7 @@ public sealed class MainViewModel : ObservableObject
             LimitAction = ToDisplayAction(_settings.LimitAction);
             ThemeMode = ToDisplayTheme(_settings.Theme);
             LanguageMode = _settings.Language == LanguagePreference.English ? "English" : "Türkçe";
+            AnimationsEnabled = MotionService.UserAnimationsEnabled;
             StartWithWindows = _settings.StartWithWindows;
             AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
             StrictPersonalMode = _settings.StrictPersonalMode;
@@ -775,6 +787,19 @@ public sealed class MainViewModel : ObservableObject
         ControlSettings rhythmSettings = CloneSettings(_settings);
         rhythmSettings.WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal);
         RhythmSummary summary = RhythmAnalyzer.Analyze(rhythmSettings, ledger, DateOnly.FromDateTime(DateTime.Today));
+        if (_isRhythmBaselineReady != summary.IsBaselineReady)
+        {
+            _isRhythmBaselineReady = summary.IsBaselineReady;
+            OnPropertyChanged(nameof(IsRhythmBaselineReady));
+        }
+
+        bool goalMet = FromDisplayGoal(ReductionGoal) > 0 && summary.IsGoalMet;
+        if (_isRhythmGoalMet != goalMet)
+        {
+            _isRhythmGoalMet = goalMet;
+            OnPropertyChanged(nameof(IsRhythmGoalMet));
+        }
+
         RhythmBaselineText = summary.IsBaselineReady
             ? UsageHistoryFormatting.FormatDuration(summary.BaselineDailyAverageSeconds)
             : $"{summary.BaselineDays}/7 {L("gün", "days")}";
