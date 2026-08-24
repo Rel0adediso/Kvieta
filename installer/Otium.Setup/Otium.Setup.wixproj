@@ -3,7 +3,7 @@
     <OutputType>Package</OutputType>
     <Platform>x64</Platform>
     <InstallerPlatform>x64</InstallerPlatform>
-    <OtiumVersion Condition="'$(OtiumVersion)' == ''">0.18.0</OtiumVersion>
+    <OtiumVersion Condition="'$(OtiumVersion)' == ''">1.0.0</OtiumVersion>
     <OtiumPublishDir Condition="'$(OtiumPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\win-x64</OtiumPublishDir>
     <OtiumSignerThumbprint Condition="'$(OtiumSignerThumbprint)' == ''">UNSIGNED-DEVELOPMENT-BUILD</OtiumSignerThumbprint>
     <DefineConstants>OtiumVersion=$(OtiumVersion);OtiumPublishDir=$(OtiumPublishDir);OtiumSignerThumbprint=$(OtiumSignerThumbprint)</DefineConstants>

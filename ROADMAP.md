@@ -206,6 +206,8 @@ Tamamlandı. Kurallar yolun yanında WinTrust ile doğrulanan publisher imzası,
 
 ## v0.19 — Tanılama, platform sağlamlığı ve regresyon
 
+**Durum:** Kesintisiz regresyonlar ve Guardian kill/crash recovery tamamlandı; sistemi kesintiye uğratan Windows yaşam döngüsü ve ekran matrisi testleri sürüyor.
+
 ### Koruma sağlık kontrolü
 
 - Guardian servis durumu.
@@ -246,6 +248,8 @@ Tamamlandı. Kurallar yolun yanında WinTrust ile doğrulanan publisher imzası,
 - Explorer restart, kullanıcı değiştirme ve Remote Desktop senaryoları.
 
 ## v1.0 — İlk kararlı açık kaynak sürüm
+
+**Durum:** `1.0.0` yerel sürüm adayı hazırlandı. İmzalı public MSI ve kalan gerçek Windows matrisi tamamlanmadan final etiketi verilmeyecek.
 
 - Personal ve Protected akışlarının uçtan uca kararlı olması.
 - Test backdoor'u içermeyen public paket.

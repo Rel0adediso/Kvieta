@@ -12,7 +12,7 @@ Yerel, sakin ve hesap gerektirmeyen Windows ekran süresi yönetimi.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/veri-bu%20cihazda-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/sürüm-v0.15.1-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/sürüm-v1.0.0%20RC-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/geliştirme-AI%20destekli-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
@@ -90,7 +90,7 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 
 ## Güncel durum
 
-**v0.18.0 özellikleri tamamlanmış sürüm adayı**
+**v1.0.0 yerel sürüm adayı (RC)**
 
 - Release build: `0` uyarı, `0` hata
 - Tek dosyalık, self-contained Windows paketi
@@ -103,8 +103,11 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 - Guardian IPC imzalı kurulu istemciyi doğruluyor; nonce/HMAC/replay koruması, kalıcı bekleme ve yerel güvenlik audit'i kullanıyor
 - Monotonic saat denetimi reboot/saat dilimi değişimini ileri/geri saat manipülasyonundan ayırıyor ve yönetici kurtarma yolu bırakıyor
 - Uygulama Kimliği 2.0 yol, güvenilir publisher, original filename, ürün bilgisi, isteğe bağlı SHA-256, package family, launcher ve alt süreç ilişkilerini birleştiriyor
+- Guardian sağlık kontrolü, güvenli onarım ve özel veri içermeyen tanılama dışa aktarımı tamamlandı
+- Gerçek Windows testinde Guardian, sonlandırılan korumalı oturumu ve çöken servisi otomatik olarak yeniden ayağa kaldırdı
+- Son public MSI için kod imzalama; reboot, uyku/hibernation ve çoklu monitör matrisi için son doğrulama bekleniyor
 
-Geliştirme sırası ve v1.0 hedefleri için [güncel yol haritasına](ROADMAP.md) bakın.
+Kalan v1.0 doğrulamaları ve sonraki hedefler için [güncel yol haritasına](ROADMAP.md) bakın.
 
 ## Kaynaktan çalıştırma
 

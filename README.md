@@ -12,7 +12,7 @@ Calm, local-first screen-time management for Windows — no account required.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/version-v0.18.0--dev-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/version-v1.0.0%20RC-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
@@ -90,7 +90,7 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 
 ## Current status
 
-**v0.18.0 feature-complete candidate**
+**v1.0.0 local release candidate (RC)**
 
 - Release build: `0` warnings, `0` errors
 - Single-file, self-contained Windows package
@@ -104,8 +104,11 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 - Guardian IPC verifies the signed installed client and uses nonce/HMAC/replay protection with persistent throttling and local security audit
 - Monotonic clock checks distinguish reboot/time-zone changes from forward/rollback manipulation and retain an administrator recovery path
 - Application Identity 2.0 combines path, trusted publisher, original filename, product metadata, optional SHA-256, package family, launcher, and child-process relationships
+- Guardian health checks, safe repair, and privacy-safe diagnostic export are complete
+- Real Windows tests confirmed automatic recovery after terminating the protected session and crashing the Guardian service
+- Code signing for the final public MSI and the reboot, sleep/hibernate, and multi-monitor validation matrix remain open
 
-See the [current roadmap](ROADMAP.md) for the development sequence and v1.0 goals.
+See the [current roadmap](ROADMAP.md) for the remaining v1.0 validation and post-release goals.
 
 ## Run from source
 
