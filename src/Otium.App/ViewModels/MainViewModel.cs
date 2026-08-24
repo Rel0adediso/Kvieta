@@ -533,6 +533,8 @@ public sealed class MainViewModel : ObservableObject
         return JsonSerializer.Serialize(_settings, options);
     }
 
+    public ControlSettings CreateSettingsSnapshot() => CloneSettings(_settings);
+
     public async Task RestoreSettingsAsync(ControlSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);

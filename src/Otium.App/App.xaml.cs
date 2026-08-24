@@ -150,6 +150,29 @@ public partial class App : System.Windows.Application
             await settingsStore.SaveAsync(settings);
         }
 
+        if (!guardianSession && settings.Mode == ControlMode.Protected &&
+            ProtectionServiceManager.GetState() != ProtectionServiceState.Running)
+        {
+            bool guardianReady = await ProtectionServiceManager.RunElevatedInstallerAsync(install: true) &&
+                ProtectionServiceManager.GetState() == ProtectionServiceState.Running;
+            if (!guardianReady)
+            {
+                System.Windows.MessageBox.Show(
+                    settings.Language == LanguagePreference.English
+                        ? "Protected mode cannot start without the Otium Guardian service. Installation was cancelled or failed."
+                        : "Otium Guardian servisi olmadan Korumalı mod başlatılamaz. Kurulum iptal edildi veya başarısız oldu.",
+                    settings.Language == LanguagePreference.English
+                        ? "Otium · Protection required"
+                        : "Otium · Koruma gerekli",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                Shutdown();
+                return;
+            }
+
+            protectedPolicyAvailable = true;
+        }
+
         try
         {
             StartupRegistrationService.Apply(settings.StartWithWindows);

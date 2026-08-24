@@ -46,8 +46,14 @@ public partial class MainWindow : Window
         };
         _overviewTimer.Tick += async (_, _) =>
         {
+            ControlSettings rollbackSettings = _viewModel.CreateSettingsSnapshot();
             if (await _viewModel.ApplyPendingIfDueAsync())
             {
+                if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
+                {
+                    return;
+                }
+
                 try
                 {
                     StartupRegistrationService.Apply(_viewModel.AppliedStartWithWindows);
@@ -75,6 +81,11 @@ public partial class MainWindow : Window
         }
 
         await _viewModel.InitializeAsync();
+        if (!await EnsureGuardianForProtectedModeAsync(_viewModel.CreateSettingsSnapshot()))
+        {
+            _isInitializing = false;
+            return;
+        }
         MotionService.SetUserPreference(_viewModel.AnimationsEnabled);
         ((App)System.Windows.Application.Current).ThemeService.SetPreference(MainViewModel.FromDisplayTheme(_viewModel.ThemeMode));
         RefreshProtectionStatus();
@@ -404,7 +415,13 @@ public partial class MainWindow : Window
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {
+        ControlSettings rollbackSettings = _viewModel.CreateSettingsSnapshot();
         if (!await _viewModel.SaveAsync())
+        {
+            return;
+        }
+
+        if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
         {
             return;
         }
@@ -625,7 +642,13 @@ public partial class MainWindow : Window
 #if OTIUM_DEVELOPMENT_BUILD
     private async void ForceApplyPendingForTestingAsync()
     {
+        ControlSettings rollbackSettings = _viewModel.CreateSettingsSnapshot();
         if (!await _viewModel.ForceApplyPendingForTestingAsync())
+        {
+            return;
+        }
+
+        if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
         {
             return;
         }
@@ -821,7 +844,13 @@ public partial class MainWindow : Window
             }
         }
 
+        ControlSettings rollbackSettings = _viewModel.CreateSettingsSnapshot();
         await _viewModel.SetControlModeAsync(targetMode, newPin);
+        if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
+        {
+            return;
+        }
+
         RefreshProtectionStatus();
         EnsurePersonalBackgroundSession();
         ResetSettingsScrollPosition();
@@ -940,6 +969,45 @@ public partial class MainWindow : Window
         {
             _viewModel.RemoveApplication(rule);
         }
+    }
+
+    private async Task<bool> EnsureGuardianForProtectedModeAsync(ControlSettings rollbackSettings)
+    {
+        if (!_viewModel.IsProtectedMode ||
+            ProtectionServiceManager.GetState() == ProtectionServiceState.Running)
+        {
+            return true;
+        }
+
+        bool installed = await ProtectionServiceManager.RunElevatedInstallerAsync(install: true);
+        RefreshProtectionStatus();
+        if (installed && ProtectionServiceManager.GetState() == ProtectionServiceState.Running)
+        {
+            _viewModel.StatusMessage = LocalizationService.Get("ProtectionActive");
+            return true;
+        }
+
+        if (rollbackSettings.Mode == ControlMode.Protected)
+        {
+            System.Windows.MessageBox.Show(
+                LocalizationService.CurrentLanguage == LanguagePreference.English
+                    ? "Guardian is unavailable. Protected mode was stopped instead of continuing without protection."
+                    : "Guardian kullanılamıyor. Korumalı mod korumasız devam etmek yerine durduruldu.",
+                LocalizationService.CurrentLanguage == LanguagePreference.English
+                    ? "Otium · Protection required"
+                    : "Otium · Koruma gerekli",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            System.Windows.Application.Current.Shutdown();
+            return false;
+        }
+
+        await _viewModel.RestoreSettingsAsync(rollbackSettings);
+        RefreshProtectionStatus();
+        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? "Protected mode was not enabled because Guardian could not be installed."
+            : "Guardian kurulamadığı için Korumalı mod etkinleştirilmedi.";
+        return false;
     }
 
     private async void OpenCafeMode_Click(object sender, RoutedEventArgs e)
