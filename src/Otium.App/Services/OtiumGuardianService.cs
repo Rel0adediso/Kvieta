@@ -306,7 +306,6 @@ public sealed class OtiumGuardianService : ServiceBase
         public void Dispose() => Token.Dispose();
     }
 
-    private sealed record GuardianProcessState(int ProcessId, int SessionId, long StartTimeUtcTicks);
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct StartupInfo

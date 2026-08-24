@@ -68,6 +68,7 @@ public partial class MainWindow : Window
 
             await _viewModel.ReloadUsageAsync();
             _viewModel.RefreshOverview();
+            RefreshProtectionStatus();
         };
     }
 
@@ -858,29 +859,14 @@ public partial class MainWindow : Window
 
     private async void ProtectionAction_Click(object sender, RoutedEventArgs e)
     {
-        ProtectionServiceState state = ProtectionServiceManager.GetState();
-        bool install = state != ProtectionServiceState.Running;
-
-        if (!install && _viewModel.HasAdminPin)
-        {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
-            verification.Owner = this;
-            if (verification.ShowDialog() != true)
-            {
-                return;
-            }
-        }
-
         ProtectionActionButton.IsEnabled = false;
-        bool succeeded = await ProtectionServiceManager.RunElevatedInstallerAsync(install);
+        bool succeeded = await ProtectionServiceManager.RunElevatedInstallerAsync(install: true);
         ProtectionActionButton.IsEnabled = true;
         RefreshProtectionStatus();
 
         if (!succeeded)
         {
-            _viewModel.StatusMessage = LocalizationService.Get(install
-                ? "ProtectionInstallFailed"
-                : "ProtectionRemoveFailed");
+            _viewModel.StatusMessage = LocalizationService.Get("ProtectionInstallFailed");
         }
     }
 
@@ -891,23 +877,50 @@ public partial class MainWindow : Window
             return;
         }
 
-        ProtectionServiceState state = ProtectionServiceManager.GetState();
-        string statusKey = state switch
+        ProtectionHealthReport health = ProtectionServiceManager.GetHealthReport();
+        string statusKey = health.IsHealthy
+            ? "ProtectionActive"
+            : health.ServiceState switch
         {
-            ProtectionServiceState.Running => "ProtectionActive",
             ProtectionServiceState.Stopped => "ProtectionStopped",
             _ => "ProtectionInactive"
         };
-        string actionKey = state switch
-        {
-            ProtectionServiceState.Running => "RemoveProtection",
-            ProtectionServiceState.Stopped => "RepairProtection",
-            _ => "InstallProtection"
-        };
+        string actionKey = health.IsHealthy
+            ? "ProtectionActive"
+            : health.ServiceState == ProtectionServiceState.NotInstalled
+                ? "InstallProtection"
+                : "RepairProtection";
         ProtectionStatusText.Text = LocalizationService.Get(statusKey);
+        ProtectionStatusText.ToolTip = BuildProtectionHealthDetails(health);
         ProtectionActionButton.Content = LocalizationService.Get(actionKey);
+        ProtectionActionButton.IsEnabled = !health.IsHealthy;
         ProtectionStatusDot.Background = (System.Windows.Media.Brush)FindResource(
-            state == ProtectionServiceState.Running ? "SuccessBrush" : "FaintTextBrush");
+            health.IsHealthy ? "SuccessBrush" : "WarningBrush");
+    }
+
+    private static string BuildProtectionHealthDetails(ProtectionHealthReport health)
+    {
+        if (health.IsHealthy)
+        {
+            return LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "Guardian service, protected policy, version and session watchdog are healthy."
+                : "Guardian servisi, korunan ayar, sürüm ve oturum bekçisi sağlıklı.";
+        }
+
+        Dictionary<ProtectionHealthIssue, (string Tr, string En)> labels = new()
+        {
+            [ProtectionHealthIssue.ServiceNotInstalled] = ("Guardian kurulu değil", "Guardian is not installed"),
+            [ProtectionHealthIssue.ServiceStopped] = ("Guardian servisi çalışmıyor", "Guardian service is not running"),
+            [ProtectionHealthIssue.ExecutableMissing] = ("Kurulu Otium dosyası eksik", "Installed Otium executable is missing"),
+            [ProtectionHealthIssue.EnrollmentMissing] = ("Guardian kayıt bilgisi eksik", "Guardian enrollment is missing"),
+            [ProtectionHealthIssue.ProtectedPolicyMissing] = ("Korunan ayar dosyası eksik", "Protected policy is missing"),
+            [ProtectionHealthIssue.VersionMismatch] = ("Uygulama ve Guardian sürümleri farklı", "App and Guardian versions differ"),
+            [ProtectionHealthIssue.VersionUnknown] = ("Guardian sürümü doğrulanamadı", "Guardian version could not be verified"),
+            [ProtectionHealthIssue.StartupNotAutomatic] = ("Guardian otomatik başlamıyor", "Guardian is not configured for automatic start"),
+            [ProtectionHealthIssue.GuardianSessionMissing] = ("Korunan oturum bekçisi çalışmıyor", "Protected session watchdog is not running")
+        };
+        bool english = LocalizationService.CurrentLanguage == LanguagePreference.English;
+        return string.Join(Environment.NewLine, health.Issues.Select(issue => $"• {(english ? labels[issue].En : labels[issue].Tr)}"));
     }
 
     private async void CancelPending_Click(object sender, RoutedEventArgs e)

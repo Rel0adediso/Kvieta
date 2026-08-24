@@ -16,6 +16,13 @@ Assert(WindowsAdministratorVerificationService.IsAllowedAuditEvent("recovery.cod
     !WindowsAdministratorVerificationService.IsAllowedAuditEvent("arbitrary.command"),
     "Windows yönetici doğrulama yardımcısı audit olaylarını allowlist ile sınırlamıyor.");
 Assert(!settings.SetupCompleted, "Yeni kurulum, kullanım biçimi seçilmeden tamamlanmış görünmemeli.");
+Assert(new ProtectionHealthReport(ProtectionServiceState.Running, []).IsHealthy,
+    "Eksiksiz çalışan Guardian sağlık raporu sağlıklı sayılmadı.");
+Assert(!new ProtectionHealthReport(
+        ProtectionServiceState.Running,
+        [ProtectionHealthIssue.GuardianSessionMissing]).IsHealthy &&
+    !new ProtectionHealthReport(ProtectionServiceState.Stopped, []).IsHealthy,
+    "Eksik veya durmuş Guardian sağlık raporu yanlışlıkla sağlıklı sayıldı.");
 Assert(!AdminPinService.IsValidFormat("12ab"), "Harf içeren PIN kabul edilmemeliydi.");
 AdminCredential credential = AdminPinService.Create("4826");
 Assert(AdminPinService.Verify("4826", credential), "Doğru yönetici PIN'i doğrulanamadı.");

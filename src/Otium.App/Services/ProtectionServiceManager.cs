@@ -25,6 +25,26 @@ public enum ProtectionVersionCompatibility
     Unknown
 }
 
+public enum ProtectionHealthIssue
+{
+    ServiceNotInstalled,
+    ServiceStopped,
+    ExecutableMissing,
+    EnrollmentMissing,
+    ProtectedPolicyMissing,
+    VersionMismatch,
+    VersionUnknown,
+    StartupNotAutomatic,
+    GuardianSessionMissing
+}
+
+public sealed record ProtectionHealthReport(
+    ProtectionServiceState ServiceState,
+    IReadOnlyList<ProtectionHealthIssue> Issues)
+{
+    public bool IsHealthy => ServiceState == ProtectionServiceState.Running && Issues.Count == 0;
+}
+
 public static class ProtectionServiceManager
 {
     public const string ServiceName = "OtiumGuardian";
@@ -161,6 +181,94 @@ public static class ProtectionServiceManager
         catch (InvalidOperationException)
         {
             return ProtectionServiceState.NotInstalled;
+        }
+    }
+
+    public static ProtectionHealthReport GetHealthReport()
+    {
+        List<ProtectionHealthIssue> issues = [];
+        ProtectionServiceState state = GetState();
+        if (state == ProtectionServiceState.NotInstalled)
+        {
+            issues.Add(ProtectionHealthIssue.ServiceNotInstalled);
+            return new ProtectionHealthReport(state, issues);
+        }
+
+        if (state != ProtectionServiceState.Running)
+        {
+            issues.Add(ProtectionHealthIssue.ServiceStopped);
+        }
+        if (!File.Exists(InstalledExecutablePath))
+        {
+            issues.Add(ProtectionHealthIssue.ExecutableMissing);
+        }
+        if (!File.Exists(EnrollmentPath))
+        {
+            issues.Add(ProtectionHealthIssue.EnrollmentMissing);
+        }
+        if (!File.Exists(ProtectedSettingsPath))
+        {
+            issues.Add(ProtectionHealthIssue.ProtectedPolicyMissing);
+        }
+
+        ProtectionVersionCompatibility compatibility = GetVersionCompatibility();
+        if (compatibility == ProtectionVersionCompatibility.Mismatch)
+        {
+            issues.Add(ProtectionHealthIssue.VersionMismatch);
+        }
+        else if (compatibility == ProtectionVersionCompatibility.Unknown)
+        {
+            issues.Add(ProtectionHealthIssue.VersionUnknown);
+        }
+
+        try
+        {
+            using ServiceController controller = new(ServiceName);
+            if (controller.StartType != ServiceStartMode.Automatic)
+            {
+                issues.Add(ProtectionHealthIssue.StartupNotAutomatic);
+            }
+        }
+        catch
+        {
+            if (!issues.Contains(ProtectionHealthIssue.ServiceNotInstalled))
+            {
+                issues.Add(ProtectionHealthIssue.ServiceStopped);
+            }
+        }
+
+        if (state == ProtectionServiceState.Running && !HasLiveGuardianSession())
+        {
+            issues.Add(ProtectionHealthIssue.GuardianSessionMissing);
+        }
+
+        return new ProtectionHealthReport(state, issues.Distinct().ToList());
+    }
+
+    private static bool HasLiveGuardianSession()
+    {
+        try
+        {
+            if (!File.Exists(ProcessStatePath))
+            {
+                return false;
+            }
+
+            GuardianProcessState? state = JsonSerializer.Deserialize<GuardianProcessState>(
+                File.ReadAllText(ProcessStatePath));
+            if (state is null)
+            {
+                return false;
+            }
+
+            using Process process = Process.GetProcessById(state.ProcessId);
+            return !process.HasExited &&
+                process.SessionId == state.SessionId &&
+                process.StartTime.ToUniversalTime().Ticks == state.StartTimeUtcTicks;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -455,3 +563,5 @@ public sealed record GuardianEnrollment(
     string SettingsPath,
     AdminCredential AdminPin,
     AdminCredential? PreviousAdminPin = null);
+
+public sealed record GuardianProcessState(int ProcessId, int SessionId, long StartTimeUtcTicks);
