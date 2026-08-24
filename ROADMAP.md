@@ -128,7 +128,10 @@ Tamamlanan temel:
 - Guardian servis yaşam döngüsünün Windows Installer tarafından kurulup kaldırılması.
 - MSI tarafından yönetilen Guardian ile uygulama içi koruma açma/kapatma akışının ayrılması.
 - Her MSI çıktısına SHA-256 bütünlük dosyası üretimi.
+- Sürüm paketlerini ayrı klasörlerde tutarak önceki rollback paketini koruma.
+- MSI dosya adı, boyut ve SHA-256 değerini kurulum öncesi doğrulayan release manifesti.
 - Upgrade sırasında kullanıcı ayarları, kullanım geçmişi ve korunan policy verisine dokunmama.
+- Temiz kurulum, repair, kaldırma, `0.17.0 → 0.17.1` yükseltme ve downgrade engeli gerçek Windows Installer üzerinde doğrulandı.
 
 ### Installer
 

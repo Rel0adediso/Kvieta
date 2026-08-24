@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $publishDirectory = Join-Path $repositoryRoot 'artifacts\publish\win-x64'
-$installerOutputDirectory = Join-Path $repositoryRoot 'artifacts\installer'
+$installerOutputDirectory = Join-Path $repositoryRoot "artifacts\installer\$Version"
 $applicationProject = Join-Path $repositoryRoot 'src\Otium.App\Otium.App.csproj'
 $installerProject = Join-Path $repositoryRoot 'installer\Otium.Setup\Otium.Setup.wixproj'
 
@@ -46,5 +46,18 @@ $hash = Get-FileHash -LiteralPath $installer -Algorithm SHA256
 $checksumPath = "$installer.sha256"
 Set-Content -LiteralPath $checksumPath -Value "$($hash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($installer))" -Encoding ascii
 
+$manifestPath = Join-Path $installerOutputDirectory 'release-manifest.json'
+$manifest = [ordered]@{
+    schemaVersion = 1
+    product = 'Otium'
+    version = $Version
+    architecture = 'win-x64'
+    package = [IO.Path]::GetFileName($installer)
+    sizeBytes = (Get-Item -LiteralPath $installer).Length
+    sha256 = $hash.Hash.ToLowerInvariant()
+}
+$manifest | ConvertTo-Json | Set-Content -LiteralPath $manifestPath -Encoding utf8
+
 Write-Output "Installer: $installer"
 Write-Output "SHA-256:  $checksumPath"
+Write-Output "Manifest: $manifestPath"
