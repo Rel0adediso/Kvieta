@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private bool _sessionEventsAttached;
     private Forms.NotifyIcon? _trayIcon;
     private TrayMenuWindow? _trayMenuWindow;
+    private bool _isInitializing = true;
 
     public MainWindow(CafeWindow? existingSessionWindow = null, string? managementPin = null)
     {
@@ -63,6 +64,25 @@ public partial class MainWindow : Window
         RefreshProtectionStatus();
         EnsurePersonalBackgroundSession();
         _overviewTimer.Start();
+        _isInitializing = false;
+    }
+
+    private async void AwarenessTracking_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing)
+        {
+            return;
+        }
+
+        if (!await _viewModel.SaveAsync() || !await SyncProtectedPolicyAsync())
+        {
+            return;
+        }
+
+        if (_backgroundSessionWindow is not null)
+        {
+            await _backgroundSessionWindow.ReloadSettingsAsync();
+        }
     }
 
     private void Theme_SelectionChanged(object sender, SelectionChangedEventArgs e)
