@@ -311,15 +311,15 @@
                             <Button Grid.Column="1" Content="×" Width="32" Height="32" Padding="0" Style="{StaticResource SecondaryButtonStyle}" Click="ApplicationDetailsClose_Click" VerticalAlignment="Top" />
                         </Grid>
                         <Border Grid.Row="1" Background="{DynamicResource BorderBrush}" Margin="24,0" />
-                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="16,12,10,8">
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="16,10,10,6">
                             <ItemsControl ItemsSource="{Binding HistoryAllApplications}">
                                 <ItemsControl.ItemTemplate><DataTemplate>
-                                    <Border Background="{DynamicResource SurfaceHoverBrush}" CornerRadius="10" Padding="13,10" Margin="0,0,6,7">
-                                        <Grid Height="46"><Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="48" /><ColumnDefinition Width="*" /><ColumnDefinition Width="78" /></Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding RankText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                            <Grid Grid.Column="1" Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Center"><Border Background="{Binding FallbackBrush}" CornerRadius="10"><TextBlock Text="{Binding Initials}" Foreground="White" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasFallbackIcon, Converter={StaticResource BooleanToVisibilityConverter}}" /></Border><Image Source="{Binding Icon}" Width="30" Height="30" Stretch="Uniform" Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}" /></Grid>
-                                            <StackPanel Grid.Column="2" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><ProgressBar Value="{Binding RelativePercent}" Maximum="100" Height="5" Margin="0,8,18,0" /></StackPanel>
-                                            <TextBlock Grid.Column="3" Text="{Binding UsedText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                    <Border Background="{DynamicResource SurfaceHoverBrush}" CornerRadius="8" Padding="10,6" Margin="0,0,6,4">
+                                        <Grid Height="34"><Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="38" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding RankText}" Foreground="{DynamicResource FaintTextBrush}" FontSize="8" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <Grid Grid.Column="1" Width="28" Height="28" HorizontalAlignment="Left" VerticalAlignment="Center"><Border Background="{Binding FallbackBrush}" CornerRadius="8"><TextBlock Text="{Binding Initials}" Foreground="White" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasFallbackIcon, Converter={StaticResource BooleanToVisibilityConverter}}" /></Border><Image Source="{Binding Icon}" Width="24" Height="24" Stretch="Uniform" Visibility="{Binding HasIcon, Converter={StaticResource BooleanToVisibilityConverter}}" /></Grid>
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><ProgressBar Value="{Binding RelativePercent}" Maximum="100" Height="4" Margin="0,6,16,0" /></StackPanel>
+                                            <TextBlock Grid.Column="3" Text="{Binding UsedText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                         </Grid>
                                     </Border>
                                 </DataTemplate></ItemsControl.ItemTemplate>
