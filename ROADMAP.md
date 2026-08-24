@@ -257,7 +257,7 @@ Tamamlandı. Kurallar yolun yanında WinTrust ile doğrulanan publisher imzası,
 
 ## v1.0 sonrasına bırakılanlar
 
-- Uygulama önerilerini, açık program ve kullanım verisi değiştiğinde güvenilir biçimde otomatik/canlı yenileme.
+- Kullanım verisine dayalı tek tık uygulama önerileri ve güvenilir otomatik/canlı yenileme.
 - Tarayıcı eklentisi ve site kuralları.
 - Aynı Wi-Fi üzerinden telefon kontrolü.
 - İnternet üzerinden uzaktan yönetim.

@@ -42,7 +42,7 @@ public sealed class ForegroundApplicationTracker
         try
         {
             using Process process = Process.GetProcessById((int)processId);
-            return process.MainModule?.FileName ?? $"{process.ProcessName}.exe";
+            return $"{process.ProcessName}.exe";
         }
         catch
         {

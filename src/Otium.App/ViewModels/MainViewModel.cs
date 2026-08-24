@@ -48,7 +48,6 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<DayScheduleRow> ScheduleRows { get; } = [];
     public ObservableCollection<TemporaryAllowanceRow> TemporaryAllowances { get; } = [];
     public ObservableCollection<AppRuleRow> AppRules { get; } = [];
-    public ObservableCollection<ApplicationSuggestionRow> SuggestedApplications { get; } = [];
     public ObservableCollection<string> LimitActions { get; } = [];
     public ObservableCollection<string> ThemeModes { get; } = [];
     public IReadOnlyList<string> LanguageModes { get; } = ["Türkçe", "English"];
@@ -231,8 +230,6 @@ public sealed class MainViewModel : ObservableObject
     public int BlockedAppCount => AppRules.Count(rule => rule.ToModel().Mode == AppRuleMode.Blocked);
     public int RuleCount => AppRules.Count;
     public bool HasNoAppRules => AppRules.Count == 0;
-    public bool HasApplicationSuggestions => SuggestedApplications.Count > 0;
-    public bool HasNoApplicationSuggestions => !HasApplicationSuggestions;
     public string CurrentWindowStatus { get; private set; } = "Program yükleniyor…";
     public string SettingsPath => _settingsStore.FilePath;
     public bool HasAdminPin => _settings.AdminPin.IsConfigured;
@@ -325,7 +322,6 @@ public sealed class MainViewModel : ObservableObject
             : 0;
         BuildUsageHistory(ledger);
         BuildRhythm(ledger);
-        RefreshApplicationSuggestions();
     }
 
     public async Task<bool> ApplyPendingIfDueAsync()
@@ -480,7 +476,6 @@ public sealed class MainViewModel : ObservableObject
         AppRules.Add(new AppRuleRow(ApplicationIdentityService.CaptureRule(executablePath)));
 
         RefreshOverview();
-        RefreshApplicationSuggestions();
         StatusMessage = L(
             "Program kalıcı kapalı olarak eklendi · Kuralı uygulamak için Kaydet'e bas.",
             "Program added as permanently blocked · Press Save to apply the rule.");
@@ -518,29 +513,9 @@ public sealed class MainViewModel : ObservableObject
         }
 
         RefreshOverview();
-        RefreshApplicationSuggestions();
         StatusMessage = L(
             "Uygulama kuralı kaldırıldı · Uygulamak için Kaydet'e bas.",
             "Application rule removed · Press Save to apply the change.");
-    }
-
-    public void AddSuggestedApplication(ApplicationSuggestionRow suggestion)
-    {
-        AddApplication(suggestion.ExecutablePath);
-    }
-
-    public void RefreshApplicationSuggestions()
-    {
-        SuggestedApplications.Clear();
-        foreach (ApplicationSuggestion suggestion in ApplicationSuggestionService.GetSuggestions(
-                     _lastUsageLedger,
-                     AppRules.Select(rule => rule.ExecutablePath)))
-        {
-            SuggestedApplications.Add(new ApplicationSuggestionRow(suggestion));
-        }
-
-        OnPropertyChanged(nameof(HasApplicationSuggestions));
-        OnPropertyChanged(nameof(HasNoApplicationSuggestions));
     }
 
     public bool VerifyAdminPin(string pin)

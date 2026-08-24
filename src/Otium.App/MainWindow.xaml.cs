@@ -894,32 +894,6 @@ public partial class MainWindow : Window
         }, DispatcherPriority.Loaded);
     }
 
-    private void AddApplication_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel.RefreshApplicationSuggestions();
-        ApplicationSuggestionsPanel.BringIntoView();
-        if (_viewModel.HasApplicationSuggestions)
-        {
-            System.Windows.Media.Color glowColor = FindResource("PrimaryBrush") is SolidColorBrush brush
-                ? brush.Color
-                : System.Windows.Media.Color.FromRgb(180, 188, 130);
-            MotionService.Highlight(ApplicationSuggestionsPanel, glowColor);
-            return;
-        }
-
-        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
-            ? "Open the application you want to manage, then refresh the suggestions."
-            : "Yönetmek istediğin uygulamayı aç, ardından önerileri yenile.";
-    }
-
-    private void AddSuggestedApplication_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is System.Windows.Controls.Button { Tag: ApplicationSuggestionRow suggestion })
-        {
-            _viewModel.AddSuggestedApplication(suggestion);
-        }
-    }
-
     private void AddTemporaryAllowance_Click(object sender, RoutedEventArgs e)
     {
         TemporaryAllowanceWindow dialog = new() { Owner = this };
