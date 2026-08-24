@@ -54,7 +54,7 @@ public sealed class MainViewModel : ObservableObject
     public int SelectedPageIndex
     {
         get => _selectedPageIndex;
-        set => SetProperty(ref _selectedPageIndex, value);
+        set => SetProperty(ref _selectedPageIndex, IsAwarenessMode && value is 1 or 2 ? 0 : value);
     }
 
     public string DeviceName
@@ -141,6 +141,10 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsProtectedMode));
                 OnPropertyChanged(nameof(IsAwarenessMode));
                 OnPropertyChanged(nameof(HasRestrictions));
+                if (value == ControlMode.Awareness && SelectedPageIndex is 1 or 2)
+                {
+                    SelectedPageIndex = 0;
+                }
             }
         }
     }

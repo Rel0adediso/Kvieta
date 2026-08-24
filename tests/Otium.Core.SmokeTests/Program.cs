@@ -312,6 +312,8 @@ MainViewModel awarenessViewModel = new(awarenessSettingsStore, new JsonUsageStor
 await awarenessViewModel.InitializeAsync();
 Assert(awarenessViewModel.IsAwarenessMode && !awarenessViewModel.HasRestrictions,
     "Farkındalık profili arayüz durumuna yansımadı.");
+awarenessViewModel.SelectedPageIndex = 2;
+Assert(awarenessViewModel.SelectedPageIndex == 0, "Farkındalık modunda uygulama kuralı paneli açılabildi.");
 Assert(awarenessViewModel.UsedTodayMinutes == 10 && awarenessViewModel.TodayLimitText is "Sınırsız" or "Unlimited",
     "Farkındalık profili gerçek ön plan süresini sınırsız özet olarak göstermedi.");
 
