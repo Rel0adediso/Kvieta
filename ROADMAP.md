@@ -65,9 +65,9 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 - Son 28 gündeki gözlemlerle hafta içi ve hafta sonu günlük ortalamaları karşılaştırılıyor.
 - Gizlilik ve veri merkezi 30/90/180 günlük saklama, JSON/CSV dışa aktarma ve bugün dahil geçmişi silme sunuyor.
 
-Tamamlanan aşama: v0.16.1 Otium hareket dili ve erişilebilir animasyonlar.
+Tamamlanan aşama: v0.17 kurulum, güvenli güncelleme ve rollback.
 
-Sıradaki aşama: v0.17 kurulum, güvenli güncelleme ve rollback.
+Sıradaki aşama: v0.18 recovery ve güvenlik sertleştirmesi.
 
 ### Ritim
 
@@ -118,9 +118,9 @@ Sıradaki aşama: v0.17 kurulum, güvenli güncelleme ve rollback.
 
 ## v0.17 — Kurulum, güvenli güncelleme ve rollback
 
-**Durum:** Devam ediyor.
+**Durum:** Tamamlandı.
 
-Tamamlanan temel:
+Tamamlananlar:
 
 - Tek komutla self-contained uygulama ve x64 MSI üreten tekrar edilebilir build akışı.
 - `Program Files\Otium` kurulumu ve Başlat menüsü kısayolu.
@@ -132,6 +132,11 @@ Tamamlanan temel:
 - MSI dosya adı, boyut ve SHA-256 değerini kurulum öncesi doğrulayan release manifesti.
 - Upgrade sırasında kullanıcı ayarları, kullanım geçmişi ve korunan policy verisine dokunmama.
 - Temiz kurulum, repair, kaldırma, `0.17.0 → 0.17.1` yükseltme ve downgrade engeli gerçek Windows Installer üzerinde doğrulandı.
+- Başlat menüsündeki kontrollü kaldırma yolu, korumalı modda yönetici PIN'i ve ardından Windows yönetici izni istiyor; doğrudan ARP kaldırma/değiştirme seçenekleri kapatıldı.
+- Uygulama, kurulu Guardian ikilisi ve installer kayıt sürümü eşleşmiyorsa korumalı başlangıç güvenli biçimde durduruluyor.
+- Manuel güncelleyici hedef ile rollback manifestlerini yükseltmeden önce ve sonra doğruluyor, sağlık kontrolü yapıyor ve hata halinde çalışan eski sürümü geri getiriyor.
+- Güncelleme ve rollback sırasında isteğe bağlı masaüstü kısayolu tercihi ile `%LocalAppData%` ve `%ProgramData%` altındaki kullanıcı/policy verileri korunuyor.
+- Her sürüm klasörü doğrulama ve güncelleme betiklerini de içeriyor; manuel release paketi kendi başına kullanılabiliyor.
 
 ### Installer
 

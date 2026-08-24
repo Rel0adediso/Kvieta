@@ -34,6 +34,29 @@ Assert(new SessionEngine(settings, new UsageLedger { LocalDay = new DateOnly(202
     "Oturum durumu ayarlardaki dil tercihine uymadı.");
 settings.Language = LanguagePreference.Turkish;
 
+Assert(ProtectionServiceManager.EvaluateVersionCompatibility(
+        new Version(0, 17, 0), new Version(0, 17, 0), new Version(0, 17, 0)) ==
+    ProtectionVersionCompatibility.Compatible,
+    "Eşleşen uygulama, Guardian ve installer sürümleri uyumlu sayılmadı.");
+Assert(ProtectionServiceManager.EvaluateVersionCompatibility(
+        new Version(0, 17, 1), new Version(0, 17, 0), new Version(0, 17, 0)) ==
+    ProtectionVersionCompatibility.Mismatch,
+    "Uygulama ve Guardian sürüm uyumsuzluğu algılanmadı.");
+Assert(ProtectionServiceManager.EvaluateVersionCompatibility(
+        new Version(0, 17, 0), null, new Version(0, 17, 0)) ==
+    ProtectionVersionCompatibility.Unknown,
+    "Okunamayan Guardian sürümü güvenli olmayan biçimde uyumlu sayıldı.");
+ControlSettings uninstallPolicy = new()
+{
+    Mode = ControlMode.Protected,
+    AdminPin = AdminPinService.Create("2468")
+};
+Assert(ProtectionServiceManager.RequiresPinForUninstall(uninstallPolicy),
+    "Korumalı mod kaldırma akışı PIN istemiyor.");
+uninstallPolicy.Mode = ControlMode.Personal;
+Assert(!ProtectionServiceManager.RequiresPinForUninstall(uninstallPolicy),
+    "Kişisel mod kaldırma akışı gereksiz PIN istiyor.");
+
 ControlSettings allowanceSettings = new();
 DaySchedule allowanceMonday = allowanceSettings.Schedule.Single(item => item.Day == DayOfWeek.Monday);
 allowanceMonday.IsEnabled = false;
@@ -296,7 +319,7 @@ Assert(testUnlockEngine.GetSnapshot(allowedTime.AddMinutes(135)).State == Sessio
 
 string usagePath = Path.Combine(testDirectory, "usage.json");
 JsonUsageStore usageStore = new(usagePath);
-await usageStore.SaveAsync(ledger);
+await usageStore.ReplaceAsync(ledger);
 UsageLedger loadedLedger = await usageStore.LoadAsync();
 Assert(loadedLedger.UsedSeconds == ledger.UsedSeconds, "Kullanım kaydı geri yüklenemedi.");
 

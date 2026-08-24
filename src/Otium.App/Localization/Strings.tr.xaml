@@ -33,4 +33,10 @@
     <sys:String x:Key="ConfirmModeSelection">Seçimi onayla</sys:String>
     <sys:String x:Key="NoHistoryApplications">Henüz uygulama kullanım verisi oluşmadı.</sys:String>
     <sys:String x:Key="NoHistoryEvents">Henüz kaydedilmiş bir hareket yok.</sys:String>
+    <sys:String x:Key="UninstallTitle">Otium'u kaldır</sys:String>
+    <sys:String x:Key="UninstallConfirmation">Otium bu bilgisayardan kaldırılsın mı? Yerel kullanım verilerin korunacak.</sys:String>
+    <sys:String x:Key="UninstallLaunchFailed">Kaldırma işlemi başlatılamadı. Windows yönetici iznini kontrol et.</sys:String>
+    <sys:String x:Key="UninstallNotAvailableDescription">Bu Otium kopyası Windows Installer tarafından kurulmamış.</sys:String>
+    <sys:String x:Key="GuardianVersionMismatchTitle">Otium · Sürüm uyumsuzluğu</sys:String>
+    <sys:String x:Key="GuardianVersionMismatchDescription">Uygulama ve Guardian sürümleri eşleşmiyor. Koruma güvenliği için Otium kurulumunu onar veya güncelle.</sys:String>
 </ResourceDictionary>

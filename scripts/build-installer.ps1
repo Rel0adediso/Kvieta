@@ -58,6 +58,11 @@ $manifest = [ordered]@{
 }
 $manifest | ConvertTo-Json | Set-Content -LiteralPath $manifestPath -Encoding utf8
 
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'verify-installer.ps1') `
+    -Destination $installerOutputDirectory -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'install-update.ps1') `
+    -Destination $installerOutputDirectory -Force
+
 Write-Output "Installer: $installer"
 Write-Output "SHA-256:  $checksumPath"
 Write-Output "Manifest: $manifestPath"

@@ -20,6 +20,13 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        if (e.Args.Any(argument => string.Equals(argument, "--uninstall", StringComparison.OrdinalIgnoreCase)))
+        {
+            await HandleUninstallRequestAsync();
+            Shutdown();
+            return;
+        }
+
         if (e.Args.Any(argument => string.Equals(argument, "--guardian-service", StringComparison.OrdinalIgnoreCase)))
         {
             OtiumGuardianService.RunService();
@@ -73,6 +80,18 @@ public partial class App : System.Windows.Application
 
         LocalizationService.SetLanguage(this, settings.Language);
         _themeService.SetPreference(settings.Theme);
+
+        if (protectedPolicyAvailable &&
+            ProtectionServiceManager.GetVersionCompatibility() == ProtectionVersionCompatibility.Mismatch)
+        {
+            System.Windows.MessageBox.Show(
+                LocalizationService.Get("GuardianVersionMismatchDescription"),
+                LocalizationService.Get("GuardianVersionMismatchTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown();
+            return;
+        }
 
         if (guardianSession)
         {
@@ -278,6 +297,65 @@ public partial class App : System.Windows.Application
         }
 
         File.Copy(ProtectionServiceManager.ProtectedSettingsPath, destination, overwrite: true);
+    }
+
+    private async Task HandleUninstallRequestAsync()
+    {
+        JsonSettingsStore settingsStore = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+            ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
+            : new JsonSettingsStore();
+        ControlSettings settings;
+        try
+        {
+            settings = await settingsStore.LoadAsync();
+        }
+        catch
+        {
+            settings = new ControlSettings();
+        }
+
+        LocalizationService.SetLanguage(this, settings.Language);
+        _themeService.SetPreference(settings.Theme);
+
+        if (!ProtectionServiceManager.IsInstallerManaged)
+        {
+            System.Windows.MessageBox.Show(
+                LocalizationService.Get("UninstallNotAvailableDescription"),
+                LocalizationService.Get("UninstallTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        if (ProtectionServiceManager.RequiresPinForUninstall(settings))
+        {
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                pin => AdminPinService.Verify(pin, settings.AdminPin));
+            verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            verification.ShowInTaskbar = true;
+            if (verification.ShowDialog() != true)
+            {
+                return;
+            }
+        }
+
+        if (System.Windows.MessageBox.Show(
+                LocalizationService.Get("UninstallConfirmation"),
+                LocalizationService.Get("UninstallTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        if (!ProtectionServiceManager.LaunchProductUninstall())
+        {
+            System.Windows.MessageBox.Show(
+                LocalizationService.Get("UninstallLaunchFailed"),
+                LocalizationService.Get("UninstallTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 
 }

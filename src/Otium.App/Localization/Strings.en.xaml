@@ -33,4 +33,10 @@
     <sys:String x:Key="ConfirmModeSelection">Confirm selection</sys:String>
     <sys:String x:Key="NoHistoryApplications">No application usage data yet.</sys:String>
     <sys:String x:Key="NoHistoryEvents">No activity has been recorded yet.</sys:String>
+    <sys:String x:Key="UninstallTitle">Uninstall Otium</sys:String>
+    <sys:String x:Key="UninstallConfirmation">Uninstall Otium from this computer? Your local usage data will be preserved.</sys:String>
+    <sys:String x:Key="UninstallLaunchFailed">Uninstall could not be started. Check the Windows administrator permission.</sys:String>
+    <sys:String x:Key="UninstallNotAvailableDescription">This copy of Otium was not installed by Windows Installer.</sys:String>
+    <sys:String x:Key="GuardianVersionMismatchTitle">Otium · Version mismatch</sys:String>
+    <sys:String x:Key="GuardianVersionMismatchDescription">The app and Guardian versions do not match. Repair or update Otium to keep protection safe.</sys:String>
 </ResourceDictionary>

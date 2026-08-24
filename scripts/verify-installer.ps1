@@ -17,11 +17,16 @@ if ($manifest.version -notmatch '^\d+\.\d+\.\d+$' -or $manifest.architecture -ne
 }
 
 $manifestDirectory = Split-Path -Parent $resolvedManifestPath
+$expectedPackageName = "Otium-$($manifest.version)-win-x64.msi"
+if ([string]$manifest.package -cne $expectedPackageName) {
+    throw 'The installer filename does not match the release manifest.'
+}
+
 $packagePath = Join-Path $manifestDirectory ([string]$manifest.package)
 $resolvedPackagePath = (Resolve-Path -LiteralPath $packagePath).Path
 $package = Get-Item -LiteralPath $resolvedPackagePath
 
-if ($package.Name -ne "Otium-$($manifest.version)-win-x64.msi") {
+if ($package.Name -cne $expectedPackageName) {
     throw 'The installer filename does not match the release manifest.'
 }
 

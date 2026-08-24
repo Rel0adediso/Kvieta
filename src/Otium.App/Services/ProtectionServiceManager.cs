@@ -17,6 +17,14 @@ public enum ProtectionServiceState
     Running
 }
 
+public enum ProtectionVersionCompatibility
+{
+    NotInstalled,
+    Compatible,
+    Mismatch,
+    Unknown
+}
+
 public static class ProtectionServiceManager
 {
     public const string ServiceName = "OtiumGuardian";
@@ -31,7 +39,7 @@ public static class ProtectionServiceManager
     public static string ProcessStatePath => Path.Combine(ProtectionDataDirectory, "guardian-process.json");
     public static string ProtectedSettingsPath => Path.Combine(ProtectionDataDirectory, "protected-settings.json");
 
-    private static bool IsInstallerManaged
+    public static bool IsInstallerManaged
     {
         get
         {
@@ -43,6 +51,64 @@ public static class ProtectionServiceManager
             {
                 return false;
             }
+        }
+    }
+
+    public static ProtectionVersionCompatibility GetVersionCompatibility()
+    {
+        if (!File.Exists(InstalledExecutablePath))
+        {
+            return ProtectionVersionCompatibility.NotInstalled;
+        }
+
+        Version? installedBinaryVersion = ReadProductVersion(InstalledExecutablePath);
+        Version? currentProcessVersion = ReadProductVersion(Environment.ProcessPath);
+        Version? registeredVersion = ReadRegisteredVersion();
+        return EvaluateVersionCompatibility(currentProcessVersion, installedBinaryVersion, registeredVersion);
+    }
+
+    public static ProtectionVersionCompatibility EvaluateVersionCompatibility(
+        Version? currentProcessVersion,
+        Version? installedBinaryVersion,
+        Version? registeredVersion)
+    {
+        if (installedBinaryVersion is null || currentProcessVersion is null)
+        {
+            return ProtectionVersionCompatibility.Unknown;
+        }
+
+        return installedBinaryVersion != currentProcessVersion ||
+            registeredVersion is not null && installedBinaryVersion != registeredVersion
+                ? ProtectionVersionCompatibility.Mismatch
+                : ProtectionVersionCompatibility.Compatible;
+    }
+
+    public static bool RequiresPinForUninstall(ControlSettings settings) =>
+        settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured;
+
+    public static bool LaunchProductUninstall()
+    {
+        if (!IsInstallerManaged || ReadInstallerValue("ProductCode") is not string productCode ||
+            !Guid.TryParse(productCode.Trim('{', '}'), out _))
+        {
+            return false;
+        }
+
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = Path.Combine(Environment.SystemDirectory, "msiexec.exe"),
+            Arguments = $"/x {productCode} /passive /norestart",
+            UseShellExecute = true,
+            Verb = "runas"
+        };
+
+        try
+        {
+            return Process.Start(startInfo) is not null;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return false;
         }
     }
 
@@ -310,6 +376,42 @@ public static class ProtectionServiceManager
     {
         using WindowsIdentity identity = WindowsIdentity.GetCurrent();
         return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
+    private static object? ReadInstallerValue(string name)
+    {
+        try
+        {
+            using RegistryKey? key = Registry.LocalMachine.OpenSubKey(@"Software\Otium");
+            return key?.GetValue(name);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static Version? ReadRegisteredVersion() =>
+        ReadInstallerValue("InstalledVersion") is string value && Version.TryParse(value, out Version? version)
+            ? version
+            : null;
+
+    private static Version? ReadProductVersion(string? path)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return null;
+            }
+
+            string? productVersion = FileVersionInfo.GetVersionInfo(path).ProductVersion?.Split('+')[0];
+            return Version.TryParse(productVersion, out Version? version) ? version : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
 

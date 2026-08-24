@@ -90,13 +90,15 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 
 ## Güncel durum
 
-**v0.15.1 prototip**
+**v0.17.0 prototip**
 
 - Release build: `0` uyarı, `0` hata
 - Tek dosyalık, self-contained Windows paketi
 - Türkçe ve English kaynakları eşleşiyor
 - Veri kurtarma, migration, dosya kilidi ve eşzamanlı yazma smoke testleri mevcut
-- v0.16 Ritim temeli geliştiriliyor: açık rızalı, yalnız yerel ön plan uygulaması farkındalığı ve ayrı kural sayaçları
+- v0.16 Ritim temeli tamamlandı: açık rızalı, yalnız yerel ön plan uygulaması farkındalığı ve ayrı kural sayaçları
+- v0.16.1 kısa, erişilebilir ve işlevsel Otium hareket dili tamamlandı
+- v0.17 isteğe bağlı masaüstü kısayolu, MSI yönetimli Guardian, korumalı kaldırma, doğrulanan güncelleme paketleri, rollback ve downgrade engeliyle tamamlandı
 
 Geliştirme sırası ve v1.0 hedefleri için [güncel yol haritasına](ROADMAP.md) bakın.
 

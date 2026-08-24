@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package
     Name="Otium"
     Manufacturer="Otium"
     Version="$(var.OtiumVersion)"
     UpgradeCode="B7DB180A-83DE-4B93-A8FB-453734F91C10"
     Language="1033"
+    Codepage="65001"
     Scope="perMachine">
 
     <SummaryInformation Description="Otium local screen-time awareness and control" />
@@ -13,7 +15,8 @@
       DowngradeErrorMessage="A newer version of Otium is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
-    <Property Id="INSTALLDESKTOPSHORTCUT" Value="0" Secure="yes" />
+    <Property Id="ARPNOREMOVE" Value="1" />
+    <Property Id="ARPNOMODIFY" Value="1" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="Otium" />
@@ -23,8 +26,16 @@
 
     <Feature Id="MainFeature" Title="Otium" Level="1">
       <ComponentRef Id="OtiumExecutableComponent" />
+    </Feature>
+    <Feature
+      Id="DesktopShortcutFeature"
+      Title="Desktop shortcut"
+      Description="Create an Otium shortcut on the desktop"
+      Level="2">
       <ComponentRef Id="DesktopShortcutComponent" />
     </Feature>
+
+    <ui:WixUI Id="WixUI_FeatureTree" />
 
     <Component Id="OtiumExecutableComponent" Directory="INSTALLFOLDER" Guid="*">
       <File Id="OtiumExecutable" Source="$(var.OtiumPublishDir)\Otium.exe" KeyPath="yes">
@@ -33,6 +44,14 @@
           Directory="ProgramMenuFolder"
           Name="Otium"
           Description="Otium"
+          WorkingDirectory="INSTALLFOLDER"
+          Advertise="yes" />
+        <Shortcut
+          Id="UninstallShortcut"
+          Directory="ProgramMenuFolder"
+          Name="Otium'u Kaldır"
+          Description="Otium'u güvenli biçimde kaldır"
+          Arguments="--uninstall"
           WorkingDirectory="INSTALLFOLDER"
           Advertise="yes" />
       </File>
@@ -58,13 +77,24 @@
         Name="InstallerManaged"
         Type="integer"
         Value="1" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Otium"
+        Name="ProductCode"
+        Type="string"
+        Value="[ProductCode]" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Otium"
+        Name="InstalledVersion"
+        Type="string"
+        Value="[ProductVersion]" />
     </Component>
 
     <Component
       Id="DesktopShortcutComponent"
       Directory="INSTALLFOLDER"
-      Guid="*"
-      Condition="INSTALLDESKTOPSHORTCUT = 1">
+      Guid="*">
       <Shortcut
         Id="DesktopShortcut"
         Directory="DesktopFolder"
