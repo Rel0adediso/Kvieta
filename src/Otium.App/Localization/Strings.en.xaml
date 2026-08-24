@@ -70,7 +70,6 @@
     <sys:String x:Key="PermanentlyBlockApplication">Add application</sys:String>
     <sys:String x:Key="SuggestedApplications">Suggested applications</sys:String>
     <sys:String x:Key="SuggestedApplicationsDescription">Based on the last 7 days and currently open apps; press plus to add one instantly.</sys:String>
-    <sys:String x:Key="RefreshSuggestions">Refresh suggestions</sys:String>
     <sys:String x:Key="AddSuggestedApplication">Add application</sys:String>
     <sys:String x:Key="NoApplicationSuggestions">No suggestions yet. Open the application normally, then press “Refresh suggestions”.</sys:String>
     <sys:String x:Key="CurrentlyOpen">Currently open</sys:String>

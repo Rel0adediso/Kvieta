@@ -70,7 +70,6 @@
     <sys:String x:Key="PermanentlyBlockApplication">Uygulama ekle</sys:String>
     <sys:String x:Key="SuggestedApplications">Önerilen uygulamalar</sys:String>
     <sys:String x:Key="SuggestedApplicationsDescription">Son 7 günlük kullanımına ve açık uygulamalara göre; artıya basarak tek tıkla ekle.</sys:String>
-    <sys:String x:Key="RefreshSuggestions">Önerileri yenile</sys:String>
     <sys:String x:Key="AddSuggestedApplication">Uygulamayı ekle</sys:String>
     <sys:String x:Key="NoApplicationSuggestions">Henüz öneri yok. Yönetmek istediğin uygulamayı normal şekilde açıp “Önerileri yenile”ye bas.</sys:String>
     <sys:String x:Key="CurrentlyOpen">Şu anda açık</sys:String>

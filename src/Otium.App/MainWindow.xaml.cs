@@ -920,19 +920,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RefreshApplicationSuggestions_Click(object sender, RoutedEventArgs e)
-    {
-        _viewModel.RefreshApplicationSuggestions();
-        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
-            ? $"Suggestions refreshed · {_viewModel.SuggestedApplications.Count} applications found"
-            : $"Öneriler yenilendi · {_viewModel.SuggestedApplications.Count} uygulama bulundu";
-
-        System.Windows.Media.Color glowColor = FindResource("PrimaryBrush") is SolidColorBrush brush
-            ? brush.Color
-            : System.Windows.Media.Color.FromRgb(180, 188, 130);
-        MotionService.Highlight(ApplicationSuggestionsPanel, glowColor);
-    }
-
     private void AddTemporaryAllowance_Click(object sender, RoutedEventArgs e)
     {
         TemporaryAllowanceWindow dialog = new() { Owner = this };
