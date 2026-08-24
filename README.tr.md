@@ -81,12 +81,12 @@ Otium, sıcak krem ve haki tonlarını zeytin-grafit koyu temayla birleştiren k
 
 | Parça | Sorumluluk |
 |---|---|
-| `KardesKilidi.Core` | Plan, oturum, policy, model ve dayanıklı yerel veri katmanı |
-| `KardesKilidi.App` | WPF Kontrol Merkezi, oturum yüzü, tray ve Windows entegrasyonları |
-| `KardesKilidi.Core.SmokeTests` | Çekirdek davranış, güvenlik regresyonu ve gerçek süreç testleri |
+| `Otium.Core` | Plan, oturum, policy, model ve dayanıklı yerel veri katmanı |
+| `Otium.App` | WPF Kontrol Merkezi, oturum yüzü, tray ve Windows entegrasyonları |
+| `Otium.Core.SmokeTests` | Çekirdek davranış, güvenlik regresyonu ve gerçek süreç testleri |
 | Guardian | Korumalı modda oturum sürecini ve otoriter policy alanını gözeten Windows servisi |
 
-Tarihsel solution ve namespace adlarında `KardesKilidi` kalması normaldir. Kullanıcıya görünen güncel ürün adı **Otium**'dur.
+Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adını kullanır.
 
 ## Güncel durum
 
@@ -104,20 +104,20 @@ Geliştirme sırası ve v1.0 hedefleri için [güncel yol haritasına](ROADMAP.m
 Gereksinim: Windows ve .NET 10 SDK.
 
 ```powershell
-dotnet run --project src/KardesKilidi.App/KardesKilidi.App.csproj
+dotnet run --project src/Otium.App/Otium.App.csproj
 ```
 
 Korumalı oturum yüzünü doğrudan açmak için:
 
 ```powershell
-dotnet run --project src/KardesKilidi.App/KardesKilidi.App.csproj -- --session
+dotnet run --project src/Otium.App/Otium.App.csproj -- --session
 ```
 
 ## Kontroller
 
 ```powershell
-dotnet build KardesKilidi.slnx -c Release
-dotnet run --project tests/KardesKilidi.Core.SmokeTests/KardesKilidi.Core.SmokeTests.csproj -c Release
+dotnet build Otium.slnx -c Release
+dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Release
 ```
 
 ## Güvenlik sınırı

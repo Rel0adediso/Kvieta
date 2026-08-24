@@ -81,12 +81,12 @@ Otium combines warm cream and khaki surfaces with an olive-graphite dark theme i
 
 | Component | Responsibility |
 |---|---|
-| `KardesKilidi.Core` | Scheduling, sessions, policies, models, and resilient local persistence |
-| `KardesKilidi.App` | WPF Control Center, session surface, tray, and Windows integrations |
-| `KardesKilidi.Core.SmokeTests` | Core behavior, security regressions, and real-process checks |
+| `Otium.Core` | Scheduling, sessions, policies, models, and resilient local persistence |
+| `Otium.App` | WPF Control Center, session surface, tray, and Windows integrations |
+| `Otium.Core.SmokeTests` | Core behavior, security regressions, and real-process checks |
 | Guardian | Windows service supervising the protected session and authoritative policy area |
 
-The historical solution and namespace names still contain `KardesKilidi`. The current user-facing product name is **Otium**.
+The solution, projects, assemblies, and namespaces consistently use the **Otium** name.
 
 ## Current status
 
@@ -104,20 +104,20 @@ See the [current roadmap](ROADMAP.md) for the development sequence and v1.0 goal
 Requirements: Windows and the .NET 10 SDK.
 
 ```powershell
-dotnet run --project src/KardesKilidi.App/KardesKilidi.App.csproj
+dotnet run --project src/Otium.App/Otium.App.csproj
 ```
 
 Open the protected session surface directly:
 
 ```powershell
-dotnet run --project src/KardesKilidi.App/KardesKilidi.App.csproj -- --session
+dotnet run --project src/Otium.App/Otium.App.csproj -- --session
 ```
 
 ## Checks
 
 ```powershell
-dotnet build KardesKilidi.slnx -c Release
-dotnet run --project tests/KardesKilidi.Core.SmokeTests/KardesKilidi.Core.SmokeTests.csproj -c Release
+dotnet build Otium.slnx -c Release
+dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Release
 ```
 
 ## Security boundary

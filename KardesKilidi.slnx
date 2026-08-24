@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="src/KardesKilidi.Core/KardesKilidi.Core.csproj" />
-  <Project Path="src/KardesKilidi.App/KardesKilidi.App.csproj" />
-  <Project Path="tests/KardesKilidi.Core.SmokeTests/KardesKilidi.Core.SmokeTests.csproj" />
-</Solution>

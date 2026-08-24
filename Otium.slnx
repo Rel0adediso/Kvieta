@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/Otium.Core/Otium.Core.csproj" />
+  <Project Path="src/Otium.App/Otium.App.csproj" />
+  <Project Path="tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj" />
+</Solution>
