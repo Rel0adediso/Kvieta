@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+.vs/
+work/
+outputs/
+eski dosyalar/
+txt.env
+*.user
+*.suo
