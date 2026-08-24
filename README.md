@@ -1,141 +1,143 @@
 <div align="center">
 
+**English** · [Türkçe](README.tr.md)
+
 # Otium
 
-### Her şeyin bir zamanı var.
+### All in good time.
 
-Yerel, sakin ve hesap gerektirmeyen Windows ekran süresi yönetimi.
+Calm, local-first screen-time management for Windows — no account required.
 
-![Windows](https://img.shields.io/badge/Windows-yerel-87946B?style=flat-square&labelColor=3F4437)
+![Windows](https://img.shields.io/badge/Windows-native-87946B?style=flat-square&labelColor=3F4437)
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
-![Privacy](https://img.shields.io/badge/veri-bu%20cihazda-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/sürüm-v0.15.1-C9B98E?style=flat-square&labelColor=3F4437)
-![AI assisted](https://img.shields.io/badge/geliştirme-AI%20destekli-87946B?style=flat-square&labelColor=3F4437)
+![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/version-v0.15.1-C9B98E?style=flat-square&labelColor=3F4437)
+![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
 
-> Otium, bilgisayar kullanımını cezalandırmak yerine zamanı görünür ve yönetilebilir hale getirir. Bulut hesabı istemez; planlar, kurallar ve kullanım geçmişi cihazda kalır.
+> Otium makes computer time visible and manageable without turning it into punishment. Plans, rules, and usage history remain on the device; no cloud account is required.
 
-## Neden Otium?
+## Why Otium?
 
-Otium aynı çekirdeği iki farklı kullanım biçiminde sunar:
+Otium offers two ways to use the same policy and session engine:
 
-| Kendim için | Yönettiğim biri için |
+| For myself | For someone I manage |
 |---|---|
-| Ani kararlarla kuralları gevşetmeye karşı gecikme uygular. | Yönetici PIN'i ve Guardian servisiyle kuralları korur. |
-| PIN gerektirmeden kişinin kendi düzenini kurmasına yardım eder. | Standart Windows kullanıcısının basit kaçışlarına direnç gösterir. |
-| Bilgisayar kullanılırken sayaç arka planda devam eder. | Zorla kapatılan oturum yüzünü yeniden ayağa kaldırabilir. |
+| Delays impulsive attempts to relax self-imposed rules. | Protects rules with an administrator PIN and Guardian service. |
+| Helps people build their own routine without requiring a PIN. | Resists common bypasses by a standard Windows user. |
+| Keeps counting while the Control Center is open or minimized. | Can restore the session surface after it is forcibly terminated. |
 
-## Öne çıkanlar
+## Highlights
 
-### Zaman ve plan
+### Time and schedules
 
-- Haftanın günlerine göre saat aralığı ve günlük kullanım limiti
-- Win+L sonrasında otomatik devam yerine kontrollü **Mola** durumu
-- Ana haftalık planı bozmayan tarihli geçici izinler
-- Yönetici onayıyla yalnız bugüne ek süre
-- Film veya uzun içerik sırasında mouse hareketine bağlı olmayan sayaç
+- Per-day time windows and daily usage limits
+- A controlled **Break** state after Win+L instead of automatic resume
+- Date-specific temporary allowances that leave the weekly plan unchanged
+- Administrator-approved extra time for the current day
+- A timer that does not mistake watching or reading for inactivity
 
-### Ritim ve geçmiş
+### Rhythm and history
 
-- Son yedi gün için günlük ve haftalık kullanım görünümü
-- Haftalık toplam, günlük ortalama ve en çok kullanılan uygulama
-- Mola, limit dolması, ek süre ve kural değişikliği hareketleri
-- 90 günlük, yalnızca cihazda saklanan geçmiş
-- Gelecek sürümlerde kişisel gelişim, geri kazanılan zaman ve aktif uygulama farkındalığı
+- Daily and weekly views covering the last seven days
+- Weekly total, daily average, and most-used configured application
+- Break, limit, extra-time, and policy-change activity
+- Ninety days of on-device history
+- Planned personal progress, reclaimed-time, and foreground-app insights
 
-### Uygulama kuralları
+### Application rules
 
-- Engelli, süreli ve serbest uygulamalar
-- Süreli uygulamalarda günlük sayaç ve limitte sonlandırma
-- Sınırsız uygulamalarda farkındalık amaçlı kullanım kaydı
-- Gelecek sürümlerde publisher, original filename, hash ve launcher/child-process tanıma
+- Blocked, limited, and unlimited application policies
+- Per-application daily counters and termination at the configured limit
+- Awareness tracking for configured unlimited applications
+- Planned publisher, original filename, hash, and launcher/child-process identification
 
-### Güvenlik ve veri sağlamlığı
+### Security and data resilience
 
-- PBKDF2 ile tuzlanmış yönetici PIN doğrulaması
-- Korumalı kurallar için servis tarafından yönetilen otoriter kopya
-- Başarısız PIN denemelerinde artan bekleme
-- Beş dakikadan büyük saat geri alma girişimini algılama
-- Süreçler arası veri dosyası kilidi
-- Doğrulanmış atomik JSON kaydı ve son sağlam `.bak` kopyası
-- Bozuk ana dosyayı otomatik kurtarma
-- Eşzamanlı sayaç ve geçmiş olaylarını kayıpsız birleştirme
+- Salted PBKDF2 administrator PIN verification
+- Service-managed authoritative policy copy for Protected mode
+- Progressive delay after failed PIN attempts
+- Detection of clock rollback beyond five minutes
+- Cross-process data-file locking
+- Validated atomic JSON writes with a last-known-good `.bak` snapshot
+- Automatic recovery from a corrupted primary file
+- Loss-resistant merging of concurrent counters and history events
 
-## Tasarım dili
+## Visual language
 
-Otium, sıcak krem ve haki tonlarını zeytin-grafit koyu temayla birleştiren kompakt bir Windows arayüzü kullanır.
+Otium combines warm cream and khaki surfaces with an olive-graphite dark theme in a compact Windows interface.
 
-- Sistem / Açık / Koyu tema
-- Canlı Türkçe / English değişimi
-- İnce özel pencere çubuğu
-- Açılır-kapanır ve optik olarak hizalanmış navigasyon
-- Kompakt yedi günlük plan
-- Tema uyumlu özel tray menüsü
-- Bilgi yoğun ama sakin ekranlar; gereksiz büyük dashboard kartları yok
+- System / Light / Dark appearance
+- Live Turkish / English switching
+- Thin custom title bar
+- Collapsible, optically aligned navigation
+- Compact seven-day schedule
+- Theme-aware custom tray menu
+- Information-dense but calm screens without oversized dashboard cards
 
-## Proje yapısı
+## Project structure
 
-| Parça | Sorumluluk |
+| Component | Responsibility |
 |---|---|
-| `KardesKilidi.Core` | Plan, oturum, policy, model ve dayanıklı yerel veri katmanı |
-| `KardesKilidi.App` | WPF Kontrol Merkezi, oturum yüzü, tray ve Windows entegrasyonları |
-| `KardesKilidi.Core.SmokeTests` | Çekirdek davranış, güvenlik regresyonu ve gerçek süreç testleri |
-| Guardian | Korumalı modda oturum sürecini ve otoriter policy alanını gözeten Windows servisi |
+| `KardesKilidi.Core` | Scheduling, sessions, policies, models, and resilient local persistence |
+| `KardesKilidi.App` | WPF Control Center, session surface, tray, and Windows integrations |
+| `KardesKilidi.Core.SmokeTests` | Core behavior, security regressions, and real-process checks |
+| Guardian | Windows service supervising the protected session and authoritative policy area |
 
-Tarihsel solution ve namespace adlarında `KardesKilidi` kalması normaldir. Kullanıcıya görünen güncel ürün adı **Otium**'dur.
+The historical solution and namespace names still contain `KardesKilidi`. The current user-facing product name is **Otium**.
 
-## Güncel durum
+## Current status
 
-**v0.15.1 prototip**
+**v0.15.1 prototype**
 
-- Release build: `0` uyarı, `0` hata
-- Tek dosyalık, self-contained Windows paketi
-- Türkçe ve English kaynakları eşleşiyor
-- Veri kurtarma, migration, dosya kilidi ve eşzamanlı yazma smoke testleri mevcut
+- Release build: `0` warnings, `0` errors
+- Single-file, self-contained Windows package
+- Matching Turkish and English localization resources
+- Smoke coverage for recovery, migration, locking, and concurrent writes
 
-Geliştirme sırası ve v1.0 hedefleri için [güncel yol haritasına](ROADMAP.md) bakın.
+See the [current roadmap](ROADMAP.md) for the development sequence and v1.0 goals.
 
-## Kaynaktan çalıştırma
+## Run from source
 
-Gereksinim: Windows ve .NET 10 SDK.
+Requirements: Windows and the .NET 10 SDK.
 
 ```powershell
 dotnet run --project src/KardesKilidi.App/KardesKilidi.App.csproj
 ```
 
-Korumalı oturum yüzünü doğrudan açmak için:
+Open the protected session surface directly:
 
 ```powershell
 dotnet run --project src/KardesKilidi.App/KardesKilidi.App.csproj -- --session
 ```
 
-## Kontroller
+## Checks
 
 ```powershell
 dotnet build KardesKilidi.slnx -c Release
 dotnet run --project tests/KardesKilidi.Core.SmokeTests/KardesKilidi.Core.SmokeTests.csproj -c Release
 ```
 
-## Güvenlik sınırı
+## Security boundary
 
-Otium'un korumalı modu esas olarak ayrı bir yönetici hesabı tarafından yönetilen **standart Windows kullanıcısı** için tasarlanır. Fiziksel erişimi ve Windows yönetici yetkisi bulunan bir kişiye karşı hiçbir masaüstü uygulaması mutlak kaldırılamazlık garanti edemez.
+Protected mode is primarily designed for a **standard Windows account** managed through a separate administrator account. No desktop application can guarantee absolute resistance against someone with physical access and Windows administrator privileges.
 
-Development paketlerindeki test geçitleri public sürüm hedefi değildir. Yol haritasında test ve public build'lerin tamamen ayrılması planlanmıştır.
+Development-only test gates are not intended for public releases. A complete separation between test and public builds is included in the roadmap.
 
-## Geliştirme yaklaşımı
+## Development approach
 
 **AI-assisted development · Human-directed product.**
 
-Ürün fikri, yönü, UX kararları ve gerçek kullanım testleri **Rel0adediso** tarafından yürütülür. Mimari, uygulama ve test geliştirme süreci **OpenAI Codex ile iş birliği içinde** ilerler.
+Product vision, direction, UX decisions, and hands-on testing are led by **Rel0adediso**. Architecture, implementation, and test development are carried out collaboratively with **OpenAI Codex**.
 
-Bu nedenle projeyi “%100 AI made” diye tanımlamak yerine, insan tarafından yönlendirilen ve AI destekli geliştirilen bir ürün olarak açıkça belgeliyoruz.
+Rather than claiming “100% AI made,” Otium is documented accurately as a human-directed, AI-assisted product.
 
 ---
 
 <div align="center">
 
-**Otium** · *All in good time.*
+**Otium** · *Her şeyin bir zamanı var.*
 
 </div>
