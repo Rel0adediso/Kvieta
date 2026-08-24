@@ -325,7 +325,11 @@ public partial class App : System.Windows.Application
 
         sessionWindow.EnableControlCenterReturn();
         _activatedControlCenter = new MainWindow(sessionWindow, managementPin);
-        _activatedControlCenter.Closed += (_, _) => _activatedControlCenter = null;
+        _activatedControlCenter.Closed += (_, _) =>
+        {
+            _activatedControlCenter = null;
+            sessionWindow.ResumeFromControlCenter();
+        };
         _activatedControlCenter.Show();
         _activatedControlCenter.Activate();
     }

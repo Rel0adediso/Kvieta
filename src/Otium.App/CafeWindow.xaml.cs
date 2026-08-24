@@ -26,6 +26,7 @@ public partial class CafeWindow : Window
     private readonly bool _isDirectSession;
     private bool _returnToControlCenter;
     private bool _forceSurfaceVisible;
+    private bool _controlCenterOpen;
     private bool _limitActionHandled;
     private bool _surfaceTransitionInProgress;
 
@@ -318,6 +319,13 @@ public partial class CafeWindow : Window
             return;
         }
 
+        if (_controlCenterOpen)
+        {
+            _widget?.Hide();
+            Hide();
+            return;
+        }
+
         if (!_viewModel.ShouldShowSessionSurfaces)
         {
             _forceSurfaceVisible = false;
@@ -350,6 +358,7 @@ public partial class CafeWindow : Window
 
     public void ShowSessionSurface()
     {
+        _controlCenterOpen = false;
         if (!_viewModel.ShouldShowSessionSurfaces)
         {
             Hide();
@@ -376,6 +385,13 @@ public partial class CafeWindow : Window
     {
         _returnToControlCenter = true;
         ExitButton.Content = LocalizationService.Get("ControlCenter");
+        SuspendForControlCenter();
+    }
+
+    public void ResumeFromControlCenter()
+    {
+        _controlCenterOpen = false;
+        EnsureCorrectSurface();
     }
 
     public async Task CloseFromControllerAsync()
@@ -475,8 +491,7 @@ public partial class CafeWindow : Window
     {
         if (_returnToControlCenter)
         {
-            _forceSurfaceVisible = false;
-            EnsureCorrectSurface();
+            SuspendForControlCenter();
             ControlCenterRequested?.Invoke(this, new ControlCenterRequestEventArgs());
             return;
         }
@@ -507,8 +522,7 @@ public partial class CafeWindow : Window
                     return;
                 }
 
-                _forceSurfaceVisible = false;
-                EnsureCorrectSurface();
+                SuspendForControlCenter();
                 ControlCenterRequested?.Invoke(
                     this,
                     new ControlCenterRequestEventArgs(verification.ResultPin));
@@ -527,6 +541,14 @@ public partial class CafeWindow : Window
     }
 
     public event EventHandler<ControlCenterRequestEventArgs>? ControlCenterRequested;
+
+    private void SuspendForControlCenter()
+    {
+        _controlCenterOpen = true;
+        _forceSurfaceVisible = false;
+        _widget?.Hide();
+        Hide();
+    }
 
 #if OTIUM_DEVELOPMENT_BUILD
     private async void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
