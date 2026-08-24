@@ -118,7 +118,17 @@ Sıradaki aşama: v0.17 kurulum, güvenli güncelleme ve rollback.
 
 ## v0.17 — Kurulum, güvenli güncelleme ve rollback
 
-**Durum:** Sıradaki aşama.
+**Durum:** Devam ediyor.
+
+Tamamlanan temel:
+
+- Tek komutla self-contained uygulama ve x64 MSI üreten tekrar edilebilir build akışı.
+- `Program Files\Otium` kurulumu ve Başlat menüsü kısayolu.
+- İsteğe bağlı masaüstü kısayolu için installer özelliği.
+- Guardian servis yaşam döngüsünün Windows Installer tarafından kurulup kaldırılması.
+- MSI tarafından yönetilen Guardian ile uygulama içi koruma açma/kapatma akışının ayrılması.
+- Her MSI çıktısına SHA-256 bütünlük dosyası üretimi.
+- Upgrade sırasında kullanıcı ayarları, kullanım geçmişi ve korunan policy verisine dokunmama.
 
 ### Installer
 

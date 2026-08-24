@@ -1,0 +1,11 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <Platform>x64</Platform>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <OtiumVersion Condition="'$(OtiumVersion)' == ''">0.17.0</OtiumVersion>
+    <OtiumPublishDir Condition="'$(OtiumPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\win-x64</OtiumPublishDir>
+    <DefineConstants>OtiumVersion=$(OtiumVersion);OtiumPublishDir=$(OtiumPublishDir)</DefineConstants>
+    <OutputName>Otium-$(OtiumVersion)-win-x64</OutputName>
+  </PropertyGroup>
+</Project>

@@ -4,6 +4,7 @@ using System.Security.Principal;
 using System.ServiceProcess;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Win32;
 using Otium.Core.Models;
 using Otium.Core.Services;
 
@@ -29,6 +30,21 @@ public static class ProtectionServiceManager
     public static string EnrollmentPath => Path.Combine(ProtectionDataDirectory, "guardian-enrollment.json");
     public static string ProcessStatePath => Path.Combine(ProtectionDataDirectory, "guardian-process.json");
     public static string ProtectedSettingsPath => Path.Combine(ProtectionDataDirectory, "protected-settings.json");
+
+    private static bool IsInstallerManaged
+    {
+        get
+        {
+            try
+            {
+                return Registry.LocalMachine.OpenSubKey(@"Software\Otium")?.GetValue("InstallerManaged") is int value && value == 1;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
 
     public static ProtectionServiceState GetState()
     {
@@ -166,6 +182,16 @@ public static class ProtectionServiceManager
     {
         try
         {
+            if (IsInstallerManaged)
+            {
+                // Windows Installer owns the service registration. Removing protection
+                // only clears enrollment; MSI repair and uninstall must remain reliable.
+                TryDelete(EnrollmentPath);
+                TryDelete(ProcessStatePath);
+                TryDelete(ProtectedSettingsPath);
+                return 0;
+            }
+
             StopServiceIfPresent();
             RunSc("delete", ServiceName);
             for (int attempt = 0; attempt < 20 && GetState() != ProtectionServiceState.NotInstalled; attempt++)

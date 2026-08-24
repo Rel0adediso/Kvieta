@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Otium"
+    Manufacturer="Otium"
+    Version="$(var.OtiumVersion)"
+    UpgradeCode="B7DB180A-83DE-4B93-A8FB-453734F91C10"
+    Language="1033"
+    Scope="perMachine">
+
+    <SummaryInformation Description="Otium local screen-time awareness and control" />
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of Otium is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="INSTALLDESKTOPSHORTCUT" Value="0" Secure="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Otium" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="MainFeature" Title="Otium" Level="1">
+      <ComponentRef Id="OtiumExecutableComponent" />
+      <ComponentRef Id="DesktopShortcutComponent" />
+    </Feature>
+
+    <Component Id="OtiumExecutableComponent" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="OtiumExecutable" Source="$(var.OtiumPublishDir)\Otium.exe" KeyPath="yes">
+        <Shortcut
+          Id="StartMenuShortcut"
+          Directory="ProgramMenuFolder"
+          Name="Otium"
+          Description="Otium"
+          WorkingDirectory="INSTALLFOLDER"
+          Advertise="yes" />
+      </File>
+      <ServiceInstall
+        Id="GuardianServiceInstall"
+        Name="OtiumGuardian"
+        DisplayName="Otium Protection"
+        Description="Otium protected-session watchdog"
+        Type="ownProcess"
+        Start="auto"
+        ErrorControl="normal"
+        Arguments="--guardian-service" />
+      <ServiceControl
+        Id="GuardianServiceControl"
+        Name="OtiumGuardian"
+        Start="install"
+        Stop="both"
+        Remove="uninstall"
+        Wait="yes" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Otium"
+        Name="InstallerManaged"
+        Type="integer"
+        Value="1" />
+    </Component>
+
+    <Component
+      Id="DesktopShortcutComponent"
+      Directory="INSTALLFOLDER"
+      Guid="*"
+      Condition="INSTALLDESKTOPSHORTCUT = 1">
+      <Shortcut
+        Id="DesktopShortcut"
+        Directory="DesktopFolder"
+        Name="Otium"
+        Description="Otium"
+        Target="[INSTALLFOLDER]Otium.exe"
+        WorkingDirectory="INSTALLFOLDER" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Otium"
+        Name="DesktopShortcut"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+  </Package>
+</Wix>
