@@ -23,6 +23,7 @@ public sealed class MainViewModel : ObservableObject
     private bool _startWithWindows;
     private bool _awarenessTrackingEnabled;
     private bool _strictPersonalMode;
+    private string _reductionGoal = "Hedef yok";
     private ControlMode _controlMode = ControlMode.Protected;
     private string _changeDelay = "1 saat";
     private bool _isSidebarExpanded = true;
@@ -44,6 +45,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<string> ThemeModes { get; } = [];
     public IReadOnlyList<string> LanguageModes { get; } = ["Türkçe", "English"];
     public ObservableCollection<string> ChangeDelayOptions { get; } = [];
+    public ObservableCollection<string> ReductionGoalOptions { get; } = [];
     public ObservableCollection<UsageHistoryDayRow> HistoryDays { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryApplications { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryAllApplications { get; } = [];
@@ -113,6 +115,18 @@ public sealed class MainViewModel : ObservableObject
     {
         get => _strictPersonalMode;
         set => SetProperty(ref _strictPersonalMode, value);
+    }
+
+    public string ReductionGoal
+    {
+        get => _reductionGoal;
+        set
+        {
+            if (SetProperty(ref _reductionGoal, value) && _lastUsageLedger is not null)
+            {
+                BuildRhythm(_lastUsageLedger);
+            }
+        }
     }
 
     public ControlMode SelectedControlMode
@@ -201,6 +215,12 @@ public sealed class MainViewModel : ObservableObject
     public string HistoryWeekTotalText { get; private set; } = "—";
     public string HistoryDailyAverageText { get; private set; } = "—";
     public string HistoryMostUsedAppText { get; private set; } = "—";
+    public string RhythmBaselineText { get; private set; } = "0/7";
+    public string RhythmWeekChangeText { get; private set; } = "—";
+    public string RhythmPlanAlignedText { get; private set; } = "—";
+    public string RhythmReclaimedText { get; private set; } = "—";
+    public string RhythmInsightText { get; private set; } = "—";
+    public string RhythmGoalStatusText { get; private set; } = "—";
     public bool HasHistoryApplications => HistoryApplications.Count > 0;
     public bool HasHistoryEvents => HistoryEvents.Count > 0;
 
@@ -220,9 +240,10 @@ public sealed class MainViewModel : ObservableObject
             StartWithWindows = _settings.StartWithWindows;
             AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
             StrictPersonalMode = _settings.StrictPersonalMode;
+            ReductionGoal = ToDisplayGoal(_settings.WeeklyReductionGoalPercent);
             SelectedControlMode = _settings.Mode;
             ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
-            RefreshLocalizedCollections(_settings.LimitAction, _settings.Theme);
+            RefreshLocalizedCollections(_settings.LimitAction, _settings.Theme, _settings.WeeklyReductionGoalPercent);
             NotifyPendingChange();
             OnPropertyChanged(nameof(HasAdminPin));
             OnPropertyChanged(nameof(AdminPinActionText));
@@ -250,6 +271,7 @@ public sealed class MainViewModel : ObservableObject
             ? (int)(ledger.UsedSeconds / 60)
             : 0;
         BuildUsageHistory(ledger);
+        BuildRhythm(ledger);
     }
 
     public async Task<bool> ApplyPendingIfDueAsync()
@@ -263,6 +285,7 @@ public sealed class MainViewModel : ObservableObject
         StartWithWindows = _settings.StartWithWindows;
         AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
         StrictPersonalMode = _settings.StrictPersonalMode;
+        ReductionGoal = ToDisplayGoal(_settings.WeeklyReductionGoalPercent);
         SelectedControlMode = _settings.Mode;
         ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
         LoadPolicyRows(_settings);
@@ -299,7 +322,7 @@ public sealed class MainViewModel : ObservableObject
 
             ControlSettings desired = new()
             {
-                SchemaVersion = 4,
+                SchemaVersion = 5,
                 SetupCompleted = true,
                 Mode = SelectedControlMode,
                 DeviceName = string.IsNullOrWhiteSpace(DeviceName) ? LocalizationService.Get("DefaultDeviceName") : DeviceName.Trim(),
@@ -312,6 +335,7 @@ public sealed class MainViewModel : ObservableObject
                 UsageRetentionDays = _settings.UsageRetentionDays,
                 PersonalChangeDelayMinutes = FromDisplayDelay(ChangeDelay),
                 StrictPersonalMode = StrictPersonalMode,
+                WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal),
                 AdminPin = _settings.AdminPin,
                 WarningMinutes = [15, 5, 1],
                 Schedule = schedule,
@@ -599,6 +623,70 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasHistoryEvents));
     }
 
+    private void BuildRhythm(UsageLedger ledger)
+    {
+        ControlSettings rhythmSettings = CloneSettings(_settings);
+        rhythmSettings.WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal);
+        RhythmSummary summary = RhythmAnalyzer.Analyze(rhythmSettings, ledger, DateOnly.FromDateTime(DateTime.Today));
+        RhythmBaselineText = summary.IsBaselineReady
+            ? UsageHistoryFormatting.FormatDuration(summary.BaselineDailyAverageSeconds)
+            : $"{summary.BaselineDays}/7 {L("gün", "days")}";
+        RhythmWeekChangeText = summary.WeekChangePercent is { } change
+            ? change <= 0
+                ? $"↓ %{Math.Abs(change):0}"
+                : $"↑ %{change:0}"
+            : "—";
+        RhythmPlanAlignedText = summary.CurrentObservedDays == 0
+            ? "—"
+            : $"{summary.PlanAlignedDays}/{summary.CurrentObservedDays} {L("gün", "days")}";
+        RhythmReclaimedText = summary.IsBaselineReady
+            ? UsageHistoryFormatting.FormatDuration(summary.ReclaimedSeconds)
+            : "—";
+
+        if (!_settings.AwarenessTrackingEnabled)
+        {
+            RhythmInsightText = L(
+                "Ritim farkındalığını açtığında karşılaştırmalar yalnız cihazında oluşur.",
+                "Enable rhythm awareness to build private, on-device comparisons.");
+        }
+        else if (!summary.IsBaselineReady)
+        {
+            RhythmInsightText = L(
+                $"Başlangıç ritmin oluşuyor · {summary.BaselineDays}/7 gün tamamlandı.",
+                $"Your starting rhythm is taking shape · {summary.BaselineDays}/7 days complete.");
+        }
+        else if (summary.WeekChangePercent is { } weeklyChange)
+        {
+            RhythmInsightText = weeklyChange <= 0
+                ? L($"Günlük ortalaman önceki haftaya göre %{Math.Abs(weeklyChange):0} daha sakin.", $"Your daily average is {Math.Abs(weeklyChange):0}% lighter than last week.")
+                : L($"Günlük ortalaman önceki haftaya göre %{weeklyChange:0} yükseldi; yalnızca fark etmen yeterli.", $"Your daily average rose {weeklyChange:0}% from last week; noticing it is enough.");
+        }
+        else
+        {
+            RhythmInsightText = L("Karşılaştırma için bir önceki haftanın verisi bekleniyor.", "Waiting for a previous week to compare.");
+        }
+
+        if (summary.RisingApplication is { } rising && summary.IsBaselineReady)
+        {
+            RhythmInsightText += L($" En çok yükselen: {rising}.", $" Biggest increase: {rising}.");
+        }
+
+        RhythmGoalStatusText = FromDisplayGoal(ReductionGoal) == 0
+            ? L("Küçük bir hedef seçmek isteğe bağlıdır.", "Choosing a small goal is optional.")
+            : !summary.IsBaselineReady
+                ? L("Hedefin başlangıç ritmi tamamlanınca devreye girecek.", "Your goal will begin after the starting rhythm is ready.")
+                : summary.IsGoalMet
+                    ? L($"Hedef ritminde · günlük {UsageHistoryFormatting.FormatDuration(summary.GoalDailySeconds)}", $"On target · {UsageHistoryFormatting.FormatDuration(summary.GoalDailySeconds)} daily")
+                    : L($"Nazik hedef · günlük {UsageHistoryFormatting.FormatDuration(summary.GoalDailySeconds)}", $"Gentle target · {UsageHistoryFormatting.FormatDuration(summary.GoalDailySeconds)} daily");
+
+        OnPropertyChanged(nameof(RhythmBaselineText));
+        OnPropertyChanged(nameof(RhythmWeekChangeText));
+        OnPropertyChanged(nameof(RhythmPlanAlignedText));
+        OnPropertyChanged(nameof(RhythmReclaimedText));
+        OnPropertyChanged(nameof(RhythmInsightText));
+        OnPropertyChanged(nameof(RhythmGoalStatusText));
+    }
+
     private async Task RecordPolicyChangeAsync()
     {
         UsageLedger ledger = await _usageStore.LoadAsync();
@@ -653,6 +741,7 @@ public sealed class MainViewModel : ObservableObject
     {
         bool usesDefaultDeviceName = DeviceName is "Kardeş Bilgisayarı" or "Oyun Bilgisayarı" or "Bu Bilgisayar" or "This Computer";
         int changeDelayMinutes = FromDisplayDelay(ChangeDelay);
+        int reductionGoalPercent = FromDisplayGoal(ReductionGoal);
         LimitReachedAction currentAction = FromDisplayAction(LimitAction);
         ThemePreference currentTheme = FromDisplayTheme(ThemeMode);
         List<DaySchedule> schedule = ScheduleRows.Select(row =>
@@ -667,7 +756,7 @@ public sealed class MainViewModel : ObservableObject
         {
             DeviceName = LocalizationService.Get("DefaultDeviceName");
         }
-        RefreshLocalizedCollections(currentAction, currentTheme);
+        RefreshLocalizedCollections(currentAction, currentTheme, reductionGoalPercent);
         ChangeDelay = ToDisplayDelay(changeDelayMinutes);
 
         ScheduleRows.Clear();
@@ -688,12 +777,13 @@ public sealed class MainViewModel : ObservableObject
         if (_lastUsageLedger is not null)
         {
             BuildUsageHistory(_lastUsageLedger);
+            BuildRhythm(_lastUsageLedger);
         }
         RefreshOverview();
         StatusMessage = language == LanguagePreference.English ? "Language changed" : "Dil değiştirildi";
     }
 
-    private void RefreshLocalizedCollections(LimitReachedAction action, ThemePreference theme)
+    private void RefreshLocalizedCollections(LimitReachedAction action, ThemePreference theme, int reductionGoalPercent)
     {
         LimitActions.Clear();
         LimitActions.Add(LocalizationService.Get("BlockScreen"));
@@ -711,6 +801,12 @@ public sealed class MainViewModel : ObservableObject
         ChangeDelayOptions.Add(LocalizationService.Get("Delay1Hour"));
         ChangeDelayOptions.Add(LocalizationService.Get("DelayNextDay"));
         ChangeDelay = ToDisplayDelay(delayMinutes);
+        ReductionGoalOptions.Clear();
+        ReductionGoalOptions.Add(ToDisplayGoal(0));
+        ReductionGoalOptions.Add(ToDisplayGoal(5));
+        ReductionGoalOptions.Add(ToDisplayGoal(10));
+        ReductionGoalOptions.Add(ToDisplayGoal(15));
+        ReductionGoal = ToDisplayGoal(reductionGoalPercent);
     }
 
     private void NotifyPendingChange()
@@ -904,6 +1000,18 @@ public sealed class MainViewModel : ObservableObject
         _ => LocalizationService.Get("Delay1Hour")
     };
 
+    private static int FromDisplayGoal(string goal) => goal switch
+    {
+        var value when value == ToDisplayGoal(5) => 5,
+        var value when value == ToDisplayGoal(10) => 10,
+        var value when value == ToDisplayGoal(15) => 15,
+        _ => 0
+    };
+
+    private static string ToDisplayGoal(int percent) => percent == 0
+        ? LocalizationService.Get("RhythmNoGoal")
+        : string.Format(LocalizationService.Get("RhythmGoalLessFormat"), percent);
+
     private static List<DaySchedule> CloneSchedule(IEnumerable<DaySchedule> schedule) => schedule.Select(day => new DaySchedule
     {
         Day = day.Day,
@@ -947,6 +1055,7 @@ public sealed class MainViewModel : ObservableObject
         UsageRetentionDays = settings.UsageRetentionDays,
         PersonalChangeDelayMinutes = settings.PersonalChangeDelayMinutes,
         StrictPersonalMode = settings.StrictPersonalMode,
+        WeeklyReductionGoalPercent = settings.WeeklyReductionGoalPercent,
         AdminPin = settings.AdminPin,
         WarningMinutes = [.. settings.WarningMinutes],
         Schedule = CloneSchedule(settings.Schedule),

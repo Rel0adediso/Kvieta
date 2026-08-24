@@ -56,8 +56,11 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 - Ritim ekranındaki uygulama özeti yalnız farkındalık verisini kullanıyor; kural motoru verisiyle karıştırılmıyor.
 - İsteğe bağlı sıkı kişisel mod, anında öz-ek süreyi kapatıyor; modu gevşetmek bekleme süresine tabi.
 - Uygulama özeti ilk üç kayıtla sınırlı; tüm sıralama ayrı ayrıntı panelinde açılıyor ve hareket listesi sabit uzunlukta tutuluyor.
+- İlk 7–14 günlük başlangıç ritmi, haftalık günlük ortalama karşılaştırması, planla uyumlu günler ve geri kazanılan zaman hesaplanıyor.
+- Kullanıcı isterse %5/%10/%15 küçük azaltma hedefi seçebiliyor; hedefler suçlayıcı streak dili kullanmıyor.
+- Haftalık uygulama artış ve azalış eğilimleri yalnız yeterli karşılaştırma verisi olduğunda üretiliyor.
 
-Sıradaki v0.16 dilimi: başlangıç ritmi, haftalık karşılaştırmalar, küçük azaltma hedefleri ve gizlilik/veri sahipliği merkezi.
+Sıradaki v0.16 dilimi: yoğun kullanım saatleri, hafta içi/hafta sonu farkı ve gizlilik/veri sahipliği merkezi.
 
 ### Ritim
 

@@ -55,6 +55,7 @@ settings.Mode = ControlMode.Personal;
 settings.StartWithWindows = true;
 settings.AwarenessTrackingEnabled = true;
 settings.UsageRetentionDays = 180;
+settings.WeeklyReductionGoalPercent = 10;
 settings.AppRules.Add(new AppRule { Name = "Test", ExecutablePath = "C:\\Test.exe" });
 await store.SaveAsync(settings);
 ControlSettings loaded = await store.LoadAsync();
@@ -64,6 +65,7 @@ Assert(loaded.Language == LanguagePreference.English, "Dil tercihi geri yüklene
 Assert(loaded.SetupCompleted && loaded.Mode == ControlMode.Personal, "Kullanım biçimi geri yüklenemedi.");
 Assert(loaded.StartWithWindows, "Windows başlangıç tercihi geri yüklenemedi.");
 Assert(loaded.AwarenessTrackingEnabled && loaded.UsageRetentionDays == 180, "Ritim gizlilik tercihleri geri yüklenemedi.");
+Assert(loaded.WeeklyReductionGoalPercent == 10, "Ritim azaltma hedefi geri yüklenemedi.");
 Assert(AdminPinService.Verify("4826", loaded.AdminPin), "Yönetici PIN'i güvenli biçimde geri yüklenemedi.");
 Assert(loaded.AppRules.Count == 1, "Uygulama kuralları geri yüklenemedi.");
 
@@ -227,8 +229,40 @@ Assert(loadedLedger.UsedSeconds == ledger.UsedSeconds, "Kullanım kaydı geri y�
 string legacyPath = Path.Combine(testDirectory, "legacy-settings.json");
 await File.WriteAllTextAsync(legacyPath, "{\"SchemaVersion\":1,\"DeviceName\":\"Eski Kurulum\"}");
 ControlSettings migratedSettings = await new JsonSettingsStore(legacyPath).LoadAsync();
-Assert(migratedSettings.SchemaVersion == 4, "Eski ayar şeması yükseltilemedi.");
+Assert(migratedSettings.SchemaVersion == 5, "Eski ayar şeması yükseltilemedi.");
 Assert(!migratedSettings.AwarenessTrackingEnabled && migratedSettings.UsageRetentionDays == 90, "Migration açık rıza gerektiren ölçümü kendiliğinden etkinleştirdi.");
+Assert(migratedSettings.WeeklyReductionGoalPercent == 0, "Migration kullanıcı onayı olmadan azaltma hedefi oluşturdu.");
+
+DateOnly rhythmToday = new(2026, 8, 24);
+ControlSettings rhythmSettings = new() { WeeklyReductionGoalPercent = 10 };
+UsageLedger rhythmLedger = new() { LocalDay = rhythmToday, AwarenessUsedSeconds = 3600, UsedSeconds = 1800 };
+rhythmLedger.ForegroundAppUsedSeconds["editor.exe"] = 3600;
+for (int offset = 13; offset >= 1; offset--)
+{
+    bool previousWeek = offset >= 7;
+    rhythmLedger.History.Add(new DailyUsageRecord
+    {
+        LocalDay = rhythmToday.AddDays(-offset),
+        AwarenessUsedSeconds = previousWeek ? 7200 : 3600,
+        UsedSeconds = 1800,
+        ForegroundApplications =
+        [
+            new AwarenessAppUsageRecord
+            {
+                ApplicationId = previousWeek ? "browser.exe" : "editor.exe",
+                Name = previousWeek ? "browser" : "editor",
+                UsedSeconds = previousWeek ? 7200 : 3600
+            }
+        ]
+    });
+}
+RhythmSummary rhythm = RhythmAnalyzer.Analyze(rhythmSettings, rhythmLedger, rhythmToday);
+Assert(rhythm.IsBaselineReady && rhythm.BaselineDays == 14, "Başlangıç ritmi 7-14 günlük pencerede oluşmadı.");
+Assert(Math.Abs((rhythm.WeekChangePercent ?? 0) - (-50)) < 0.1, "Haftalık günlük ortalama karşılaştırması yanlış.");
+Assert(rhythm.PlanAlignedDays == 7, "Planla uyumlu günler yanlış hesaplandı.");
+Assert(rhythm.ReclaimedSeconds == 12600, "Başlangıç ritmine göre geri kazanılan süre yanlış.");
+Assert(rhythm.IsGoalEnabled && rhythm.IsGoalMet && rhythm.GoalDailySeconds == 4860, "Kullanıcı onaylı azaltma hedefi yanlış değerlendirildi.");
+Assert(rhythm.RisingApplication == "editor" && rhythm.FallingApplication == "browser", "Uygulama artış/azalış eğilimi yanlış bulundu.");
 Assert(migratedSettings.SetupCompleted, "Mevcut kullanıcıya ilk kurulum ekranı yeniden gösterilmemeli.");
 Assert(migratedSettings.Mode == ControlMode.Protected, "Mevcut kullanıcı korumalı kullanıma taşınmalı.");
 
@@ -485,8 +519,11 @@ static ControlSettings CloneForTest(ControlSettings settings) => new()
     Theme = settings.Theme,
     Language = settings.Language,
     StartWithWindows = settings.StartWithWindows,
+    AwarenessTrackingEnabled = settings.AwarenessTrackingEnabled,
+    UsageRetentionDays = settings.UsageRetentionDays,
     PersonalChangeDelayMinutes = settings.PersonalChangeDelayMinutes,
     StrictPersonalMode = settings.StrictPersonalMode,
+    WeeklyReductionGoalPercent = settings.WeeklyReductionGoalPercent,
     AdminPin = settings.AdminPin,
     WarningMinutes = [.. settings.WarningMinutes],
     Schedule = settings.Schedule.Select(day => new DaySchedule

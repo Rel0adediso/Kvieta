@@ -28,7 +28,7 @@ public enum ControlMode
 
 public sealed class ControlSettings
 {
-    public int SchemaVersion { get; set; } = 4;
+    public int SchemaVersion { get; set; } = 5;
     public bool SetupCompleted { get; set; }
     public ControlMode Mode { get; set; } = ControlMode.Protected;
     public string DeviceName { get; set; } = "Bu Bilgisayar";
@@ -41,6 +41,7 @@ public sealed class ControlSettings
     public int UsageRetentionDays { get; set; } = 90;
     public int PersonalChangeDelayMinutes { get; set; } = 60;
     public bool StrictPersonalMode { get; set; }
+    public int WeeklyReductionGoalPercent { get; set; }
     public PendingPolicyChange? PendingChange { get; set; }
     public AdminCredential AdminPin { get; set; } = new();
     public List<int> WarningMinutes { get; set; } = [15, 5, 1];

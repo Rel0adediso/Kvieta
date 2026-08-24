@@ -239,7 +239,7 @@
                         <TabItem>
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                 <Grid Margin="24,20" MaxWidth="980">
-                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                     <StackPanel><TextBlock Text="{DynamicResource History}" Style="{StaticResource PageTitleStyle}" /><TextBlock Text="{DynamicResource HistoryDescription}" Style="{StaticResource PageDescriptionStyle}" /></StackPanel>
                                     <Border Grid.Row="1" Style="{StaticResource PanelStyle}" Margin="0,18,0,0" Padding="18,14">
                                         <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -250,7 +250,24 @@
                                             <StackPanel Grid.Column="4" Margin="18,0,0,0"><TextBlock Text="{DynamicResource HistoryMostUsedApp}" Style="{StaticResource CaptionStyle}" FontSize="9" /><TextBlock Text="{Binding HistoryMostUsedAppText}" FontSize="15" FontWeight="SemiBold" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" /></StackPanel>
                                         </Grid>
                                     </Border>
-                                    <Grid Grid.Row="2" Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="1.25*" /><ColumnDefinition Width="0.75*" /></Grid.ColumnDefinitions>
+                                    <Border Grid.Row="2" Style="{StaticResource PanelStyle}" Margin="0,12,0,0" Padding="18,14">
+                                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <StackPanel><TextBlock Text="{DynamicResource RhythmBaseline}" Style="{StaticResource CaptionStyle}" FontSize="9" /><TextBlock Text="{Binding RhythmBaselineText}" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                                                <Border Grid.Column="1" Background="{DynamicResource BorderBrush}" Margin="14,-1" />
+                                                <StackPanel Grid.Column="2" Margin="16,0"><TextBlock Text="{DynamicResource RhythmWeeklyChange}" Style="{StaticResource CaptionStyle}" FontSize="9" /><TextBlock Text="{Binding RhythmWeekChangeText}" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                                                <Border Grid.Column="3" Background="{DynamicResource BorderBrush}" Margin="14,-1" />
+                                                <StackPanel Grid.Column="4" Margin="16,0"><TextBlock Text="{DynamicResource RhythmPlanAligned}" Style="{StaticResource CaptionStyle}" FontSize="9" /><TextBlock Text="{Binding RhythmPlanAlignedText}" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                                                <Border Grid.Column="5" Background="{DynamicResource BorderBrush}" Margin="14,-1" />
+                                                <StackPanel Grid.Column="6" Margin="16,0,0,0"><TextBlock Text="{DynamicResource RhythmReclaimed}" Style="{StaticResource CaptionStyle}" FontSize="9" /><TextBlock Text="{Binding RhythmReclaimedText}" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                                            </Grid>
+                                            <Grid Grid.Row="1" Margin="0,13,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <Border Background="{DynamicResource PrimarySoftBrush}" CornerRadius="8" Padding="11,8" Margin="0,0,12,0"><StackPanel Orientation="Horizontal"><TextBlock Text="✦" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" Margin="0,0,8,0" /><TextBlock Text="{Binding RhythmInsightText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10" TextWrapping="Wrap" VerticalAlignment="Center" /></StackPanel></Border>
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><StackPanel Margin="0,0,10,0"><TextBlock Text="{DynamicResource RhythmGoal}" Style="{StaticResource CaptionStyle}" FontSize="9" /><TextBlock Text="{Binding RhythmGoalStatusText}" Foreground="{DynamicResource MutedTextBrush}" FontSize="9" Margin="0,3,0,0" MaxWidth="220" TextTrimming="CharacterEllipsis" /></StackPanel><ComboBox ItemsSource="{Binding ReductionGoalOptions}" SelectedItem="{Binding ReductionGoal}" Width="128" Height="32" /></StackPanel>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                    <Grid Grid.Row="3" Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="1.25*" /><ColumnDefinition Width="0.75*" /></Grid.ColumnDefinitions>
                                         <Border Style="{StaticResource PanelStyle}" Padding="18,15" Margin="0,0,7,0"><StackPanel><TextBlock Text="{DynamicResource HistoryLastSevenDays}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
                                             <ItemsControl ItemsSource="{Binding HistoryDays}"><ItemsControl.ItemTemplate><DataTemplate><Grid Height="49"><Grid.ColumnDefinitions><ColumnDefinition Width="68" /><ColumnDefinition Width="*" /><ColumnDefinition Width="86" /></Grid.ColumnDefinitions>
                                                 <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding DayText}" FontSize="11" FontWeight="SemiBold" /><TextBlock Text="{Binding DateText}" Style="{StaticResource CaptionStyle}" FontSize="9" Margin="0,2,0,0" /></StackPanel>

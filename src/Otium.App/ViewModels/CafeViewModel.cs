@@ -242,7 +242,7 @@ public sealed class CafeViewModel : ObservableObject
         {
             ControlSettings target = pending.TargetSettings;
             target.PendingChange = null;
-            target.SchemaVersion = 4;
+            target.SchemaVersion = 5;
             target.SetupCompleted = true;
             await _settingsStore.SaveAsync(target);
             _settings = target;
