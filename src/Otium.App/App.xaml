@@ -92,6 +92,16 @@
                 </ControlTemplate></Setter.Value></Setter>
             </Style>
 
+            <Style TargetType="ToolTip">
+                <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="10,8" />
+                <Setter Property="HasDropShadow" Value="True" />
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip"><Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}"><ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"/></Border></ControlTemplate></Setter.Value></Setter>
+            </Style>
+
             <Style TargetType="ComboBoxItem">
                 <Setter Property="Foreground" Value="{DynamicResource TextBrush}" /><Setter Property="Background" Value="Transparent" />
                 <Setter Property="Padding" Value="10,7" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
