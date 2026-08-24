@@ -201,8 +201,37 @@ public partial class MainWindow : Window
 
     private void ApplicationDetailsClose_Click(object sender, RoutedEventArgs e) => CloseApplicationDetails();
 
-    private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private async void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        if (e.Key == Key.F12 &&
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Control) &&
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Alt) &&
+            Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            e.Handled = true;
+            if (await _viewModel.ForceApplyPendingForTestingAsync())
+            {
+                try
+                {
+                    StartupRegistrationService.Apply(_viewModel.AppliedStartWithWindows);
+                }
+                catch (Exception exception)
+                {
+                    _viewModel.StatusMessage = $"Windows başlangıcı ayarlanamadı: {exception.Message}";
+                }
+
+                if (_backgroundSessionWindow is not null)
+                {
+                    await _backgroundSessionWindow.ReloadSettingsAsync();
+                }
+
+                EnsurePersonalBackgroundSession();
+                RefreshProtectionStatus();
+                _viewModel.RefreshOverview();
+            }
+            return;
+        }
+
         if (e.Key == Key.Escape && _applicationDetailsOpen)
         {
             CloseApplicationDetails();

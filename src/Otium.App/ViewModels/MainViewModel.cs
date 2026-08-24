@@ -749,6 +749,21 @@ public sealed class MainViewModel : ObservableObject
         StatusMessage = L("Bekleyen değişiklik iptal edildi", "Pending change canceled");
     }
 
+    public async Task<bool> ForceApplyPendingForTestingAsync()
+    {
+        if (_settings.PendingChange is null)
+        {
+            StatusMessage = L("Atlanacak bekleyen değişiklik yok", "There is no pending change to skip");
+            return false;
+        }
+
+        _settings.PendingChange.ApplyAfterUtc = DateTimeOffset.UtcNow.AddSeconds(-1);
+        await _settingsStore.SaveAsync(_settings);
+        await InitializeAsync();
+        StatusMessage = L("Test atlaması · Bekleyen değişiklik hemen uygulandı", "Test bypass · Pending change applied now");
+        return true;
+    }
+
     public void ChangeLanguage(LanguagePreference language)
     {
         bool usesDefaultDeviceName = DeviceName is "Kardeş Bilgisayarı" or "Oyun Bilgisayarı" or "Bu Bilgisayar" or "This Computer";
