@@ -74,7 +74,7 @@
     <sys:String x:Key="AddSuggestedApplication">Add application</sys:String>
     <sys:String x:Key="NoApplicationSuggestions">No suggestions yet. Open the application normally, then press “Refresh suggestions”.</sys:String>
     <sys:String x:Key="CurrentlyOpen">Currently open</sys:String>
-    <sys:String x:Key="UsedInLastSevenDays">{0} in the last 7 days</sys:String>
+    <sys:String x:Key="UsedInLastSevenDays">{0} over 7 days</sys:String>
     <sys:String x:Key="HourShort">hr</sys:String>
     <sys:String x:Key="PermanentBlockMode">Permanently blocked</sys:String>
     <sys:String x:Key="PermanentBlockModeDescription">If the program starts, Otium closes it and its child processes. This is the default for newly added programs.</sys:String>

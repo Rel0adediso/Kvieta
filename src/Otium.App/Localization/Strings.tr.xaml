@@ -74,7 +74,7 @@
     <sys:String x:Key="AddSuggestedApplication">Uygulamayı ekle</sys:String>
     <sys:String x:Key="NoApplicationSuggestions">Henüz öneri yok. Yönetmek istediğin uygulamayı normal şekilde açıp “Önerileri yenile”ye bas.</sys:String>
     <sys:String x:Key="CurrentlyOpen">Şu anda açık</sys:String>
-    <sys:String x:Key="UsedInLastSevenDays">Son 7 günde {0}</sys:String>
+    <sys:String x:Key="UsedInLastSevenDays">7 günde {0}</sys:String>
     <sys:String x:Key="HourShort">sa</sys:String>
     <sys:String x:Key="PermanentBlockMode">Kalıcı kapalı</sys:String>
     <sys:String x:Key="PermanentBlockModeDescription">Program açılırsa Otium işlemi ve başlattığı alt işlemleri kapatır. Yeni eklenen programın varsayılanıdır.</sys:String>
