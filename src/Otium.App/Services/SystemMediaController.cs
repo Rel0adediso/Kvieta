@@ -5,13 +5,13 @@ namespace Otium.App.Services;
 public static class SystemMediaController
 {
     private const uint WmAppCommand = 0x0319;
-    private const int AppCommandMediaPause = 47;
+    private const int AppCommandMediaStop = 13;
     private const uint SmtoAbortIfHung = 0x0002;
     private static readonly nint HwndBroadcast = new(0xffff);
 
-    public static void PausePlayback()
+    public static void StopPlayback()
     {
-        nint command = new(AppCommandMediaPause << 16);
+        nint command = new(AppCommandMediaStop << 16);
         _ = SendMessageTimeout(
             HwndBroadcast,
             WmAppCommand,

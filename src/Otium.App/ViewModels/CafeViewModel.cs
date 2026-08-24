@@ -179,7 +179,7 @@ public sealed class CafeViewModel : ObservableObject
         bool paused = PauseForSystemInterruption();
         if (paused)
         {
-            SystemMediaController.PausePlayback();
+            SystemMediaController.StopPlayback();
             await SaveAsync();
         }
 
