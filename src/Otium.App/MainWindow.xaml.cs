@@ -27,7 +27,6 @@ public partial class MainWindow : Window
     private bool _isInitializing = true;
     private bool _applicationDetailsOpen;
     private IInputElement? _applicationDetailsPreviousFocus;
-    private int _lastAnimatedPageIndex = -1;
     private bool _sidebarAnimationRunning;
     private bool _baselineMilestoneShown;
     private bool _goalMilestoneShown;
@@ -84,6 +83,26 @@ public partial class MainWindow : Window
         _isInitializing = false;
     }
 
+    private async void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_isInitializing || e.NewSize.Width >= 960 || !_viewModel.IsSidebarExpanded || _sidebarAnimationRunning)
+        {
+            return;
+        }
+
+        _sidebarAnimationRunning = true;
+        try
+        {
+            await MotionService.AnimateColumnWidthAsync(SidebarColumn, 64);
+            _viewModel.IsSidebarExpanded = false;
+            UpdateSidebarVisuals();
+        }
+        finally
+        {
+            _sidebarAnimationRunning = false;
+        }
+    }
+
     private async void AwarenessTracking_Changed(object sender, RoutedEventArgs e)
     {
         if (_isInitializing)
@@ -121,13 +140,11 @@ public partial class MainWindow : Window
         }
 
         int nextIndex = MainTabs.SelectedIndex;
-        int direction = _lastAnimatedPageIndex < 0 || nextIndex >= _lastAnimatedPageIndex ? 1 : -1;
-        _lastAnimatedPageIndex = nextIndex;
         Dispatcher.BeginInvoke(() =>
         {
             if (MainTabs.SelectedContent is FrameworkElement selectedPage)
             {
-                MotionService.Enter(selectedPage, direction * 10, 0);
+                MotionService.Enter(selectedPage, 0, 3, 150);
             }
 
             if (nextIndex == 3)
@@ -227,6 +244,15 @@ public partial class MainWindow : Window
 
         ShowApplicationDetails();
         e.Handled = true;
+    }
+
+    private void HistoryDay_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Border { Tag: UsageHistoryDayRow day })
+        {
+            _viewModel.SelectHistoryDay(day);
+            e.Handled = true;
+        }
     }
 
     private void HistoryApplicationsButton_Click(object sender, RoutedEventArgs e)
@@ -419,7 +445,15 @@ public partial class MainWindow : Window
             await _backgroundSessionWindow.ReloadSettingsAsync();
         }
 
-        MotionService.Pulse(SaveButton);
+        SaveButton.IsEnabled = false;
+        try
+        {
+            await MotionService.ShowSaveConfirmationAsync(SaveLabel, SaveDonePanel);
+        }
+        finally
+        {
+            SaveButton.IsEnabled = true;
+        }
     }
 
     private void Animations_Changed(object sender, RoutedEventArgs e)

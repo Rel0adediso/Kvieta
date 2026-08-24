@@ -32,6 +32,26 @@ public partial class SessionWidgetWindow : Window
         Close();
     }
 
+    public void ShowSmooth()
+    {
+        if (!IsVisible)
+        {
+            Show();
+            MotionService.Enter(WidgetSurface, 7, 0, 185);
+        }
+    }
+
+    public async Task HideSmoothAsync()
+    {
+        if (!IsVisible)
+        {
+            return;
+        }
+
+        await MotionService.ExitAsync(WidgetSurface, 7, 0, 135);
+        Hide();
+    }
+
     private void Pause_Click(object sender, RoutedEventArgs e)
     {
         PauseRequested?.Invoke(this, EventArgs.Empty);

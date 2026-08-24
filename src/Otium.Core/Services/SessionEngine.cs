@@ -1,6 +1,4 @@
 using Otium.Core.Models;
-using System.Globalization;
-
 namespace Otium.Core.Services;
 
 public sealed class SessionEngine
@@ -51,8 +49,8 @@ public sealed class SessionEngine
             schedule.AllowedUntil);
     }
 
-    private static string Localize(string turkish, string english) =>
-        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" ? english : turkish;
+    private string Localize(string turkish, string english) =>
+        _settings.Language == LanguagePreference.English ? english : turkish;
 
     public bool StartOrResume(DateTimeOffset now)
     {

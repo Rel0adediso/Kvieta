@@ -5,8 +5,9 @@ using System.Windows.Media;
 
 namespace Otium.App.ViewModels;
 
-public sealed class UsageHistoryDayRow
+public sealed class UsageHistoryDayRow : ObservableObject
 {
+    private bool _isSelected;
     public required DateOnly Day { get; init; }
     public long UsedSeconds { get; init; }
     public double RelativePercent { get; init; }
@@ -18,6 +19,8 @@ public sealed class UsageHistoryDayRow
     public string DateText => Day.ToString("dd.MM");
     public string UsedText => UsageHistoryFormatting.FormatDuration(UsedSeconds);
     public string DetailText => $"{LocalizationService.Get("HistoryBreaksShort")} {BreakCount}  ·  {LocalizationService.Get("HistoryLimitsShort")} {LimitReachedCount}";
+    public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
+    public string SummaryText => $"{DayText} · {UsedText} · {DetailText}";
 }
 
 public sealed class AppUsageHistoryRow
@@ -28,6 +31,7 @@ public sealed class AppUsageHistoryRow
     public double RelativePercent { get; init; }
     public ImageSource? Icon { get; init; }
     public required System.Windows.Media.Brush FallbackBrush { get; init; }
+    public DoubleCollection TrendValues { get; init; } = [];
     public string UsedText => UsageHistoryFormatting.FormatDuration(UsedSeconds);
     public string RankText => $"#{Rank}";
     public bool HasIcon => Icon is not null;

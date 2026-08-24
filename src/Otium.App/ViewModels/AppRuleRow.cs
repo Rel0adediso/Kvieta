@@ -1,5 +1,8 @@
 using Otium.Core.Models;
 using Otium.App.Services;
+using System.IO;
+using System.Windows.Media;
+using WpfBrush = System.Windows.Media.Brush;
 
 namespace Otium.App.ViewModels;
 
@@ -17,9 +20,26 @@ public sealed class AppRuleRow : ObservableObject
         _executablePath = rule.ExecutablePath;
         _mode = ToDisplayMode(rule.Mode);
         _dailyLimitMinutes = rule.DailyLimitMinutes;
+        Icon = ApplicationIconProvider.GetIcon(rule.ExecutablePath);
+        FallbackBrush = ApplicationIconProvider.GetFallbackBrush(rule.Name);
     }
 
     public Guid Id { get; }
+    public ImageSource? Icon { get; }
+    public WpfBrush FallbackBrush { get; }
+    public bool HasIcon => Icon is not null;
+    public bool HasFallbackIcon => Icon is null;
+    public string Initials
+    {
+        get
+        {
+            string cleanName = Path.GetFileNameWithoutExtension(Name).Trim();
+            string[] words = cleanName.Split(['.', ' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries);
+            return words.Length > 1
+                ? string.Concat(words.Take(2).Select(word => char.ToUpperInvariant(word[0])))
+                : cleanName[..Math.Min(2, cleanName.Length)].ToUpperInvariant();
+        }
+    }
     public IReadOnlyList<string> Modes => [LocalizationService.Get("Blocked"), LocalizationService.Get("Limited"), LocalizationService.Get("Unlimited")];
 
     public string Name

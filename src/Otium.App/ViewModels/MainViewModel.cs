@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Media;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text;
@@ -36,6 +37,7 @@ public sealed class MainViewModel : ObservableObject
     private AppRuleRow? _selectedAppRule;
     private int _usedTodayMinutes;
     private UsageLedger? _lastUsageLedger;
+    private string _selectedHistoryDaySummaryText = "—";
 
     public MainViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
@@ -256,7 +258,14 @@ public sealed class MainViewModel : ObservableObject
     public string RhythmWeekPatternText { get; private set; } = "—";
     public string RhythmWeekPatternDetailText { get; private set; } = "—";
     public bool HasHistoryApplications => HistoryApplications.Count > 0;
+    public bool HasNoHistoryApplications => !HasHistoryApplications;
     public bool HasHistoryEvents => HistoryEvents.Count > 0;
+    public bool HasNoHistoryEvents => !HasHistoryEvents;
+    public string SelectedHistoryDaySummaryText
+    {
+        get => _selectedHistoryDaySummaryText;
+        private set => SetProperty(ref _selectedHistoryDaySummaryText, value);
+    }
     public bool IsRhythmBaselineReady => _isRhythmBaselineReady;
     public bool IsRhythmGoalMet => _isRhythmGoalMet;
 
@@ -739,10 +748,28 @@ public sealed class MainViewModel : ObservableObject
             });
         }
 
+        Dictionary<string, DoubleCollection> trends = records
+            .SelectMany(record => record.ForegroundApplications.Select(application => new
+            {
+                record.LocalDay,
+                application.Name,
+                application.UsedSeconds
+            }))
+            .GroupBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => new DoubleCollection(Enumerable.Range(0, 7)
+                    .Select(offset => (double)group.Where(item => item.LocalDay == today.AddDays(offset - 6)).Sum(item => item.UsedSeconds))),
+                StringComparer.CurrentCultureIgnoreCase);
+        foreach (DoubleCollection trend in trends.Values)
+        {
+            trend.Freeze();
+        }
+
         List<AppUsageHistoryRow> applications = records
             .SelectMany(item => item.ForegroundApplications)
             .GroupBy(item => item.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(group => CreateAppUsageRow(0, group.Key, group.Sum(item => item.UsedSeconds), 0))
+            .Select(group => CreateAppUsageRow(0, group.Key, group.Sum(item => item.UsedSeconds), 0, trends.GetValueOrDefault(group.Key)))
             .OrderByDescending(item => item.UsedSeconds)
             .ToList();
         long maximumApp = Math.Max(1, applications.Select(item => item.UsedSeconds).DefaultIfEmpty(0).Max());
@@ -751,7 +778,8 @@ public sealed class MainViewModel : ObservableObject
                 index + 1,
                 application.Name,
                 application.UsedSeconds,
-                Math.Clamp(application.UsedSeconds * 100d / maximumApp, 0, 100)))
+                Math.Clamp(application.UsedSeconds * 100d / maximumApp, 0, 100),
+                application.TrendValues))
             .ToList();
         HistoryAllApplications.Clear();
         foreach (AppUsageHistoryRow application in rankedApplications)
@@ -771,15 +799,25 @@ public sealed class MainViewModel : ObservableObject
             HistoryEvents.Add(new UsageHistoryEventRow { Event = historyEvent });
         }
 
-        long weekSeconds = records.Sum(item => IsAwarenessMode ? item.AwarenessUsedSeconds : item.UsedSeconds);
+        int elapsedWeekDays = ((int)today.DayOfWeek + 6) % 7 + 1;
+        DateOnly weekStart = today.AddDays(-(elapsedWeekDays - 1));
+        long weekSeconds = records
+            .Where(item => item.LocalDay >= weekStart)
+            .Sum(item => IsAwarenessMode ? item.AwarenessUsedSeconds : item.UsedSeconds);
         HistoryWeekTotalText = UsageHistoryFormatting.FormatDuration(weekSeconds);
-        HistoryDailyAverageText = UsageHistoryFormatting.FormatDuration(weekSeconds / 7);
+        HistoryDailyAverageText = UsageHistoryFormatting.FormatDuration(weekSeconds / elapsedWeekDays);
         HistoryMostUsedAppText = rankedApplications.FirstOrDefault()?.Name ?? "—";
         OnPropertyChanged(nameof(HistoryWeekTotalText));
         OnPropertyChanged(nameof(HistoryDailyAverageText));
         OnPropertyChanged(nameof(HistoryMostUsedAppText));
         OnPropertyChanged(nameof(HasHistoryApplications));
+        OnPropertyChanged(nameof(HasNoHistoryApplications));
         OnPropertyChanged(nameof(HasHistoryEvents));
+        OnPropertyChanged(nameof(HasNoHistoryEvents));
+        if (HistoryDays.LastOrDefault() is { } latestDay)
+        {
+            SelectHistoryDay(latestDay);
+        }
     }
 
     private void BuildRhythm(UsageLedger ledger)
@@ -899,14 +937,30 @@ public sealed class MainViewModel : ObservableObject
         BuildUsageHistory(ledger);
     }
 
-    private static AppUsageHistoryRow CreateAppUsageRow(int rank, string name, long usedSeconds, double relativePercent) => new()
+    public void SelectHistoryDay(UsageHistoryDayRow selectedDay)
+    {
+        foreach (UsageHistoryDayRow day in HistoryDays)
+        {
+            day.IsSelected = ReferenceEquals(day, selectedDay);
+        }
+
+        SelectedHistoryDaySummaryText = selectedDay.SummaryText;
+    }
+
+    private static AppUsageHistoryRow CreateAppUsageRow(
+        int rank,
+        string name,
+        long usedSeconds,
+        double relativePercent,
+        DoubleCollection? trendValues = null) => new()
     {
         Rank = rank,
         Name = name,
         UsedSeconds = usedSeconds,
         RelativePercent = relativePercent,
         Icon = ApplicationIconProvider.GetIcon(name),
-        FallbackBrush = ApplicationIconProvider.GetFallbackBrush(name)
+        FallbackBrush = ApplicationIconProvider.GetFallbackBrush(name),
+        TrendValues = trendValues ?? []
     };
 
     private static bool SettingsEquivalent(ControlSettings left, ControlSettings right)
@@ -1206,7 +1260,13 @@ public sealed class MainViewModel : ObservableObject
             details.Add($"• {LocalizationService.Get("StrictPersonalMode")} · {(pending.TargetSettings.StrictPersonalMode ? LocalizationService.Get("Enabled") : L("Kapatılacak", "Will be disabled"))}");
         }
 
+        if (_settings.PersonalChangeDelayMinutes != pending.TargetSettings.PersonalChangeDelayMinutes)
+        {
+            details.Add($"• {LocalizationService.Get("RelaxationDelay")} · {FormatDelay(_settings.PersonalChangeDelayMinutes)} → {FormatDelay(pending.TargetSettings.PersonalChangeDelayMinutes)}");
+        }
+
         Dictionary<string, AppRule> currentRules = _settings.AppRules.ToDictionary(rule => rule.ExecutablePath, StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, AppRule> targetRules = pending.TargetSettings.AppRules.ToDictionary(rule => rule.ExecutablePath, StringComparer.OrdinalIgnoreCase);
         foreach (AppRule targetRule in pending.TargetSettings.AppRules)
         {
             if (!currentRules.TryGetValue(targetRule.ExecutablePath, out AppRule? currentRule) ||
@@ -1217,8 +1277,29 @@ public sealed class MainViewModel : ObservableObject
             }
         }
 
+        foreach (AppRule currentRule in _settings.AppRules)
+        {
+            if (!targetRules.ContainsKey(currentRule.ExecutablePath))
+            {
+                details.Add($"• {currentRule.Name} · {L("uygulama kuralı kaldırılacak", "application rule will be removed")}");
+            }
+        }
+
+        if (details.Count == 0)
+        {
+            details.Add($"• {L("Kural ayarları güncellenecek", "Rule settings will be updated")}");
+        }
+
         return string.Join(Environment.NewLine, details);
     }
+
+    private static string FormatDelay(int minutes) => minutes switch
+    {
+        1440 => LocalizationService.Get("DelayNextDay"),
+        60 => LocalizationService.Get("Delay1Hour"),
+        15 => LocalizationService.Get("Delay15Minutes"),
+        _ => $"{minutes} {LocalizationService.Get("MinuteShort")}"
+    };
 
     private static List<DayOfWeek> GetChangedScheduleDays(ControlSettings current, ControlSettings target)
     {

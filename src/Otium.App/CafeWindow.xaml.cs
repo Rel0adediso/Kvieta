@@ -27,6 +27,7 @@ public partial class CafeWindow : Window
     private bool _returnToControlCenter;
     private bool _forceSurfaceVisible;
     private bool _limitActionHandled;
+    private bool _surfaceTransitionInProgress;
 
     public CafeWindow(
         bool isDirectSession = false,
@@ -127,8 +128,23 @@ public partial class CafeWindow : Window
 
     private async void StartOrResume_Click(object sender, RoutedEventArgs e)
     {
-        if (await _viewModel.StartOrResumeAsync())
+        if (_surfaceTransitionInProgress)
         {
+            return;
+        }
+
+        _surfaceTransitionInProgress = true;
+        try
+        {
+            if (await _viewModel.StartOrResumeAsync())
+            {
+                _forceSurfaceVisible = false;
+                await ShowWidgetSurfaceAsync();
+            }
+        }
+        finally
+        {
+            _surfaceTransitionInProgress = false;
             EnsureCorrectSurface();
         }
     }
@@ -235,10 +251,56 @@ public partial class CafeWindow : Window
 
     private async void PauseFromWidget(object? sender, EventArgs e)
     {
-        if (await _viewModel.PauseAsync())
+        if (_surfaceTransitionInProgress)
         {
+            return;
+        }
+
+        _surfaceTransitionInProgress = true;
+        try
+        {
+            if (await _viewModel.PauseAsync())
+            {
+                _forceSurfaceVisible = true;
+                await ShowBreakSurfaceAsync();
+            }
+        }
+        finally
+        {
+            _surfaceTransitionInProgress = false;
             EnsureCorrectSurface();
         }
+    }
+
+    private async Task ShowBreakSurfaceAsync()
+    {
+        Task hideWidget = _widget?.HideSmoothAsync() ?? Task.CompletedTask;
+        bool wasVisible = IsVisible;
+        if (!wasVisible)
+        {
+            Show();
+        }
+
+        WindowState = WindowState.Maximized;
+        Activate();
+        if (!wasVisible)
+        {
+            MotionService.Enter(SessionSurface, 0, 7, 210);
+        }
+
+        await hideWidget;
+    }
+
+    private async Task ShowWidgetSurfaceAsync()
+    {
+        if (IsVisible)
+        {
+            await MotionService.ExitAsync(SessionSurface, 0, -6, 145);
+            Hide();
+        }
+
+        _widget ??= CreateWidget();
+        _widget.ShowSmooth();
     }
 
     private void EnsureCorrectSurface()
@@ -247,6 +309,11 @@ public partial class CafeWindow : Window
         // calls this method, so activating the session surface here would otherwise
         // steal focus while the administrator is typing a PIN.
         if (_modalDialogOpen)
+        {
+            return;
+        }
+
+        if (_surfaceTransitionInProgress)
         {
             return;
         }
@@ -264,7 +331,7 @@ public partial class CafeWindow : Window
             _widget ??= CreateWidget();
             if (!_widget.IsVisible)
             {
-                _widget.Show();
+                _widget.ShowSmooth();
             }
 
             Hide();
@@ -290,7 +357,8 @@ public partial class CafeWindow : Window
         }
 
         _forceSurfaceVisible = true;
-        _widget?.Hide();
+        _ = _widget?.HideSmoothAsync();
+        bool wasVisible = IsVisible;
         if (!IsVisible)
         {
             Show();
@@ -298,6 +366,10 @@ public partial class CafeWindow : Window
 
         WindowState = WindowState.Maximized;
         Activate();
+        if (!wasVisible)
+        {
+            MotionService.Enter(SessionSurface, 0, 7, 210);
+        }
     }
 
     public void EnableControlCenterReturn()

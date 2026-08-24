@@ -25,6 +25,14 @@ Assert(allowed.DailyLimitMinutes == 180, "Günlük limit yanlış okundu.");
 DateTimeOffset blockedTime = new(2026, 8, 24, 22, 0, 0, TimeSpan.FromHours(3));
 ScheduleStatus blocked = ScheduleEvaluator.Evaluate(settings, blockedTime);
 Assert(!blocked.IsAllowed, "Gece kullanımı engellenmeliydi.");
+Assert(blocked.Reason.StartsWith("İzin verilen saatler", StringComparison.Ordinal), "Plan durumu ayarlardaki Türkçe tercihine uymadı.");
+settings.Language = LanguagePreference.English;
+Assert(ScheduleEvaluator.Evaluate(settings, blockedTime).Reason.StartsWith("Allowed hours", StringComparison.Ordinal),
+    "Plan durumu ayarlardaki İngilizce tercihine uymadı.");
+Assert(new SessionEngine(settings, new UsageLedger { LocalDay = new DateOnly(2026, 8, 24) }, blockedTime)
+        .GetSnapshot(blockedTime).Reason.StartsWith("Allowed hours", StringComparison.Ordinal),
+    "Oturum durumu ayarlardaki dil tercihine uymadı.");
+settings.Language = LanguagePreference.Turkish;
 
 ControlSettings allowanceSettings = new();
 DaySchedule allowanceMonday = allowanceSettings.Schedule.Single(item => item.Day == DayOfWeek.Monday);
@@ -410,6 +418,10 @@ awarenessViewModel.SelectedPageIndex = 2;
 Assert(awarenessViewModel.SelectedPageIndex == 0, "Farkındalık modunda uygulama kuralı paneli açılabildi.");
 Assert(awarenessViewModel.UsedTodayMinutes == 10 && awarenessViewModel.TodayLimitText is "Sınırsız" or "Unlimited",
     "Farkındalık profili gerçek ön plan süresini sınırsız özet olarak göstermedi.");
+int elapsedWeekDays = ((int)DateTime.Today.DayOfWeek + 6) % 7 + 1;
+long expectedAverageMinutes = 10 / elapsedWeekDays;
+Assert(awarenessViewModel.HistoryDailyAverageText.StartsWith($"{expectedAverageMinutes} ", StringComparison.Ordinal),
+    $"Günlük ortalama haftada geçen gün sayısına bölünmedi: {awarenessViewModel.HistoryDailyAverageText}");
 awarenessViewModel.RetentionPeriod = awarenessViewModel.RetentionOptions[0];
 Assert(await awarenessViewModel.SaveAsync() && (await awarenessSettingsStore.LoadAsync()).UsageRetentionDays == 30,
     "Geçmiş saklama süresi kaydedilemedi.");

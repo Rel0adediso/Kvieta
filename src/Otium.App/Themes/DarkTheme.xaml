@@ -4,6 +4,7 @@
     <SolidColorBrush x:Key="SurfaceBrush" Color="#1F201A" />
     <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#282920" />
     <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#2B2D24" />
+    <SolidColorBrush x:Key="SurfaceSubtleBrush" Color="#1B1C17" />
     <SolidColorBrush x:Key="SidebarBrush" Color="#1A1B16" />
     <SolidColorBrush x:Key="PrimaryBrush" Color="#B4BC82" />
     <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#C7CE96" />
@@ -13,6 +14,7 @@
     <SolidColorBrush x:Key="MutedTextBrush" Color="#B0AC9F" />
     <SolidColorBrush x:Key="FaintTextBrush" Color="#949184" />
     <SolidColorBrush x:Key="BorderBrush" Color="#37392F" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#45483A" />
     <SolidColorBrush x:Key="InputBrush" Color="#282A23" />
     <SolidColorBrush x:Key="InputHoverBrush" Color="#303229" />
     <SolidColorBrush x:Key="NavSelectedBrush" Color="#303326" />

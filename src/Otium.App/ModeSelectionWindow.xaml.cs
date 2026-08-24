@@ -9,18 +9,8 @@ public partial class ModeSelectionWindow : Window
     public ModeSelectionWindow(ControlMode? currentMode = null)
     {
         InitializeComponent();
-        if (currentMode == ControlMode.Awareness)
-        {
-            AwarenessButton.Style = (Style)AwarenessButton.FindResource("SelectedModeCardStyle");
-        }
-        else if (currentMode == ControlMode.Personal)
-        {
-            PersonalButton.Style = (Style)PersonalButton.FindResource("SelectedModeCardStyle");
-        }
-        else if (currentMode == ControlMode.Protected)
-        {
-            ProtectedButton.Style = (Style)ProtectedButton.FindResource("SelectedModeCardStyle");
-        }
+        SelectedMode = currentMode;
+        UpdateSelectionStyles();
     }
 
     public ControlMode? SelectedMode { get; private set; }
@@ -38,20 +28,41 @@ public partial class ModeSelectionWindow : Window
 
     private void Awareness_Click(object sender, RoutedEventArgs e)
     {
-        SelectedMode = ControlMode.Awareness;
-        DialogResult = true;
+        SelectMode(ControlMode.Awareness);
     }
 
     private void Personal_Click(object sender, RoutedEventArgs e)
     {
-        SelectedMode = ControlMode.Personal;
-        DialogResult = true;
+        SelectMode(ControlMode.Personal);
     }
 
     private void Protected_Click(object sender, RoutedEventArgs e)
     {
-        SelectedMode = ControlMode.Protected;
-        DialogResult = true;
+        SelectMode(ControlMode.Protected);
+    }
+
+    private void SelectMode(ControlMode mode)
+    {
+        SelectedMode = mode;
+        UpdateSelectionStyles();
+    }
+
+    private void UpdateSelectionStyles()
+    {
+        Style normal = (Style)AwarenessButton.FindResource("ModeCardStyle");
+        Style selected = (Style)AwarenessButton.FindResource("SelectedModeCardStyle");
+        AwarenessButton.Style = SelectedMode == ControlMode.Awareness ? selected : normal;
+        PersonalButton.Style = SelectedMode == ControlMode.Personal ? selected : normal;
+        ProtectedButton.Style = SelectedMode == ControlMode.Protected ? selected : normal;
+        ConfirmModeButton.IsEnabled = SelectedMode is not null;
+    }
+
+    private void Confirm_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedMode is not null)
+        {
+            DialogResult = true;
+        }
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;

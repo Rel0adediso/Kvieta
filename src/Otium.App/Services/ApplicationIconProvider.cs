@@ -29,7 +29,7 @@ public static class ApplicationIconProvider
             }
         }
 
-        ImageSource? icon = TryExtractRunningProcessIcon(processName);
+        ImageSource? icon = TryExtractFileIcon(applicationName) ?? TryExtractRunningProcessIcon(processName);
         if (icon is not null)
         {
             lock (Sync)
@@ -39,6 +39,25 @@ public static class ApplicationIconProvider
         }
 
         return icon;
+    }
+
+    private static ImageSource? TryExtractFileIcon(string applicationName)
+    {
+        string path = applicationName.Trim();
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            using Icon? icon = Icon.ExtractAssociatedIcon(path);
+            return icon is null ? null : CreateImageSource(icon);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public static System.Windows.Media.Brush GetFallbackBrush(string applicationName)
@@ -77,12 +96,7 @@ public static class ApplicationIconProvider
                         continue;
                     }
 
-                    BitmapSource source = Imaging.CreateBitmapSourceFromHIcon(
-                        icon.Handle,
-                        Int32Rect.Empty,
-                        BitmapSizeOptions.FromWidthAndHeight(32, 32));
-                    source.Freeze();
-                    return source;
+                    return CreateImageSource(icon);
                 }
                 catch
                 {
@@ -92,5 +106,15 @@ public static class ApplicationIconProvider
         }
 
         return null;
+    }
+
+    private static BitmapSource CreateImageSource(Icon icon)
+    {
+        BitmapSource source = Imaging.CreateBitmapSourceFromHIcon(
+            icon.Handle,
+            Int32Rect.Empty,
+            BitmapSizeOptions.FromWidthAndHeight(32, 32));
+        source.Freeze();
+        return source;
     }
 }

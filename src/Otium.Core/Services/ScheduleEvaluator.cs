@@ -1,6 +1,4 @@
 using Otium.Core.Models;
-using System.Globalization;
-
 namespace Otium.Core.Services;
 
 public sealed record ScheduleStatus(
@@ -47,8 +45,8 @@ public static class ScheduleEvaluator
         if (activeRegularWindow is null && activeAllowances.Count == 0)
         {
             string reason = todaysSchedule is { IsEnabled: true }
-                ? $"{Localize("İzin verilen saatler", "Allowed hours")}: {todaysSchedule.AllowedFrom:HH:mm}–{todaysSchedule.AllowedUntil:HH:mm}"
-                : Localize("Bu gün için kullanım kapalı.", "Usage is disabled for this day.");
+                ? $"{Localize(settings.Language, "İzin verilen saatler", "Allowed hours")}: {todaysSchedule.AllowedFrom:HH:mm}–{todaysSchedule.AllowedUntil:HH:mm}"
+                : Localize(settings.Language, "Bu gün için kullanım kapalı.", "Usage is disabled for this day.");
             return new ScheduleStatus(false, dailyLimit, reason, null);
         }
 
@@ -72,13 +70,13 @@ public static class ScheduleEvaluator
             true,
             dailyLimit,
             activeAllowances.Count > 0
-                ? Localize("Geçici izin etkin.", "Temporary allowance is active.")
-                : Localize("Kullanıma izin veriliyor.", "Usage is allowed."),
+                ? Localize(settings.Language, "Geçici izin etkin.", "Temporary allowance is active.")
+                : Localize(settings.Language, "Kullanıma izin veriliyor.", "Usage is allowed."),
             endings.Max());
     }
 
-    private static string Localize(string turkish, string english) =>
-        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" ? english : turkish;
+    private static string Localize(LanguagePreference language, string turkish, string english) =>
+        language == LanguagePreference.English ? english : turkish;
 
     private static (DaySchedule Schedule, DateOnly AnchorDate)? FindActiveRegularWindow(
         DateTimeOffset now,

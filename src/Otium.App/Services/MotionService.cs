@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
@@ -95,6 +96,54 @@ public static class MotionService
         translate.Y = 0;
     }
 
+    public static Task ExitAsync(FrameworkElement element, double offsetX = 0, double offsetY = -6, int durationMilliseconds = 145)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        element.BeginAnimation(UIElement.OpacityProperty, null);
+        TranslateTransform translate = GetOrCreateTransform<TranslateTransform>(element);
+        translate.BeginAnimation(TranslateTransform.XProperty, null);
+        translate.BeginAnimation(TranslateTransform.YProperty, null);
+
+        if (!IsEnabled || !element.IsVisible)
+        {
+            element.Opacity = 1;
+            translate.X = 0;
+            translate.Y = 0;
+            return Task.CompletedTask;
+        }
+
+        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        CubicEase ease = new() { EasingMode = EasingMode.EaseIn };
+        Duration duration = TimeSpan.FromMilliseconds(durationMilliseconds);
+        DoubleAnimation opacity = new(1, 0, duration)
+        {
+            EasingFunction = ease,
+            FillBehavior = FillBehavior.Stop
+        };
+        opacity.Completed += (_, _) =>
+        {
+            element.BeginAnimation(UIElement.OpacityProperty, null);
+            translate.BeginAnimation(TranslateTransform.XProperty, null);
+            translate.BeginAnimation(TranslateTransform.YProperty, null);
+            element.Opacity = 1;
+            translate.X = 0;
+            translate.Y = 0;
+            completion.TrySetResult();
+        };
+        element.BeginAnimation(UIElement.OpacityProperty, opacity);
+        translate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(0, offsetX, duration)
+        {
+            EasingFunction = ease,
+            FillBehavior = FillBehavior.Stop
+        });
+        translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, offsetY, duration)
+        {
+            EasingFunction = ease,
+            FillBehavior = FillBehavior.Stop
+        });
+        return completion.Task;
+    }
+
     public static void AnimateProgress(WpfProgressBar progressBar, double target, bool fromZero = false)
     {
         ArgumentNullException.ThrowIfNull(progressBar);
@@ -170,6 +219,94 @@ public static class MotionService
         };
         scale.BeginAnimation(ScaleTransform.ScaleXProperty, animation);
         scale.BeginAnimation(ScaleTransform.ScaleYProperty, animation.Clone());
+    }
+
+    public static async Task ShowSaveConfirmationAsync(FrameworkElement normalContent, FrameworkElement doneContent)
+    {
+        ArgumentNullException.ThrowIfNull(normalContent);
+        ArgumentNullException.ThrowIfNull(doneContent);
+
+        normalContent.BeginAnimation(UIElement.OpacityProperty, null);
+        doneContent.BeginAnimation(UIElement.OpacityProperty, null);
+        TranslateTransform normalTranslate = GetOrCreateTransform<TranslateTransform>(normalContent);
+        TranslateTransform doneTranslate = GetOrCreateTransform<TranslateTransform>(doneContent);
+        normalTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+        doneTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+
+        if (!IsEnabled)
+        {
+            normalContent.Opacity = 0;
+            doneContent.Opacity = 1;
+            await Task.Delay(420);
+            normalContent.Opacity = 1;
+            doneContent.Opacity = 0;
+            return;
+        }
+
+        normalContent.Opacity = 0;
+        doneContent.Opacity = 1;
+        normalTranslate.Y = -2;
+        doneTranslate.Y = 0;
+        CubicEase settle = new() { EasingMode = EasingMode.EaseOut };
+        normalContent.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(135))
+        {
+            EasingFunction = settle,
+            FillBehavior = FillBehavior.Stop
+        });
+        normalTranslate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, -2, TimeSpan.FromMilliseconds(135))
+        {
+            EasingFunction = settle,
+            FillBehavior = FillBehavior.Stop
+        });
+        doneContent.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(170))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(45),
+            EasingFunction = settle,
+            FillBehavior = FillBehavior.Stop
+        });
+        doneTranslate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(2, 0, TimeSpan.FromMilliseconds(170))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(45),
+            EasingFunction = settle,
+            FillBehavior = FillBehavior.Stop
+        });
+
+        await Task.Delay(590);
+        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        DoubleAnimation restoreNormal = new(0, 1, TimeSpan.FromMilliseconds(160))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(35),
+            EasingFunction = settle,
+            FillBehavior = FillBehavior.Stop
+        };
+        restoreNormal.Completed += (_, _) => completion.TrySetResult();
+        normalContent.BeginAnimation(UIElement.OpacityProperty, restoreNormal, HandoffBehavior.SnapshotAndReplace);
+        normalTranslate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(2, 0, TimeSpan.FromMilliseconds(160))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(35),
+            EasingFunction = settle,
+            FillBehavior = FillBehavior.Stop
+        });
+        doneContent.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(130))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn },
+            FillBehavior = FillBehavior.Stop
+        });
+        doneTranslate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, -2, TimeSpan.FromMilliseconds(130))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn },
+            FillBehavior = FillBehavior.Stop
+        });
+        await completion.Task;
+
+        normalContent.BeginAnimation(UIElement.OpacityProperty, null);
+        doneContent.BeginAnimation(UIElement.OpacityProperty, null);
+        normalTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+        doneTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+        normalContent.Opacity = 1;
+        doneContent.Opacity = 0;
+        normalTranslate.Y = 0;
+        doneTranslate.Y = 0;
     }
 
     public static void Highlight(FrameworkElement element, WpfColor color)
@@ -364,12 +501,28 @@ public static class MotionAssist
         typeof(MotionAssist),
         new PropertyMetadata(false, AnimateTextChangesChanged));
 
+    public static readonly DependencyProperty AnimateToggleProperty = DependencyProperty.RegisterAttached(
+        "AnimateToggle",
+        typeof(bool),
+        typeof(MotionAssist),
+        new PropertyMetadata(false, AnimateToggleChanged));
+
+    public static readonly DependencyProperty SmoothScrollProperty = DependencyProperty.RegisterAttached(
+        "SmoothScroll",
+        typeof(bool),
+        typeof(MotionAssist),
+        new PropertyMetadata(false, SmoothScrollChanged));
+
     private static readonly DependencyProperty ProgressHookedProperty = DependencyProperty.RegisterAttached(
         "ProgressHooked", typeof(bool), typeof(MotionAssist), new PropertyMetadata(false));
     private static readonly DependencyProperty TextHookedProperty = DependencyProperty.RegisterAttached(
         "TextHooked", typeof(bool), typeof(MotionAssist), new PropertyMetadata(false));
     private static readonly DependencyProperty TextReadyProperty = DependencyProperty.RegisterAttached(
         "TextReady", typeof(bool), typeof(MotionAssist), new PropertyMetadata(false));
+    private static readonly DependencyProperty ToggleHookedProperty = DependencyProperty.RegisterAttached(
+        "ToggleHooked", typeof(bool), typeof(MotionAssist), new PropertyMetadata(false));
+    private static readonly DependencyProperty SmoothScrollStateProperty = DependencyProperty.RegisterAttached(
+        "SmoothScrollState", typeof(SmoothScrollState), typeof(MotionAssist), new PropertyMetadata(null));
 
     private static readonly DependencyPropertyDescriptor? TextDescriptor =
         DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
@@ -381,6 +534,246 @@ public static class MotionAssist
     public static void SetAnimateTextChanges(DependencyObject element, bool value) => element.SetValue(AnimateTextChangesProperty, value);
 
     public static bool GetAnimateTextChanges(DependencyObject element) => (bool)element.GetValue(AnimateTextChangesProperty);
+
+    public static void SetAnimateToggle(DependencyObject element, bool value) => element.SetValue(AnimateToggleProperty, value);
+
+    public static bool GetAnimateToggle(DependencyObject element) => (bool)element.GetValue(AnimateToggleProperty);
+
+    public static void SetSmoothScroll(DependencyObject element, bool value) => element.SetValue(SmoothScrollProperty, value);
+
+    public static bool GetSmoothScroll(DependencyObject element) => (bool)element.GetValue(SmoothScrollProperty);
+
+    private static void SmoothScrollChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs args)
+    {
+        if (dependencyObject is not ScrollViewer scrollViewer)
+        {
+            return;
+        }
+
+        scrollViewer.PreviewMouseWheel -= SmoothScrollViewer_PreviewMouseWheel;
+        if ((bool)args.NewValue)
+        {
+            scrollViewer.PreviewMouseWheel += SmoothScrollViewer_PreviewMouseWheel;
+        }
+        else if (scrollViewer.GetValue(SmoothScrollStateProperty) is SmoothScrollState state)
+        {
+            state.Stop();
+            scrollViewer.ClearValue(SmoothScrollStateProperty);
+        }
+    }
+
+    private static void SmoothScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not ScrollViewer scrollViewer || !MotionService.IsEnabled)
+        {
+            return;
+        }
+
+        for (DependencyObject? current = e.OriginalSource as DependencyObject;
+             current is not null && current != scrollViewer;
+             current = GetVisualOrLogicalParent(current))
+        {
+            if (current is ScrollViewer nested &&
+                ((e.Delta < 0 && nested.VerticalOffset < nested.ScrollableHeight) ||
+                 (e.Delta > 0 && nested.VerticalOffset > 0)))
+            {
+                return;
+            }
+        }
+
+        SmoothScrollState state = scrollViewer.GetValue(SmoothScrollStateProperty) as SmoothScrollState
+            ?? new SmoothScrollState(scrollViewer);
+        scrollViewer.SetValue(SmoothScrollStateProperty, state);
+        e.Handled = state.Push(e.Delta);
+    }
+
+    private static DependencyObject? GetVisualOrLogicalParent(DependencyObject element)
+    {
+        if (element is FrameworkContentElement contentElement)
+        {
+            return contentElement.Parent;
+        }
+
+        return element is Visual
+            ? VisualTreeHelper.GetParent(element)
+            : LogicalTreeHelper.GetParent(element);
+    }
+
+    private sealed class SmoothScrollState
+    {
+        private readonly ScrollViewer _scrollViewer;
+        private double _currentOffset;
+        private double _targetOffset;
+        private TimeSpan _lastFrame;
+        private bool _running;
+
+        public SmoothScrollState(ScrollViewer scrollViewer)
+        {
+            _scrollViewer = scrollViewer;
+        }
+
+        public bool Push(int wheelDelta)
+        {
+            double maximum = Math.Max(0, _scrollViewer.ScrollableHeight);
+            if (maximum <= 0)
+            {
+                return false;
+            }
+
+            if (!_running)
+            {
+                _currentOffset = _scrollViewer.VerticalOffset;
+                _targetOffset = _currentOffset;
+            }
+
+            double nextTarget = Math.Clamp(_targetOffset - (wheelDelta * 0.58), 0, maximum);
+            if (Math.Abs(nextTarget - _targetOffset) < 0.1)
+            {
+                return false;
+            }
+
+            _targetOffset = nextTarget;
+            if (!_running)
+            {
+                _running = true;
+                _lastFrame = TimeSpan.Zero;
+                CompositionTarget.Rendering += CompositionTarget_Rendering;
+            }
+
+            return true;
+        }
+
+        public void Stop()
+        {
+            if (!_running)
+            {
+                return;
+            }
+
+            CompositionTarget.Rendering -= CompositionTarget_Rendering;
+            _running = false;
+            _lastFrame = TimeSpan.Zero;
+        }
+
+        private void CompositionTarget_Rendering(object? sender, EventArgs e)
+        {
+            if (!MotionService.IsEnabled || !_scrollViewer.IsVisible)
+            {
+                Stop();
+                return;
+            }
+
+            TimeSpan now = TimeSpan.FromTicks(Environment.TickCount64 * TimeSpan.TicksPerMillisecond);
+            double elapsedSeconds = _lastFrame == TimeSpan.Zero
+                ? 1d / 60d
+                : Math.Clamp((now - _lastFrame).TotalSeconds, 0.001, 0.05);
+            _lastFrame = now;
+
+            _targetOffset = Math.Clamp(_targetOffset, 0, Math.Max(0, _scrollViewer.ScrollableHeight));
+            double blend = 1 - Math.Exp(-15 * elapsedSeconds);
+            _currentOffset += (_targetOffset - _currentOffset) * blend;
+            if (Math.Abs(_targetOffset - _currentOffset) < 0.25)
+            {
+                _currentOffset = _targetOffset;
+                _scrollViewer.ScrollToVerticalOffset(_currentOffset);
+                Stop();
+                return;
+            }
+
+            _scrollViewer.ScrollToVerticalOffset(_currentOffset);
+        }
+    }
+
+    private static void AnimateToggleChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs args)
+    {
+        if (dependencyObject is not ToggleButton toggle)
+        {
+            return;
+        }
+
+        if ((bool)args.NewValue)
+        {
+            if (!(bool)toggle.GetValue(ToggleHookedProperty))
+            {
+                toggle.SetValue(ToggleHookedProperty, true);
+                toggle.Loaded += Toggle_Loaded;
+                toggle.Checked += Toggle_StateChanged;
+                toggle.Unchecked += Toggle_StateChanged;
+            }
+
+            if (toggle.IsLoaded)
+            {
+                UpdateToggleVisual(toggle, false);
+            }
+        }
+        else if ((bool)toggle.GetValue(ToggleHookedProperty))
+        {
+            toggle.SetValue(ToggleHookedProperty, false);
+            toggle.Loaded -= Toggle_Loaded;
+            toggle.Checked -= Toggle_StateChanged;
+            toggle.Unchecked -= Toggle_StateChanged;
+        }
+    }
+
+    private static void Toggle_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton toggle)
+        {
+            UpdateToggleVisual(toggle, false);
+        }
+    }
+
+    private static void Toggle_StateChanged(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleButton toggle)
+        {
+            UpdateToggleVisual(toggle, true);
+        }
+    }
+
+    private static void UpdateToggleVisual(ToggleButton toggle, bool animate)
+    {
+        toggle.ApplyTemplate();
+        if (toggle.Template.FindName("ActiveTrack", toggle) is not Border activeTrack ||
+            toggle.Template.FindName("Thumb", toggle) is not System.Windows.Shapes.Ellipse thumb ||
+            toggle.Template.FindName("ThumbTranslate", toggle) is not TranslateTransform thumbTranslate)
+        {
+            return;
+        }
+
+        if (thumbTranslate.IsFrozen)
+        {
+            thumbTranslate = thumbTranslate.Clone();
+            thumb.RenderTransform = thumbTranslate;
+        }
+
+        double targetOpacity = toggle.IsChecked == true ? 1 : 0;
+        double targetX = toggle.IsChecked == true ? 12 : 0;
+        double currentOpacity = activeTrack.Opacity;
+        double currentX = thumbTranslate.X;
+        activeTrack.BeginAnimation(UIElement.OpacityProperty, null);
+        thumbTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+        activeTrack.Opacity = targetOpacity;
+        thumbTranslate.X = targetX;
+
+        if (!animate || !MotionService.IsEnabled)
+        {
+            return;
+        }
+
+        CubicEase ease = new() { EasingMode = EasingMode.EaseOut };
+        Duration duration = TimeSpan.FromMilliseconds(155);
+        activeTrack.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(currentOpacity, targetOpacity, duration)
+        {
+            EasingFunction = ease,
+            FillBehavior = FillBehavior.Stop
+        });
+        thumbTranslate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(currentX, targetX, duration)
+        {
+            EasingFunction = ease,
+            FillBehavior = FillBehavior.Stop
+        });
+    }
 
     private static void AnimatedValueChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs args)
     {
