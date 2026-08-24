@@ -22,6 +22,8 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 
 ## v0.15.1 — Veri sağlamlığı
 
+**Durum:** Tamamlandı.
+
 ### Crash-safe veri katmanı
 
 - Ayar, kullanım ve geçmiş dosyalarında süreçler arası yazma kilidi.

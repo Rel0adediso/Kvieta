@@ -7,6 +7,7 @@ namespace KardesKilidi.Core.Services;
 public sealed class JsonSettingsStore
 {
     private readonly IReadOnlyList<string> _legacyFilePaths;
+    private readonly ResilientJsonFile<ControlSettings> _file;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -18,12 +19,16 @@ public sealed class JsonSettingsStore
     {
         string localData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         FilePath = filePath ?? Path.Combine(localData, "Otium", "settings.json");
+        _file = CreateFile(FilePath);
         _legacyFilePaths = filePath is null
             ? [Path.Combine(localData, "Denge", "settings.json"), Path.Combine(localData, "KardesKilidi", "settings.json")]
             : [];
     }
 
     public string FilePath { get; }
+    public string BackupPath => _file.BackupPath;
+    public bool LastLoadRecoveredFromBackup => _file.LastLoadRecoveredFromBackup;
+    public bool LastLoadMigrated => _file.LastLoadMigrated;
 
     public async Task<ControlSettings> LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -36,24 +41,12 @@ public sealed class JsonSettingsStore
             return new ControlSettings();
         }
 
-        ControlSettings? settings;
-        await using (FileStream stream = File.OpenRead(sourcePath))
-        {
-            settings = await JsonSerializer.DeserializeAsync<ControlSettings>(
-                stream,
-                JsonOptions,
-                cancellationToken);
-        }
+        ResilientJsonFile<ControlSettings> sourceFile = string.Equals(sourcePath, FilePath, StringComparison.OrdinalIgnoreCase)
+            ? _file
+            : CreateFile(sourcePath);
+        ControlSettings settings = await sourceFile.LoadAsync(cancellationToken);
 
-        bool migrated = settings is not null && settings.SchemaVersion < 2;
-        if (migrated)
-        {
-            settings!.SchemaVersion = 2;
-            settings.SetupCompleted = true;
-            settings.Mode = ControlMode.Protected;
-        }
-
-        if (settings?.PendingChange is { } pending && pending.ApplyAfterUtc <= DateTimeOffset.UtcNow)
+        if (settings.PendingChange is { } pending && pending.ApplyAfterUtc <= DateTimeOffset.UtcNow)
         {
             settings = pending.TargetSettings;
             settings.PendingChange = null;
@@ -62,32 +55,43 @@ public sealed class JsonSettingsStore
             await SaveAsync(settings, cancellationToken);
         }
 
-        if (settings is not null &&
-            (!string.Equals(sourcePath, FilePath, StringComparison.OrdinalIgnoreCase) || migrated))
+        if (!string.Equals(sourcePath, FilePath, StringComparison.OrdinalIgnoreCase))
         {
             await SaveAsync(settings, cancellationToken);
         }
 
-        return settings ?? new ControlSettings();
+        return settings;
     }
 
     public async Task SaveAsync(ControlSettings settings, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-
-        string? directory = Path.GetDirectoryName(FilePath);
-        if (!string.IsNullOrWhiteSpace(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
-        string temporaryPath = FilePath + ".tmp";
-        await using (FileStream stream = File.Create(temporaryPath))
-        {
-            await JsonSerializer.SerializeAsync(stream, settings, JsonOptions, cancellationToken);
-            await stream.FlushAsync(cancellationToken);
-        }
-
-        File.Move(temporaryPath, FilePath, true);
+        await _file.SaveAsync(settings, cancellationToken);
     }
+
+    private static ResilientJsonFile<ControlSettings> CreateFile(string path) => new(
+        path,
+        JsonOptions,
+        static () => new ControlSettings(),
+        static settings =>
+        {
+            if (settings.SchemaVersion > 2)
+            {
+                throw new InvalidDataException($"Desteklenmeyen ayar şeması: {settings.SchemaVersion}");
+            }
+
+            bool changed = settings.SchemaVersion < 2;
+            if (changed)
+            {
+                settings.SchemaVersion = 2;
+                settings.SetupCompleted = true;
+                settings.Mode = ControlMode.Protected;
+            }
+
+            settings.WarningMinutes ??= [15, 5, 1];
+            settings.Schedule ??= ControlSettings.CreateDefaultSchedule();
+            settings.TemporaryAllowances ??= [];
+            settings.AppRules ??= [];
+            settings.AdminPin ??= new AdminCredential();
+            return new MigrationResult<ControlSettings>(settings, changed);
+        });
 }

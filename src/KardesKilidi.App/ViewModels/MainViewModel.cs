@@ -194,6 +194,7 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             _settings = await _settingsStore.LoadAsync();
+            bool settingsRecovered = _settingsStore.LastLoadRecoveredFromBackup;
             DeviceName = _settings.DeviceName is "Kardeş Bilgisayarı" or "Oyun Bilgisayarı" or "Bu Bilgisayar" or "This Computer"
                 ? LocalizationService.Get("DefaultDeviceName")
                 : _settings.DeviceName;
@@ -212,8 +213,11 @@ public sealed class MainViewModel : ObservableObject
             LoadPolicyRows(_settings);
 
             await ReloadUsageAsync();
+            bool usageRecovered = _usageStore.LastLoadRecoveredFromBackup;
             RefreshOverview();
-            StatusMessage = L("Ayarlar yüklendi", "Settings loaded");
+            StatusMessage = settingsRecovered || usageRecovered
+                ? L("Veriler son sağlam yedekten kurtarıldı", "Data was recovered from the last known good backup")
+                : L("Ayarlar yüklendi", "Settings loaded");
         }
         catch (Exception exception)
         {

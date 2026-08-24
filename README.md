@@ -4,7 +4,7 @@ Hesap veya internet bağlantısı gerektirmeden Windows üzerinde çalışan yer
 
 Güncel geliştirme sırası ve v1.0 hedefleri için [ROADMAP.md](ROADMAP.md) belgesine bakın.
 
-## Şu anki sürüm: v0.15.0 prototip
+## Şu anki sürüm: v0.15.1 prototip
 
 Bu sürüm, krem ve haki tonlarında daha ince bir Otium tasarım dili kullanır. Görünüm Windows tercihini otomatik izleyebilir veya Ayarlar ekranından açık/koyu olarak seçilebilir.
 
@@ -75,8 +75,13 @@ Bu prototip şunları içerir:
 - Yapılandırılmış süreli ve sınırsız uygulamalar için kullanım dökümü
 - Mola, limit dolması, ek süre ve kural değişikliği hareket geçmişi
 - Geçmiş verilerini 90 gün boyunca yalnızca cihazda saklama
+- Ayar ve kullanım verilerinde süreçler arası yazma kilidi
+- Doğrulanan atomik JSON kaydı ve son sağlam `.bak` kopyası
+- Bozuk ana dosyayı son sağlam yedekten otomatik kurtarma
+- Eşzamanlı kullanım sayaçları ve geçmiş olaylarını kayıpsız birleştirme
+- Sürümlenmiş ayar ve kullanım verisi migration temeli
 
-v0.15 kullanım geçmişini, tarihli geçici izinleri, yönetici onaylı ek süre akışını ve gizli test geçidinin bekleyen değişikliği anında uygulamasını içerir. AppLocker/WDAC tabanlı çalıştırma ilkeleri henüz eklenmemiştir.
+v0.15.1 kullanım geçmişini, dayanıklı yerel veri katmanını, tarihli geçici izinleri, yönetici onaylı ek süre akışını ve gizli test geçidinin bekleyen değişikliği anında uygulamasını içerir. AppLocker/WDAC tabanlı çalıştırma ilkeleri henüz eklenmemiştir.
 
 ## Çalıştırma
 

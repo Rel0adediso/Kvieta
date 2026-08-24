@@ -64,6 +64,84 @@ Assert(loaded.StartWithWindows, "Windows başlangıç tercihi geri yüklenemedi.
 Assert(AdminPinService.Verify("4826", loaded.AdminPin), "Yönetici PIN'i güvenli biçimde geri yüklenemedi.");
 Assert(loaded.AppRules.Count == 1, "Uygulama kuralları geri yüklenemedi.");
 
+string recoverySettingsPath = Path.Combine(testDirectory, "recovery-settings.json");
+JsonSettingsStore recoveryStore = new(recoverySettingsPath);
+await recoveryStore.SaveAsync(new ControlSettings { DeviceName = "İlk sağlam kayıt" });
+await recoveryStore.SaveAsync(new ControlSettings { DeviceName = "Son sağlam kayıt" });
+Assert(File.Exists(recoveryStore.BackupPath), "Ayarların son sağlam yedeği oluşturulmadı.");
+await File.WriteAllTextAsync(recoverySettingsPath, "{ bozuk json");
+ControlSettings recoveredSettings = await recoveryStore.LoadAsync();
+Assert(recoveredSettings.DeviceName == "Son sağlam kayıt", "Bozuk ayar dosyası son sağlam kayıttan kurtarılamadı.");
+Assert(recoveryStore.LastLoadRecoveredFromBackup, "Yedekten kurtarma durumu bildirilmedi.");
+Assert((await new JsonSettingsStore(recoverySettingsPath).LoadAsync()).DeviceName == "Son sağlam kayıt", "Kurtarılan ayar ana dosyaya geri yazılmadı.");
+
+await File.WriteAllTextAsync(recoverySettingsPath, "{ yine bozuk");
+await File.WriteAllTextAsync(recoveryStore.BackupPath, "{ yedek de bozuk");
+bool corruptPairRejected = false;
+try
+{
+    await recoveryStore.LoadAsync();
+}
+catch (InvalidDataException)
+{
+    corruptPairRejected = true;
+}
+Assert(corruptPairRejected, "Ana dosya ve yedek bozukken sessizce varsayılan ayarlara geçildi.");
+
+string migrationUsagePath = Path.Combine(testDirectory, "migration-usage.json");
+await File.WriteAllTextAsync(migrationUsagePath, """
+{
+  "SchemaVersion": 1,
+  "LocalDay": "2026-08-24",
+  "UsedSeconds": 120
+}
+""");
+JsonUsageStore migrationUsageStore = new(migrationUsagePath);
+UsageLedger migratedUsage = await migrationUsageStore.LoadAsync();
+Assert(migratedUsage.SchemaVersion == 2 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 2'ye taşınmadı.");
+Assert(File.Exists(migrationUsageStore.BackupPath), "Migration sonrasında sağlam kullanım yedeği oluşturulmadı.");
+
+string concurrentUsagePath = Path.Combine(testDirectory, "concurrent-usage.json");
+JsonUsageStore concurrentStoreA = new(concurrentUsagePath);
+JsonUsageStore concurrentStoreB = new(concurrentUsagePath);
+Guid concurrentRuleA = Guid.NewGuid();
+Guid concurrentRuleB = Guid.NewGuid();
+DateOnly concurrentDay = DateOnly.FromDateTime(DateTime.Today);
+UsageLedger concurrentA = new()
+{
+    LocalDay = concurrentDay,
+    UsedSeconds = 300,
+    LastUpdatedUtc = DateTimeOffset.UtcNow,
+    AppUsedSeconds = new Dictionary<Guid, long> { [concurrentRuleA] = 90 },
+    RecentEvents = [new UsageEventRecord { Kind = UsageEventKind.BreakStarted, OccurredAtUtc = DateTimeOffset.UtcNow.AddSeconds(-1) }]
+};
+UsageLedger concurrentB = new()
+{
+    LocalDay = concurrentDay,
+    UsedSeconds = 420,
+    LastUpdatedUtc = DateTimeOffset.UtcNow.AddMilliseconds(1),
+    AppUsedSeconds = new Dictionary<Guid, long> { [concurrentRuleB] = 120 },
+    RecentEvents = [new UsageEventRecord { Kind = UsageEventKind.PolicyChanged, OccurredAtUtc = DateTimeOffset.UtcNow }]
+};
+await Task.WhenAll(concurrentStoreA.SaveAsync(concurrentA), concurrentStoreB.SaveAsync(concurrentB));
+UsageLedger concurrentMerged = await concurrentStoreA.LoadAsync();
+Assert(concurrentMerged.UsedSeconds == 420, "Eşzamanlı kullanım kayıtlarında güncel sayaç korunmadı.");
+Assert(concurrentMerged.AppUsedSeconds.ContainsKey(concurrentRuleA) && concurrentMerged.AppUsedSeconds.ContainsKey(concurrentRuleB), "Eşzamanlı uygulama sayaçlarından biri kayboldu.");
+Assert(concurrentMerged.RecentEvents.Count == 2, "Eşzamanlı geçmiş olaylarından biri kayboldu.");
+
+string lockWaitPath = Path.Combine(testDirectory, "lock-wait-usage.json");
+JsonUsageStore lockWaitStore = new(lockWaitPath);
+Directory.CreateDirectory(Path.GetDirectoryName(lockWaitPath)!);
+await using (FileStream heldLock = new(lockWaitPath + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+{
+    Task delayedSave = lockWaitStore.SaveAsync(new UsageLedger { LocalDay = concurrentDay, UsedSeconds = 60 });
+    await Task.Delay(150);
+    Assert(!delayedSave.IsCompleted, "Kilitli veri dosyasına yazma beklemeden ilerledi.");
+    await heldLock.DisposeAsync();
+    await delayedSave;
+}
+Assert((await lockWaitStore.LoadAsync()).UsedSeconds == 60, "Dosya kilidi kalktıktan sonra kullanım kaydedilemedi.");
+
 foreach (DaySchedule day in settings.Schedule)
 {
     day.AllowedFrom = new TimeOnly(0, 0);
