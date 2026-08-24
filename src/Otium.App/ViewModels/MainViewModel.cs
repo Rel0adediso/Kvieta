@@ -495,16 +495,27 @@ public sealed class MainViewModel : ObservableObject
 
     public void RemoveSelectedApplication()
     {
-        if (SelectedAppRule is null)
+        RemoveApplication(SelectedAppRule);
+    }
+
+    public void RemoveApplication(AppRuleRow? rule)
+    {
+        if (rule is null)
         {
             StatusMessage = L("Önce kaldırılacak uygulamayı seç.", "Select an application to remove first.");
             return;
         }
 
-        AppRules.Remove(SelectedAppRule);
-        SelectedAppRule = null;
+        AppRules.Remove(rule);
+        if (ReferenceEquals(SelectedAppRule, rule))
+        {
+            SelectedAppRule = null;
+        }
+
         RefreshOverview();
-        StatusMessage = L("Uygulama kuralı kaldırıldı.", "Application rule removed.");
+        StatusMessage = L(
+            "Uygulama kuralı kaldırıldı · Uygulamak için Kaydet'e bas.",
+            "Application rule removed · Press Save to apply the change.");
     }
 
     public bool VerifyAdminPin(string pin)

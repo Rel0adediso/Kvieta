@@ -939,6 +939,18 @@ public partial class MainWindow : Window
         _viewModel.RemoveSelectedApplication();
     }
 
+    private void ApplicationMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.ComboBox
+            {
+                DataContext: AppRuleRow rule,
+                SelectedItem: AppRuleModeOption { IsRemove: true }
+            })
+        {
+            _viewModel.RemoveApplication(rule);
+        }
+    }
+
     private async void OpenCafeMode_Click(object sender, RoutedEventArgs e)
     {
         if (!await _viewModel.SaveAsync())

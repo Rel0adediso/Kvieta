@@ -25,7 +25,7 @@ public sealed class AppRuleRow : ObservableObject
         [
             new(AppRuleMode.Blocked, LocalizationService.Get("Blocked"), LocalizationService.Get("PermanentBlockModeDescription")),
             new(AppRuleMode.Limited, LocalizationService.Get("Limited"), LocalizationService.Get("LimitedModeDescription")),
-            new(AppRuleMode.Unlimited, LocalizationService.Get("Unlimited"), LocalizationService.Get("UnlimitedModeDescription"))
+            new(AppRuleMode.Unlimited, LocalizationService.Get("Remove"), LocalizationService.Get("RemoveRuleDescription"), IsRemove: true)
         ];
         _mode = _modes.Single(option => option.Value == rule.Mode);
         _dailyLimitMinutes = rule.DailyLimitMinutes;
@@ -39,6 +39,7 @@ public sealed class AppRuleRow : ObservableObject
     public bool HasIcon => Icon is not null;
     public bool HasFallbackIcon => Icon is null;
     public bool IsLimitEditable => Mode.Value == AppRuleMode.Limited;
+    public bool IsLimitHidden => !IsLimitEditable;
     public string Initials
     {
         get
@@ -72,6 +73,7 @@ public sealed class AppRuleRow : ObservableObject
             if (SetProperty(ref _mode, value))
             {
                 OnPropertyChanged(nameof(IsLimitEditable));
+                OnPropertyChanged(nameof(IsLimitHidden));
             }
         }
     }
@@ -105,4 +107,4 @@ public sealed class AppRuleRow : ObservableObject
 
 }
 
-public sealed record AppRuleModeOption(AppRuleMode Value, string Label, string Description);
+public sealed record AppRuleModeOption(AppRuleMode Value, string Label, string Description, bool IsRemove = false);
