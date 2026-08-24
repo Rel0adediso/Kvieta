@@ -6,6 +6,7 @@ using System.ServiceProcess;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Win32.SafeHandles;
+using Otium.Core.Services;
 
 namespace Otium.App.Services;
 
@@ -30,6 +31,7 @@ public sealed class OtiumGuardianService : ServiceBase
 
     protected override void OnStart(string[] args)
     {
+        TryAudit("guardian.service", "started");
         _cancellation = new CancellationTokenSource();
         _worker = Task.WhenAll(
             Task.Run(() => WatchAsync(_cancellation.Token)),
@@ -38,6 +40,7 @@ public sealed class OtiumGuardianService : ServiceBase
 
     protected override void OnStop()
     {
+        TryAudit("guardian.service", "stopped");
         StopWorker();
     }
 
@@ -129,6 +132,7 @@ public sealed class OtiumGuardianService : ServiceBase
                     process.Id,
                     process.SessionId,
                     process.StartTime.ToUniversalTime().Ticks));
+                TryAudit("guardian.session", "started");
             }
             catch
             {
@@ -296,6 +300,18 @@ public sealed class OtiumGuardianService : ServiceBase
         string temporaryPath = ProtectionServiceManager.ProcessStatePath + ".tmp";
         File.WriteAllText(temporaryPath, JsonSerializer.Serialize(state));
         File.Move(temporaryPath, ProtectionServiceManager.ProcessStatePath, overwrite: true);
+    }
+
+    private static void TryAudit(string eventName, string outcome)
+    {
+        try
+        {
+            new SecurityAuditLog().AppendAsync(eventName, outcome).GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Audit storage failure must not stop the watchdog recovery loop.
+        }
     }
 
     private sealed class UserEnvironment(SafeAccessTokenHandle token, string localAppData, string userSid) : IDisposable

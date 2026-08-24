@@ -79,6 +79,9 @@
     <sys:String x:Key="DailyTimeColumn">DAILY TIME</sys:String>
     <sys:String x:Key="RuleBehaviorHelp">Choose Permanently blocked or Limited; use Remove to delete the rule. Press Save to apply the change.</sys:String>
     <sys:String x:Key="OpenRecoveryCenter">Open Recovery Center  ›</sys:String>
+    <sys:String x:Key="ExportDiagnostics">Diagnostics report</sys:String>
+    <sys:String x:Key="DiagnosticsExported">Diagnostics report exported.</sys:String>
+    <sys:String x:Key="DiagnosticsExportFailed">Diagnostics report could not be created</sys:String>
     <sys:String x:Key="RecoveryCenterTitle">Recovery Center</sys:String>
     <sys:String x:Key="RecoveryCenterDescription">Each tool solves a different problem. Read its effect before continuing; none silently removes daily time or application rules.</sys:String>
     <sys:String x:Key="TrustCurrentClockTitle">Trust the current Windows clock</sys:String>

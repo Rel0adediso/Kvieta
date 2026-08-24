@@ -79,6 +79,9 @@
     <sys:String x:Key="DailyTimeColumn">GÜNLÜK SÜRE</sys:String>
     <sys:String x:Key="RuleBehaviorHelp">Kalıcı kapalı veya Süreli seç; kuralı silmek için Kaldır'ı kullan. Değişikliği etkinleştirmek için Kaydet'e bas.</sys:String>
     <sys:String x:Key="OpenRecoveryCenter">Kurtarma merkezini aç  ›</sys:String>
+    <sys:String x:Key="ExportDiagnostics">Tanılama raporu</sys:String>
+    <sys:String x:Key="DiagnosticsExported">Tanılama raporu dışa aktarıldı.</sys:String>
+    <sys:String x:Key="DiagnosticsExportFailed">Tanılama raporu oluşturulamadı</sys:String>
     <sys:String x:Key="RecoveryCenterTitle">Kurtarma Merkezi</sys:String>
     <sys:String x:Key="RecoveryCenterDescription">Buradaki araçlar farklı sorunları çözer. Ne yaptığını okumadan bir işlem başlatma; hiçbiri günlük süreyi veya uygulama kurallarını gizlice kaldırmaz.</sys:String>
     <sys:String x:Key="TrustCurrentClockTitle">Geçerli Windows saatine güven</sys:String>

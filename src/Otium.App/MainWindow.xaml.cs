@@ -569,6 +569,31 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void ExportDiagnostics_Click(object sender, RoutedEventArgs e)
+    {
+        Microsoft.Win32.SaveFileDialog dialog = new()
+        {
+            Title = LocalizationService.Get("ExportDiagnostics"),
+            FileName = $"otium-diagnostics-{DateTime.Now:yyyy-MM-dd-HHmm}",
+            DefaultExt = ".json",
+            Filter = "JSON (*.json)|*.json"
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            await File.WriteAllTextAsync(dialog.FileName, await _viewModel.ExportDiagnosticsJsonAsync());
+            _viewModel.StatusMessage = LocalizationService.Get("DiagnosticsExported");
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{LocalizationService.Get("DiagnosticsExportFailed")}: {exception.Message}";
+        }
+    }
+
     private async void RecoveryCodes_Click(object sender, RoutedEventArgs e)
     {
         if (!_viewModel.HasAdminPin)
@@ -881,10 +906,10 @@ public partial class MainWindow : Window
         string statusKey = health.IsHealthy
             ? "ProtectionActive"
             : health.ServiceState switch
-        {
-            ProtectionServiceState.Stopped => "ProtectionStopped",
-            _ => "ProtectionInactive"
-        };
+            {
+                ProtectionServiceState.Stopped => "ProtectionStopped",
+                _ => "ProtectionInactive"
+            };
         string actionKey = health.IsHealthy
             ? "ProtectionActive"
             : health.ServiceState == ProtectionServiceState.NotInstalled

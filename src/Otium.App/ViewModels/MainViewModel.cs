@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text;
+using System.Runtime.InteropServices;
 using Otium.Core.Models;
 using Otium.Core.Services;
 using Otium.App.Services;
@@ -616,6 +617,83 @@ public sealed class MainViewModel : ObservableObject
             }
         }
         return csv.ToString();
+    }
+
+    public async Task<string> ExportDiagnosticsJsonAsync()
+    {
+        UsageLedger ledger = await _usageStore.LoadAsync();
+        ProtectionHealthReport health = ProtectionServiceManager.GetHealthReport();
+        List<SecurityAuditEntry> auditEntries = [];
+        try
+        {
+            string auditPath = new SecurityAuditLog().FilePath;
+            if (File.Exists(auditPath))
+            {
+                JsonSerializerOptions auditOptions = new(JsonSerializerDefaults.Web);
+                foreach (string line in (await File.ReadAllLinesAsync(auditPath)).TakeLast(100))
+                {
+                    if (JsonSerializer.Deserialize<SecurityAuditEntry>(line, auditOptions) is { } entry)
+                    {
+                        auditEntries.Add(entry);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // An unavailable audit file is reported as an empty list, not an export failure.
+        }
+
+        var report = new
+        {
+            GeneratedAtUtc = DateTimeOffset.UtcNow,
+            Application = new
+            {
+                Version = BuildInfo.Version,
+                BuildInfo.Flavor,
+                OperatingSystem = RuntimeInformation.OSDescription,
+                ProcessArchitecture = RuntimeInformation.ProcessArchitecture.ToString()
+            },
+            Settings = new
+            {
+                _settings.SchemaVersion,
+                _settings.Mode,
+                _settings.SetupCompleted,
+                _settings.UsageRetentionDays,
+                HasAdminPin = _settings.AdminPin.IsConfigured,
+                HasPendingChange = _settings.PendingChange is not null,
+                ScheduleCount = _settings.Schedule.Count,
+                ApplicationRuleCount = _settings.AppRules.Count,
+                TemporaryAllowanceCount = _settings.TemporaryAllowances.Count,
+                RecoveredFromBackup = _settingsStore.LastLoadRecoveredFromBackup,
+                MigratedOnLoad = _settingsStore.LastLoadMigrated
+            },
+            Usage = new
+            {
+                ledger.SchemaVersion,
+                ledger.LocalDay,
+                HistoryDayCount = ledger.History.Count,
+                ledger.ClockAnomalyRequiresRecovery,
+                ledger.LastClockChange,
+                RecoveredFromBackup = _usageStore.LastLoadRecoveredFromBackup,
+                MigratedOnLoad = _usageStore.LastLoadMigrated
+            },
+            Guardian = new
+            {
+                ServiceState = health.ServiceState.ToString(),
+                health.IsHealthy,
+                Issues = health.Issues.Select(issue => issue.ToString()).ToList(),
+                VersionCompatibility = ProtectionServiceManager.GetVersionCompatibility().ToString(),
+                ProtectionServiceManager.IsInstallerManaged
+            },
+            RecentSecurityEvents = auditEntries
+        };
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        return JsonSerializer.Serialize(report, options);
     }
 
     public async Task ClearUsageHistoryAsync()
