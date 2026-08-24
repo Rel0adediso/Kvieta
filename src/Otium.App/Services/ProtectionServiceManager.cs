@@ -58,6 +58,7 @@ public static class ProtectionServiceManager
     public static string EnrollmentPath => Path.Combine(ProtectionDataDirectory, "guardian-enrollment.json");
     public static string ProcessStatePath => Path.Combine(ProtectionDataDirectory, "guardian-process.json");
     public static string ProtectedSettingsPath => Path.Combine(ProtectionDataDirectory, "protected-settings.json");
+    public static string InstallLogPath => Path.Combine(ProtectionDataDirectory, "guardian-install.log");
 
     public static bool IsInstallerManaged
     {
@@ -302,7 +303,15 @@ public static class ProtectionServiceManager
                 return false;
             }
 
-            await process.WaitForExitAsync();
+            using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(90));
+            try
+            {
+                await process.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
             return process.ExitCode == 0;
         }
         catch (System.ComponentModel.Win32Exception)
@@ -339,28 +348,42 @@ public static class ProtectionServiceManager
     {
         try
         {
+            TraceInstallStep("start");
             if (string.IsNullOrWhiteSpace(payload))
             {
+                TraceInstallStep("failure.payload-missing");
                 return 2;
             }
 
             GuardianInstallRequest request = JsonSerializer.Deserialize<GuardianInstallRequest>(
                 Encoding.UTF8.GetString(Convert.FromBase64String(payload)))
                 ?? throw new InvalidOperationException("Guardian enrollment request is invalid.");
-            ControlSettings settings = new JsonSettingsStore(request.SettingsPath).LoadAsync().GetAwaiter().GetResult();
+            TraceInstallStep("payload.valid");
+            ControlSettings settings = Task.Run(
+                    () => new JsonSettingsStore(request.SettingsPath).LoadAsync())
+                .GetAwaiter()
+                .GetResult();
+            TraceInstallStep("settings.loaded");
             if (settings.Mode != ControlMode.Protected || !settings.AdminPin.IsConfigured)
             {
+                TraceInstallStep("failure.policy-not-protected");
                 return 3;
             }
 
             bool alreadyInstalled = GetState() != ProtectionServiceState.NotInstalled;
+            TraceInstallStep(alreadyInstalled ? "service.existing" : "service.new");
             StopServiceIfPresent();
+            StopTrackedGuardianSessionIfPresent();
+            TraceInstallStep("session.stopped");
             Directory.CreateDirectory(InstallDirectory);
             Directory.CreateDirectory(ProtectionDataDirectory);
+            TraceInstallStep("directories.ready");
             HardenProtectionDataAcl(request.UserSid);
+            TraceInstallStep("acl.ready");
             File.WriteAllText(EnrollmentPath, JsonSerializer.Serialize(
                 new GuardianEnrollment(request.UserSid, request.SettingsPath, settings.AdminPin)));
             File.Copy(request.SettingsPath, ProtectedSettingsPath, overwrite: true);
+            TraceInstallStep("policy.ready");
 
             string source = Environment.ProcessPath
                 ?? throw new InvalidOperationException("Otium executable path is unavailable.");
@@ -368,6 +391,7 @@ public static class ProtectionServiceManager
             {
                 File.Copy(source, InstalledExecutablePath, overwrite: true);
             }
+            TraceInstallStep("binary.ready");
 
             RunSc(
                 alreadyInstalled ? "config" : "create",
@@ -377,12 +401,30 @@ public static class ProtectionServiceManager
                 "DisplayName=", "Otium Protection");
             RunSc("description", ServiceName, "Otium protected-session watchdog");
             RunSc("failure", ServiceName, "reset=", "60", "actions=", "restart/3000/restart/3000/restart/3000");
+            TraceInstallStep("service.configured");
             RunSc("start", ServiceName);
+            TraceInstallStep("complete");
             return 0;
+        }
+        catch (Exception exception)
+        {
+            TraceInstallStep($"failure.{exception.GetType().Name}");
+            return 1;
+        }
+    }
+
+    private static void TraceInstallStep(string step)
+    {
+        try
+        {
+            Directory.CreateDirectory(ProtectionDataDirectory);
+            File.AppendAllText(
+                InstallLogPath,
+                $"{DateTimeOffset.UtcNow:O} pid={Environment.ProcessId} {step}{Environment.NewLine}");
         }
         catch
         {
-            return 1;
+            // Installation must not depend on diagnostic logging.
         }
     }
 
@@ -450,6 +492,51 @@ public static class ProtectionServiceManager
                     throw new InvalidOperationException("Otium protection service did not stop in time.");
                 }
             }
+        }
+    }
+
+    private static void StopTrackedGuardianSessionIfPresent()
+    {
+        try
+        {
+            if (!File.Exists(ProcessStatePath))
+            {
+                return;
+            }
+
+            GuardianProcessState? state = JsonSerializer.Deserialize<GuardianProcessState>(
+                File.ReadAllText(ProcessStatePath));
+            if (state is null)
+            {
+                return;
+            }
+
+            using Process process = Process.GetProcessById(state.ProcessId);
+            string? executablePath = process.MainModule?.FileName;
+            if (process.HasExited ||
+                process.SessionId != state.SessionId ||
+                process.StartTime.ToUniversalTime().Ticks != state.StartTimeUtcTicks ||
+                !string.Equals(
+                    Path.GetFullPath(executablePath ?? string.Empty),
+                    Path.GetFullPath(InstalledExecutablePath),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            process.Kill(entireProcessTree: true);
+            if (!process.WaitForExit(5000))
+            {
+                throw new InvalidOperationException("Guardian session did not stop in time.");
+            }
+        }
+        catch (ArgumentException)
+        {
+            // The tracked process already exited.
+        }
+        finally
+        {
+            TryDelete(ProcessStatePath);
         }
     }
 

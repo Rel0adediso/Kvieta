@@ -42,6 +42,23 @@ function Wait-ForGuardianProcess([int]$PreviousProcessId) {
     throw "Guardian session did not return within $TimeoutSeconds seconds."
 }
 
+function Wait-ForCurrentGuardianProcess {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        $state = Get-GuardianState
+        if ($null -ne $state) {
+            $process = Get-Process -Id $state.ProcessId -ErrorAction SilentlyContinue
+            if ($null -ne $process) {
+                return $state
+            }
+        }
+
+        Start-Sleep -Milliseconds 250
+    }
+
+    throw "A live Guardian session was not found within $TimeoutSeconds seconds."
+}
+
 $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 if ($null -eq $service -or $service.Status -ne 'Running') {
     throw 'OtiumGuardian must be installed and running before this test.'
@@ -50,14 +67,7 @@ if (-not (Test-Path -LiteralPath $installedExecutable)) {
     throw "Installed Otium executable was not found: $installedExecutable"
 }
 
-$initialState = Get-GuardianState
-if ($null -eq $initialState) {
-    throw 'Guardian process state is unavailable.'
-}
-$initialProcess = Get-Process -Id $initialState.ProcessId -ErrorAction SilentlyContinue
-if ($null -eq $initialProcess) {
-    throw "Tracked Guardian session is not running: $($initialState.ProcessId)"
-}
+$initialState = Wait-ForCurrentGuardianProcess
 
 Stop-Process -Id $initialState.ProcessId -Force
 $replacementProcessId = Wait-ForGuardianProcess -PreviousProcessId $initialState.ProcessId

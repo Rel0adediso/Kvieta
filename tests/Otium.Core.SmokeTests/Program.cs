@@ -156,6 +156,28 @@ Assert(loaded.AwarenessTrackingEnabled && loaded.UsageRetentionDays == 180, "Rit
 Assert(loaded.WeeklyReductionGoalPercent == 10, "Ritim azaltma hedefi geri yüklenemedi.");
 Assert(AdminPinService.Verify("4826", loaded.AdminPin), "Yönetici PIN'i güvenli biçimde geri yüklenemedi.");
 Assert(loaded.AppRules.Count == 1, "Uygulama kuralları geri yüklenemedi.");
+await using (FileStream heldWriterLock = new(
+                 testPath + ".lock",
+                 FileMode.OpenOrCreate,
+                 FileAccess.ReadWrite,
+                 FileShare.None))
+{
+    JsonSettingsStore readOnlyStore = new(testPath, readOnly: true);
+    ControlSettings readOnlyLoaded = await readOnlyStore.LoadAsync();
+    Assert(readOnlyLoaded.DeviceName == settings.DeviceName,
+        "Salt okunur korunan ayar yüklemesi yazar lock'una gereksiz yere bağımlı kaldı.");
+    bool readOnlyWriteRejected = false;
+    try
+    {
+        await readOnlyStore.SaveAsync(readOnlyLoaded);
+    }
+    catch (InvalidOperationException)
+    {
+        readOnlyWriteRejected = true;
+    }
+
+    Assert(readOnlyWriteRejected, "Salt okunur korunan ayar deposu yazmayı reddetmedi.");
+}
 
 string recoverySettingsPath = Path.Combine(testDirectory, "recovery-settings.json");
 JsonSettingsStore recoveryStore = new(recoverySettingsPath);

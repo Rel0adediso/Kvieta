@@ -38,6 +38,35 @@ internal sealed class ResilientJsonFile<T> where T : class
         return await LoadCoreAsync(cancellationToken);
     }
 
+    public async Task<T> LoadReadOnlyAsync(CancellationToken cancellationToken = default)
+    {
+        LastLoadRecoveredFromBackup = false;
+        LastLoadMigrated = false;
+        if (!File.Exists(FilePath))
+        {
+            return _createDefault();
+        }
+
+        try
+        {
+            MigrationResult<T> result = await ReadAndMigrateAsync(FilePath, cancellationToken);
+            LastLoadMigrated = result.Changed;
+            return result.Value;
+        }
+        catch (Exception primaryException) when (IsRecoverableReadFailure(primaryException))
+        {
+            if (!File.Exists(BackupPath))
+            {
+                throw new InvalidDataException($"Otium veri dosyası okunamadı ve sağlam yedek bulunamadı: {FilePath}", primaryException);
+            }
+
+            MigrationResult<T> recovered = await ReadAndMigrateAsync(BackupPath, cancellationToken);
+            LastLoadRecoveredFromBackup = true;
+            LastLoadMigrated = recovered.Changed;
+            return recovered.Value;
+        }
+    }
+
     public async Task<T> UpdateAsync(Func<T, T> update, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(update);

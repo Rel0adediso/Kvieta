@@ -71,8 +71,9 @@ public partial class App : System.Windows.Application
         bool protectedPolicyAvailable =
             ProtectionServiceManager.GetState() == ProtectionServiceState.Running &&
             File.Exists(ProtectionServiceManager.ProtectedSettingsPath);
-        JsonSettingsStore settingsStore = (guardianSession || protectedPolicyAvailable) &&
-            File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+        JsonSettingsStore settingsStore = guardianSession && File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+            ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true)
+            : protectedPolicyAvailable && File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
                 ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
                 : new JsonSettingsStore();
         ControlSettings settings;

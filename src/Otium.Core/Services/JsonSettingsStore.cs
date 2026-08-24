@@ -9,6 +9,7 @@ public sealed class JsonSettingsStore
     private static readonly string LegacyPreOtiumDirectoryName = "Kardes" + "Kilidi";
     private readonly IReadOnlyList<string> _legacyFilePaths;
     private readonly ResilientJsonFile<ControlSettings> _file;
+    private readonly bool _readOnly;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -16,11 +17,12 @@ public sealed class JsonSettingsStore
         Converters = { new JsonStringEnumConverter() }
     };
 
-    public JsonSettingsStore(string? filePath = null)
+    public JsonSettingsStore(string? filePath = null, bool readOnly = false)
     {
         string localData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         FilePath = filePath ?? Path.Combine(localData, "Otium", "settings.json");
         _file = CreateFile(FilePath);
+        _readOnly = readOnly;
         _legacyFilePaths = filePath is null
             ? [Path.Combine(localData, "Denge", "settings.json"), Path.Combine(localData, LegacyPreOtiumDirectoryName, "settings.json")]
             : [];
@@ -33,6 +35,11 @@ public sealed class JsonSettingsStore
 
     public async Task<ControlSettings> LoadAsync(CancellationToken cancellationToken = default)
     {
+        if (_readOnly)
+        {
+            return await _file.LoadReadOnlyAsync(cancellationToken);
+        }
+
         string? sourcePath = File.Exists(FilePath)
             ? FilePath
             : _legacyFilePaths.FirstOrDefault(File.Exists);
@@ -67,14 +74,23 @@ public sealed class JsonSettingsStore
 
     public async Task SaveAsync(ControlSettings settings, CancellationToken cancellationToken = default)
     {
+        if (_readOnly)
+        {
+            throw new InvalidOperationException("Salt okunur ayar deposu değiştirilemez.");
+        }
+
         await _file.SaveAsync(settings, cancellationToken);
     }
 
     public Task<ControlSettings> UpdateAsync(Func<ControlSettings, ControlSettings> update, CancellationToken cancellationToken = default) =>
-        _file.UpdateAsync(update, cancellationToken);
+        _readOnly
+            ? Task.FromException<ControlSettings>(new InvalidOperationException("Salt okunur ayar deposu değiştirilemez."))
+            : _file.UpdateAsync(update, cancellationToken);
 
     public Task<ControlSettings> RestoreBackupAsync(CancellationToken cancellationToken = default) =>
-        _file.RestoreBackupAsync(cancellationToken);
+        _readOnly
+            ? Task.FromException<ControlSettings>(new InvalidOperationException("Salt okunur ayar deposu değiştirilemez."))
+            : _file.RestoreBackupAsync(cancellationToken);
 
     private static ResilientJsonFile<ControlSettings> CreateFile(string path) => new(
         path,
