@@ -1,95 +1,111 @@
+<div align="center">
+
 # Otium
 
-Hesap veya internet bağlantısı gerektirmeden Windows üzerinde çalışan yerel ekran süresi ve oturum yönetimi uygulaması.
+### Her şeyin bir zamanı var.
 
-Güncel geliştirme sırası ve v1.0 hedefleri için [ROADMAP.md](ROADMAP.md) belgesine bakın.
+Yerel, sakin ve hesap gerektirmeyen Windows ekran süresi yönetimi.
 
-## Şu anki sürüm: v0.15.1 prototip
+![Windows](https://img.shields.io/badge/Windows-yerel-87946B?style=flat-square&labelColor=3F4437)
+![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
+![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
+![Privacy](https://img.shields.io/badge/veri-bu%20cihazda-87946B?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/sürüm-v0.15.1-C9B98E?style=flat-square&labelColor=3F4437)
+![AI assisted](https://img.shields.io/badge/geliştirme-AI%20destekli-87946B?style=flat-square&labelColor=3F4437)
 
-Bu sürüm, krem ve haki tonlarında daha ince bir Otium tasarım dili kullanır. Görünüm Windows tercihini otomatik izleyebilir veya Ayarlar ekranından açık/koyu olarak seçilebilir.
+</div>
 
-Bu prototip şunları içerir:
+> Otium, bilgisayar kullanımını cezalandırmak yerine zamanı görünür ve yönetilebilir hale getirir. Bulut hesabı istemez; planlar, kurallar ve kullanım geçmişi cihazda kalır.
 
-- Türkçe yönetim paneli
-- Windows ile otomatik açık/koyu tema
-- Uygulamayı yeniden başlatmadan Türkçe/English dil değiştirme
-- İlk kurulumda kişisel veya korumalı kullanım biçimi seçimi
-- Kişisel kullanımda PIN'siz yönetim ve çıkış
-- Korumalı kullanımda zorunlu yönetici PIN'i
-- Ayarlardan PIN kontrollü kullanım biçimi değiştirme
-- Kişisel kullanımda gevşeten kural değişikliklerini beklemeye alma
-- 15 dakika, 1 saat veya ertesi gün bekleme seçenekleri
-- Bekleyen değişikliği uygulanmadan iptal etme
-- Bekleyen değişiklikleri saat ve ayrıntılarıyla Bugün sayfasında gösterme
-- Üst bildirimden bekleyen değişiklik kartına hızlı geçiş ve dikkat parıltısı
-- Kişisel moddan korumalı moda geçişi de beklemeye alarak mod değiştirme açığını kapatma
-- Kural bekleme süresini azaltmayı mevcut bekleme süresine tabi tutma
-- Yönetici PIN'i satırını yalnızca korumalı kullanımda gösterme
-- Kişisel kontrol merkezi küçültülse bile oturum sayacını arka planda sürdürme
-- Çalışan oturum ekranını kontrol merkezinden yeniden açma
-- `Ctrl+Alt+Shift+F12` ile tüm kontrolleri atlayan, bir saatlik gizli test kilidi kaldırma
-- Kişisel kontrol merkezini kapatınca sistem tepsisine gizleme ve oturumu arkada sürdürme
-- Sistem temasına uyumlu, ince ve yuvarlatılmış özel sistem tepsisi menüsü
-- Korumalı kullanım için yönetici onayıyla kurulabilen Windows gözetmen servisi
-- Oturum ekranı zorla kapatıldığında yaklaşık 5-12 saniye içinde otomatik geri getirme
-- Servis durumunu Ayarlar'da gösterme, PIN ve Windows yönetici onayıyla kaldırma
-- Servisin yalnızca kendi başlattığı kurulu Otium sürecini kabul etmesi
-- Koruma kaydını standart kullanıcıya salt okunur ProgramData alanında saklama
-- Engelli uygulamaları çalışırken sonlandırma
-- Süreli uygulamaların günlük kullanımını ayrı ayrı sayma ve limitte kapatma
-- Süre bitişinde seçilen engel ekranı, Windows kilidi veya oturum kapatma eylemini uygulama
-- Korumalı kuralların servis tarafından yönetilen salt-okunur ana kopyası
-- Yönetim paneli değişikliklerini PIN doğrulamalı yerel servis kanalıyla uygulama
-- Elle değiştirilen kullanıcı ayarlarının korumalı oturumu gevşetememesi
-- Başarısız servis PIN denemelerinde artan bekleme süresi
-- Sistem saati beş dakikadan fazla geri alındığında kullanımı doğru saat dönene kadar durdurma
-- Kullanıcı başına tek Otium süreci ve ikinci açılışta mevcut kontrol merkezini öne getirme
-- Süre dolunca bekleyen ayarı otomatik uygulama
-- Ayarlardan kalıcı Sistem/Açık/Koyu görünüm seçimi
-- İnce özel pencere çubuğu ve açılır-kapanır yan menü
-- Sağda, üzerine gelince simge gösteren pencere kontrolleri
-- Tek birim başlıklı ve tekrarsız günlük limit sütunu
-- Tuzlanmış PBKDF2 özetiyle saklanan yönetici PIN'i
-- Yönetim paneli açılışında PIN doğrulaması
-- PIN ile korunan doğrudan çocuk oturumu modu
-- Windows oturumu açılınca korumalı ekranı otomatik başlatma seçeneği
-- Doğrudan oturumda kullanım sayacını otomatik başlatma
-- Windows kilitliyken ve bilgisayar uykudayken süreyi durdurma
-- Windows kilidi açılınca Mola durumunda kalma ve yalnız kullanıcı Devam Et dediğinde sayacı sürdürme
-- Kompakt haftalık plan ve hizalı ayar formları
-- Günlük kullanım limiti ayarı
-- Haftanın günlerine göre saat aralığı ve süre ayarı
-- Ana haftalık planı bozmadan belirli bir tarih ve saat için geçici izin tanımlama
-- Oturum ekranından yönetici PIN'iyle yalnız bugüne 15, 30 veya 60 dakika ek süre verme
-- Kapalı, süreli ve serbest uygulama kuralları
-- Yerel JSON ayar kaydı
-- Güncel program durumunun önizlemesi
-- Tam ekran oturum ve mola deneyimi
-- Gerçek zamanlı kullanım sayacı
-- Mola verme ve kaldığı yerden devam etme
-- Sabah/akşam kullanımında kalan sürenin korunması
-- Aktif oturum için küçük kalan süre paneli
-- Mola ekranından uyku, yeniden başlatma ve kapatma menüsü
-- Son yedi gün için günlük ve haftalık kullanım geçmişi
-- Haftalık toplam, günlük ortalama ve en çok kullanılan uygulama özeti
-- Yapılandırılmış süreli ve sınırsız uygulamalar için kullanım dökümü
-- Mola, limit dolması, ek süre ve kural değişikliği hareket geçmişi
-- Geçmiş verilerini 90 gün boyunca yalnızca cihazda saklama
-- Ayar ve kullanım verilerinde süreçler arası yazma kilidi
-- Doğrulanan atomik JSON kaydı ve son sağlam `.bak` kopyası
-- Bozuk ana dosyayı son sağlam yedekten otomatik kurtarma
-- Eşzamanlı kullanım sayaçları ve geçmiş olaylarını kayıpsız birleştirme
-- Sürümlenmiş ayar ve kullanım verisi migration temeli
+## Neden Otium?
 
-v0.15.1 kullanım geçmişini, dayanıklı yerel veri katmanını, tarihli geçici izinleri, yönetici onaylı ek süre akışını ve gizli test geçidinin bekleyen değişikliği anında uygulamasını içerir. AppLocker/WDAC tabanlı çalıştırma ilkeleri henüz eklenmemiştir.
+Otium aynı çekirdeği iki farklı kullanım biçiminde sunar:
 
-## Çalıştırma
+| Kendim için | Yönettiğim biri için |
+|---|---|
+| Ani kararlarla kuralları gevşetmeye karşı gecikme uygular. | Yönetici PIN'i ve Guardian servisiyle kuralları korur. |
+| PIN gerektirmeden kişinin kendi düzenini kurmasına yardım eder. | Standart Windows kullanıcısının basit kaçışlarına direnç gösterir. |
+| Bilgisayar kullanılırken sayaç arka planda devam eder. | Zorla kapatılan oturum yüzünü yeniden ayağa kaldırabilir. |
+
+## Öne çıkanlar
+
+### Zaman ve plan
+
+- Haftanın günlerine göre saat aralığı ve günlük kullanım limiti
+- Win+L sonrasında otomatik devam yerine kontrollü **Mola** durumu
+- Ana haftalık planı bozmayan tarihli geçici izinler
+- Yönetici onayıyla yalnız bugüne ek süre
+- Film veya uzun içerik sırasında mouse hareketine bağlı olmayan sayaç
+
+### Ritim ve geçmiş
+
+- Son yedi gün için günlük ve haftalık kullanım görünümü
+- Haftalık toplam, günlük ortalama ve en çok kullanılan uygulama
+- Mola, limit dolması, ek süre ve kural değişikliği hareketleri
+- 90 günlük, yalnızca cihazda saklanan geçmiş
+- Gelecek sürümlerde kişisel gelişim, geri kazanılan zaman ve aktif uygulama farkındalığı
+
+### Uygulama kuralları
+
+- Engelli, süreli ve serbest uygulamalar
+- Süreli uygulamalarda günlük sayaç ve limitte sonlandırma
+- Sınırsız uygulamalarda farkındalık amaçlı kullanım kaydı
+- Gelecek sürümlerde publisher, original filename, hash ve launcher/child-process tanıma
+
+### Güvenlik ve veri sağlamlığı
+
+- PBKDF2 ile tuzlanmış yönetici PIN doğrulaması
+- Korumalı kurallar için servis tarafından yönetilen otoriter kopya
+- Başarısız PIN denemelerinde artan bekleme
+- Beş dakikadan büyük saat geri alma girişimini algılama
+- Süreçler arası veri dosyası kilidi
+- Doğrulanmış atomik JSON kaydı ve son sağlam `.bak` kopyası
+- Bozuk ana dosyayı otomatik kurtarma
+- Eşzamanlı sayaç ve geçmiş olaylarını kayıpsız birleştirme
+
+## Tasarım dili
+
+Otium, sıcak krem ve haki tonlarını zeytin-grafit koyu temayla birleştiren kompakt bir Windows arayüzü kullanır.
+
+- Sistem / Açık / Koyu tema
+- Canlı Türkçe / English değişimi
+- İnce özel pencere çubuğu
+- Açılır-kapanır ve optik olarak hizalanmış navigasyon
+- Kompakt yedi günlük plan
+- Tema uyumlu özel tray menüsü
+- Bilgi yoğun ama sakin ekranlar; gereksiz büyük dashboard kartları yok
+
+## Proje yapısı
+
+| Parça | Sorumluluk |
+|---|---|
+| `KardesKilidi.Core` | Plan, oturum, policy, model ve dayanıklı yerel veri katmanı |
+| `KardesKilidi.App` | WPF Kontrol Merkezi, oturum yüzü, tray ve Windows entegrasyonları |
+| `KardesKilidi.Core.SmokeTests` | Çekirdek davranış, güvenlik regresyonu ve gerçek süreç testleri |
+| Guardian | Korumalı modda oturum sürecini ve otoriter policy alanını gözeten Windows servisi |
+
+Tarihsel solution ve namespace adlarında `KardesKilidi` kalması normaldir. Kullanıcıya görünen güncel ürün adı **Otium**'dur.
+
+## Güncel durum
+
+**v0.15.1 prototip**
+
+- Release build: `0` uyarı, `0` hata
+- Tek dosyalık, self-contained Windows paketi
+- Türkçe ve English kaynakları eşleşiyor
+- Veri kurtarma, migration, dosya kilidi ve eşzamanlı yazma smoke testleri mevcut
+
+Geliştirme sırası ve v1.0 hedefleri için [güncel yol haritasına](ROADMAP.md) bakın.
+
+## Kaynaktan çalıştırma
+
+Gereksinim: Windows ve .NET 10 SDK.
 
 ```powershell
 dotnet run --project src/KardesKilidi.App/KardesKilidi.App.csproj
 ```
 
-PIN oluşturulduktan sonra çocuk oturumunu doğrudan açmak için:
+Korumalı oturum yüzünü doğrudan açmak için:
 
 ```powershell
 dotnet run --project src/KardesKilidi.App/KardesKilidi.App.csproj -- --session
@@ -98,5 +114,28 @@ dotnet run --project src/KardesKilidi.App/KardesKilidi.App.csproj -- --session
 ## Kontroller
 
 ```powershell
-dotnet run --project tests/KardesKilidi.Core.SmokeTests/KardesKilidi.Core.SmokeTests.csproj
+dotnet build KardesKilidi.slnx -c Release
+dotnet run --project tests/KardesKilidi.Core.SmokeTests/KardesKilidi.Core.SmokeTests.csproj -c Release
 ```
+
+## Güvenlik sınırı
+
+Otium'un korumalı modu esas olarak ayrı bir yönetici hesabı tarafından yönetilen **standart Windows kullanıcısı** için tasarlanır. Fiziksel erişimi ve Windows yönetici yetkisi bulunan bir kişiye karşı hiçbir masaüstü uygulaması mutlak kaldırılamazlık garanti edemez.
+
+Development paketlerindeki test geçitleri public sürüm hedefi değildir. Yol haritasında test ve public build'lerin tamamen ayrılması planlanmıştır.
+
+## Geliştirme yaklaşımı
+
+**AI-assisted development · Human-directed product.**
+
+Ürün fikri, yönü, UX kararları ve gerçek kullanım testleri **Rel0adediso** tarafından yürütülür. Mimari, uygulama ve test geliştirme süreci **OpenAI Codex ile iş birliği içinde** ilerler.
+
+Bu nedenle projeyi “%100 AI made” diye tanımlamak yerine, insan tarafından yönlendirilen ve AI destekli geliştirilen bir ürün olarak açıkça belgeliyoruz.
+
+---
+
+<div align="center">
+
+**Otium** · *All in good time.*
+
+</div>
