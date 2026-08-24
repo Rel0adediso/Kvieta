@@ -31,6 +31,7 @@ public sealed class AppRuleRow : ObservableObject
     public WpfBrush FallbackBrush { get; }
     public bool HasIcon => Icon is not null;
     public bool HasFallbackIcon => Icon is null;
+    public bool IsLimitEditable => FromDisplayMode(Mode) == AppRuleMode.Limited;
     public string Initials
     {
         get
@@ -59,7 +60,13 @@ public sealed class AppRuleRow : ObservableObject
     public string Mode
     {
         get => _mode;
-        set => SetProperty(ref _mode, value);
+        set
+        {
+            if (SetProperty(ref _mode, value))
+            {
+                OnPropertyChanged(nameof(IsLimitEditable));
+            }
+        }
     }
 
     public int DailyLimitMinutes

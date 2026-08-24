@@ -640,6 +640,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RecoveryCenter_Click(object sender, RoutedEventArgs e)
+    {
+        RecoveryCenterWindow window = new() { Owner = this };
+        if (window.ShowDialog() != true || window.SelectedAction is null)
+        {
+            return;
+        }
+
+        switch (window.SelectedAction.Value)
+        {
+            case RecoveryCenterAction.TrustCurrentClock:
+                ResetClockProtection_Click(sender, e);
+                break;
+            case RecoveryCenterAction.RestoreSettings:
+                RestoreLastKnownGood_Click(sender, e);
+                break;
+            case RecoveryCenterAction.RepairInstallation:
+                RepairInstallation_Click(sender, e);
+                break;
+        }
+    }
+
     private async void ResetClockProtection_Click(object sender, RoutedEventArgs e)
     {
         if (_viewModel.HasAdminPin)
@@ -867,8 +889,8 @@ public partial class MainWindow : Window
         Microsoft.Win32.OpenFileDialog dialog = new()
         {
             Title = LocalizationService.CurrentLanguage == Otium.Core.Models.LanguagePreference.English
-                ? "Choose an application"
-                : "Kısıtlanacak uygulamayı seç",
+                ? "Choose a program to permanently block"
+                : "Kalıcı kapatılacak programı seç",
             Filter = LocalizationService.CurrentLanguage == Otium.Core.Models.LanguagePreference.English
                 ? "Windows applications (*.exe)|*.exe"
                 : "Windows uygulamaları (*.exe)|*.exe",

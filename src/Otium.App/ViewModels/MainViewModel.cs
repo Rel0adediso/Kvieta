@@ -476,7 +476,9 @@ public sealed class MainViewModel : ObservableObject
         AppRules.Add(new AppRuleRow(ApplicationIdentityService.CaptureRule(executablePath)));
 
         RefreshOverview();
-        StatusMessage = L("Uygulama listeye eklendi. Değişiklikleri kaydetmeyi unutma.", "Application added. Remember to save your changes.");
+        StatusMessage = L(
+            "Program kalıcı kapalı olarak eklendi · Kuralı uygulamak için Kaydet'e bas.",
+            "Program added as permanently blocked · Press Save to apply the rule.");
     }
 
     public void AddTemporaryAllowance(TemporaryAllowance allowance)
