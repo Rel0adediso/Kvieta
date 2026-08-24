@@ -506,6 +506,7 @@ public sealed class MainViewModel : ObservableObject
         List<DailyUsageRecord> days = [.. ledger.History];
         if (ledger.LocalDay == DateOnly.FromDateTime(DateTime.Today))
         {
+            Dictionary<Guid, string> ruleNames = _settings.AppRules.ToDictionary(rule => rule.Id, rule => rule.Name);
             days.RemoveAll(day => day.LocalDay == ledger.LocalDay);
             days.Add(new DailyUsageRecord
             {
@@ -513,6 +514,12 @@ public sealed class MainViewModel : ObservableObject
                 UsedSeconds = ledger.UsedSeconds,
                 AwarenessUsedSeconds = ledger.AwarenessUsedSeconds,
                 AwarenessHourlyUsedSeconds = new Dictionary<int, long>(ledger.AwarenessHourlyUsedSeconds),
+                Applications = ledger.AppUsedSeconds.Select(item => new AppUsageRecord
+                {
+                    RuleId = item.Key,
+                    Name = ruleNames.GetValueOrDefault(item.Key, L("Uygulama", "Application")),
+                    UsedSeconds = item.Value
+                }).ToList(),
                 ForegroundApplications = ledger.ForegroundAppUsedSeconds.Select(item => new AwarenessAppUsageRecord
                 {
                     ApplicationId = item.Key,
@@ -525,14 +532,19 @@ public sealed class MainViewModel : ObservableObject
         StringBuilder csv = new("date,type,name,seconds,minutes\r\n");
         foreach (DailyUsageRecord day in days.OrderBy(item => item.LocalDay))
         {
-            AppendCsvRow(csv, day.LocalDay, "total", string.Empty, day.AwarenessUsedSeconds);
+            AppendCsvRow(csv, day.LocalDay, "session_total", string.Empty, day.UsedSeconds);
+            AppendCsvRow(csv, day.LocalDay, "foreground_total", string.Empty, day.AwarenessUsedSeconds);
+            foreach (AppUsageRecord application in day.Applications.OrderByDescending(item => item.UsedSeconds))
+            {
+                AppendCsvRow(csv, day.LocalDay, "rule_application", application.Name, application.UsedSeconds);
+            }
             foreach (AwarenessAppUsageRecord application in day.ForegroundApplications.OrderByDescending(item => item.UsedSeconds))
             {
-                AppendCsvRow(csv, day.LocalDay, "application", application.Name, application.UsedSeconds);
+                AppendCsvRow(csv, day.LocalDay, "foreground_application", application.Name, application.UsedSeconds);
             }
             foreach ((int hour, long seconds) in day.AwarenessHourlyUsedSeconds.OrderBy(item => item.Key))
             {
-                AppendCsvRow(csv, day.LocalDay, "hour", $"{hour:00}:00-{(hour + 1) % 24:00}:00", seconds);
+                AppendCsvRow(csv, day.LocalDay, "foreground_hour", $"{hour:00}:00-{(hour + 1) % 24:00}:00", seconds);
             }
         }
         return csv.ToString();
@@ -540,13 +552,7 @@ public sealed class MainViewModel : ObservableObject
 
     public async Task ClearUsageHistoryAsync()
     {
-        UsageLedger empty = new()
-        {
-            SchemaVersion = 4,
-            LocalDay = DateOnly.FromDateTime(DateTime.Today),
-            LastUpdatedUtc = DateTimeOffset.UtcNow
-        };
-        await _usageStore.ReplaceAsync(empty);
+        UsageLedger empty = await _usageStore.ClearAsync();
         _lastUsageLedger = empty;
         BuildUsageHistory(empty);
         BuildRhythm(empty);
@@ -556,7 +562,10 @@ public sealed class MainViewModel : ObservableObject
 
     private static void AppendCsvRow(StringBuilder csv, DateOnly date, string type, string name, long seconds)
     {
-        string escapedName = $"\"{name.Replace("\"", "\"\"")}\"";
+        string safeName = name.Length > 0 && name[0] is '=' or '+' or '-' or '@' or '\t' or '\r'
+            ? $"'{name}"
+            : name;
+        string escapedName = $"\"{safeName.Replace("\"", "\"\"")}\"";
         csv.Append(date.ToString("yyyy-MM-dd"))
             .Append(',').Append(type)
             .Append(',').Append(escapedName)

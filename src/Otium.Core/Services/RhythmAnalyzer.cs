@@ -62,7 +62,7 @@ public static class RhythmAnalyzer
             .ToList();
 
         List<DailyUsageRecord> observed = records
-            .Where(record => record.AwarenessUsedSeconds > 0 || record.UsedSeconds > 0)
+            .Where(record => record.AwarenessUsedSeconds > 0)
             .ToList();
         List<DailyUsageRecord> baseline = observed.Take(14).ToList();
         int baselineDays = Math.Min(14, baseline.Count);
@@ -74,8 +74,8 @@ public static class RhythmAnalyzer
         DateOnly previousUntil = today.AddDays(-7);
         List<DailyUsageRecord> current = records.Where(record => record.LocalDay >= currentFrom && record.LocalDay <= today).ToList();
         List<DailyUsageRecord> previous = records.Where(record => record.LocalDay >= previousFrom && record.LocalDay <= previousUntil).ToList();
-        int currentObservedDays = current.Count(record => record.AwarenessUsedSeconds > 0 || record.UsedSeconds > 0);
-        int previousObservedDays = previous.Count(record => record.AwarenessUsedSeconds > 0 || record.UsedSeconds > 0);
+        int currentObservedDays = current.Count(record => record.AwarenessUsedSeconds > 0);
+        int previousObservedDays = previous.Count(record => record.AwarenessUsedSeconds > 0);
         long currentSeconds = current.Sum(record => record.AwarenessUsedSeconds);
         long previousSeconds = previous.Sum(record => record.AwarenessUsedSeconds);
         double? changePercent = previousSeconds > 0 && previousObservedDays > 0 && currentObservedDays > 0

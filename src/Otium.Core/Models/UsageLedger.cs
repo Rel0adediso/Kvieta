@@ -11,7 +11,9 @@ public enum SessionState
 
 public sealed class UsageLedger
 {
-    public int SchemaVersion { get; set; } = 4;
+    public int SchemaVersion { get; set; } = 5;
+    public long DataGeneration { get; set; }
+    public DateOnly? RetainedFromDay { get; set; }
     public DateOnly LocalDay { get; set; } = DateOnly.FromDateTime(DateTime.Today);
     public long UsedSeconds { get; set; }
     public int BonusMinutes { get; set; }

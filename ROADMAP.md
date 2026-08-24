@@ -53,7 +53,7 @@ Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sıras
 - Kural sayacı ile farkındalık sayacı veri modelinde ayrıldı.
 - Ön plan uygulaması ölçümü açık rızaya bağlandı ve varsayılan olarak kapalı tutuldu.
 - Yalnız güvenli uygulama adı ve süre saklanıyor; pencere başlığı, belge, yazılan metin ve site bilgisi kaydedilmiyor.
-- Şema 4 migration'ı eski ayarları ve kullanım geçmişini koruyor; yeni kayıtlar saatlik kullanım dağılımını da tutuyor.
+- Şema 5 migration'ı eski ayarları ve kullanım geçmişini koruyor; yeni kayıtlar saatlik dağılımı, veri neslini ve saklama kesimini de tutuyor.
 - Ritim ekranındaki uygulama özeti yalnız farkındalık verisini kullanıyor; kural motoru verisiyle karıştırılmıyor.
 - İsteğe bağlı sıkı kişisel mod, anında öz-ek süreyi kapatıyor; modu gevşetmek bekleme süresine tabi.
 - Uygulama özeti ilk üç kayıtla sınırlı; tüm sıralama ayrı ayrıntı panelinde açılıyor ve hareket listesi sabit uzunlukta tutuluyor.

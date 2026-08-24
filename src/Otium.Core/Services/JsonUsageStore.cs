@@ -67,23 +67,42 @@ public sealed class JsonUsageStore
         await _file.SaveAsync(ledger, cancellationToken);
     }
 
+    public Task<UsageLedger> ClearAsync(CancellationToken cancellationToken = default) =>
+        _file.UpdateAsync(current => new UsageLedger
+        {
+            SchemaVersion = 5,
+            DataGeneration = checked(current.DataGeneration + 1),
+            RetainedFromDay = current.RetainedFromDay,
+            LocalDay = DateOnly.FromDateTime(DateTime.Today),
+            LastUpdatedUtc = DateTimeOffset.UtcNow
+        }, cancellationToken);
+
     public async Task TrimHistoryAsync(int retentionDays, CancellationToken cancellationToken = default)
     {
         int safeDays = retentionDays is 30 or 90 or 180 ? retentionDays : 90;
         DateOnly cutoff = DateOnly.FromDateTime(DateTime.Today).AddDays(-(safeDays - 1));
         await _file.UpdateAsync(ledger =>
         {
-            ledger.History = ledger.History.Where(day => day.LocalDay >= cutoff).ToList();
+            ledger.RetainedFromDay = LaterOf(ledger.RetainedFromDay, cutoff);
+            ApplyRetentionCutoff(ledger);
             return ledger;
         }, cancellationToken);
     }
 
     private static UsageLedger Merge(UsageLedger current, UsageLedger incoming)
     {
+        if (current.DataGeneration != incoming.DataGeneration)
+        {
+            return current.DataGeneration > incoming.DataGeneration ? current : incoming;
+        }
+
+        DateOnly? retainedFromDay = LaterOf(current.RetainedFromDay, incoming.RetainedFromDay);
         if (current.LocalDay > incoming.LocalDay)
         {
             AddCurrentDayToHistory(current, incoming);
             MergeHistoricalData(current, incoming);
+            current.RetainedFromDay = retainedFromDay;
+            ApplyRetentionCutoff(current);
             return current;
         }
 
@@ -91,12 +110,15 @@ public sealed class JsonUsageStore
         {
             AddCurrentDayToHistory(incoming, current);
             MergeHistoricalData(incoming, current);
+            incoming.RetainedFromDay = retainedFromDay;
+            ApplyRetentionCutoff(incoming);
             return incoming;
         }
 
         UsageLedger newest = incoming.LastUpdatedUtc >= current.LastUpdatedUtc ? incoming : current;
         UsageLedger other = ReferenceEquals(newest, incoming) ? current : incoming;
-        newest.SchemaVersion = 4;
+        newest.SchemaVersion = 5;
+        newest.RetainedFromDay = retainedFromDay;
         newest.UsedSeconds = Math.Max(newest.UsedSeconds, other.UsedSeconds);
         newest.BonusMinutes = Math.Max(newest.BonusMinutes, other.BonusMinutes);
         newest.BreakCount = Math.Max(newest.BreakCount, other.BreakCount);
@@ -126,7 +148,36 @@ public sealed class JsonUsageStore
         }
 
         MergeHistoricalData(newest, other);
+        ApplyRetentionCutoff(newest);
         return newest;
+    }
+
+    private static DateOnly? LaterOf(DateOnly? left, DateOnly? right)
+    {
+        if (left is null)
+        {
+            return right;
+        }
+
+        if (right is null)
+        {
+            return left;
+        }
+
+        return left.Value >= right.Value ? left : right;
+    }
+
+    private static void ApplyRetentionCutoff(UsageLedger ledger)
+    {
+        if (ledger.RetainedFromDay is not { } cutoff)
+        {
+            return;
+        }
+
+        ledger.History = ledger.History.Where(day => day.LocalDay >= cutoff).ToList();
+        ledger.RecentEvents = ledger.RecentEvents
+            .Where(item => DateOnly.FromDateTime(item.OccurredAtUtc.ToLocalTime().DateTime) >= cutoff)
+            .ToList();
     }
 
     private static void MergeHistoricalData(UsageLedger target, UsageLedger source)
@@ -231,13 +282,13 @@ public sealed class JsonUsageStore
         static () => new UsageLedger(),
         static ledger =>
         {
-            if (ledger.SchemaVersion > 4)
+            if (ledger.SchemaVersion > 5)
             {
                 throw new InvalidDataException($"Desteklenmeyen kullanım şeması: {ledger.SchemaVersion}");
             }
 
-            bool changed = ledger.SchemaVersion < 4;
-            ledger.SchemaVersion = 4;
+            bool changed = ledger.SchemaVersion < 5;
+            ledger.SchemaVersion = 5;
             ledger.AppUsedSeconds ??= [];
             ledger.ForegroundAppUsedSeconds ??= new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             ledger.AwarenessHourlyUsedSeconds ??= [];

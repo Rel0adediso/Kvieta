@@ -103,7 +103,7 @@ await File.WriteAllTextAsync(migrationUsagePath, """
 """);
 JsonUsageStore migrationUsageStore = new(migrationUsagePath);
 UsageLedger migratedUsage = await migrationUsageStore.LoadAsync();
-Assert(migratedUsage.SchemaVersion == 4 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 4'e taşınmadı.");
+Assert(migratedUsage.SchemaVersion == 5 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 5'e taşınmadı.");
 Assert(migratedUsage.AwarenessHourlyUsedSeconds.Count == 0, "Eski kullanım verisine sahte saatlik dağılım eklendi.");
 Assert(File.Exists(migrationUsageStore.BackupPath), "Migration sonrasında sağlam kullanım yedeği oluşturulmadı.");
 
@@ -117,11 +117,27 @@ await retentionUsageStore.ReplaceAsync(new UsageLedger
     [
         new DailyUsageRecord { LocalDay = retentionToday.AddDays(-31), AwarenessUsedSeconds = 60 },
         new DailyUsageRecord { LocalDay = retentionToday.AddDays(-1), AwarenessUsedSeconds = 60 }
+    ],
+    RecentEvents =
+    [
+        new UsageEventRecord { OccurredAtUtc = DateTimeOffset.Now.AddDays(-31), Kind = UsageEventKind.BreakStarted },
+        new UsageEventRecord { OccurredAtUtc = DateTimeOffset.Now.AddDays(-1), Kind = UsageEventKind.BreakStarted }
     ]
 });
+UsageLedger staleBeforeTrim = await retentionUsageStore.LoadAsync();
 await retentionUsageStore.TrimHistoryAsync(30);
-Assert((await retentionUsageStore.LoadAsync()).History.Select(day => day.LocalDay).SequenceEqual([retentionToday.AddDays(-1)]),
+await retentionUsageStore.SaveAsync(staleBeforeTrim);
+UsageLedger retainedUsage = await retentionUsageStore.LoadAsync();
+Assert(retainedUsage.History.Select(day => day.LocalDay).SequenceEqual([retentionToday.AddDays(-1)]),
     "30 günlük saklama süresi eski geçmişi temizlemedi.");
+Assert(retainedUsage.RecentEvents.Count == 1 && retainedUsage.RecentEvents[0].OccurredAtUtc > DateTimeOffset.Now.AddDays(-30),
+    "30 günlük saklama süresi eski hareketleri temizlemedi.");
+UsageLedger staleBeforeClear = retainedUsage;
+UsageLedger clearedGeneration = await retentionUsageStore.ClearAsync();
+await retentionUsageStore.SaveAsync(staleBeforeClear);
+UsageLedger afterStaleSave = await retentionUsageStore.LoadAsync();
+Assert(afterStaleSave.DataGeneration == clearedGeneration.DataGeneration && afterStaleSave.History.Count == 0 && afterStaleSave.RecentEvents.Count == 0,
+    "Silme sonrasında gelen eski arka plan kaydı geçmişi geri oluşturdu.");
 
 UsageLedger awarenessLedger = new();
 Assert(AwarenessUsageCounter.Accrue(awarenessLedger, @"C:\Program Files\Browser\browser.exe", TimeSpan.FromSeconds(3.8), allowedTime), "Ön plan farkındalık süresi eklenemedi.");
@@ -286,6 +302,19 @@ Assert(rhythm.RisingApplication == "editor" && rhythm.FallingApplication == "bro
 Assert(rhythm.PeakHour == 20 && rhythm.PeakHourSeconds == 7 * 3600, "Yoğun kullanım saati yanlış hesaplandı.");
 Assert(rhythm.WeekdayObservedDays > 0 && rhythm.WeekendObservedDays > 0 && rhythm.WeekendDifferencePercent is not null,
     "Hafta içi/hafta sonu ritmi yeterli veride hesaplanmadı.");
+UsageLedger sessionOnlyRhythmLedger = new() { LocalDay = rhythmToday };
+for (int offset = 1; offset <= 7; offset++)
+{
+    sessionOnlyRhythmLedger.History.Add(new DailyUsageRecord
+    {
+        LocalDay = rhythmToday.AddDays(-offset),
+        UsedSeconds = 3600,
+        AwarenessUsedSeconds = 0
+    });
+}
+RhythmSummary sessionOnlyRhythm = RhythmAnalyzer.Analyze(rhythmSettings, sessionOnlyRhythmLedger, rhythmToday);
+Assert(sessionOnlyRhythm.BaselineDays == 0 && !sessionOnlyRhythm.IsBaselineReady,
+    "Kural oturumu verisi farkındalık başlangıç ritmi olarak sayıldı.");
 Assert(migratedSettings.SetupCompleted, "Mevcut kullanıcıya ilk kurulum ekranı yeniden gösterilmemeli.");
 Assert(migratedSettings.Mode == ControlMode.Protected, "Mevcut kullanıcı korumalı kullanıma taşınmalı.");
 
@@ -334,7 +363,12 @@ await new JsonUsageStore(awarenessUsagePath).SaveAsync(new UsageLedger
 {
     LocalDay = DateOnly.FromDateTime(DateTime.Today),
     UsedSeconds = 3600,
-    AwarenessUsedSeconds = 600
+    AwarenessUsedSeconds = 600,
+    AppUsedSeconds = new Dictionary<Guid, long> { [awarenessModeSettings.AppRules[0].Id] = 300 },
+    ForegroundAppUsedSeconds = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["=SUM(1,1).exe"] = 600
+    }
 });
 MainViewModel awarenessViewModel = new(awarenessSettingsStore, new JsonUsageStore(awarenessUsagePath));
 await awarenessViewModel.InitializeAsync();
@@ -349,16 +383,28 @@ Assert(await awarenessViewModel.SaveAsync() && (await awarenessSettingsStore.Loa
     "Geçmiş saklama süresi kaydedilemedi.");
 Assert((await awarenessViewModel.ExportUsageJsonAsync()).Contains("SchemaVersion", StringComparison.Ordinal),
     "Kullanım verisi JSON olarak dışa aktarılamadı.");
-Assert((await awarenessViewModel.ExportUsageCsvAsync()).StartsWith("date,type,name,seconds,minutes", StringComparison.Ordinal),
-    "Kullanım verisi CSV olarak dışa aktarılamadı.");
+string exportedCsv = await awarenessViewModel.ExportUsageCsvAsync();
+Assert(exportedCsv.StartsWith("date,type,name,seconds,minutes", StringComparison.Ordinal) &&
+       exportedCsv.Contains(",session_total,\"\",3600,60", StringComparison.Ordinal) &&
+       exportedCsv.Contains(",rule_application,", StringComparison.Ordinal) &&
+       exportedCsv.Contains(",foreground_application,\"'=SUM(1,1)\",600,10", StringComparison.Ordinal),
+    "Kullanım verisi CSV olarak eksiksiz veya formül güvenli biçimde dışa aktarılamadı.");
 CafeViewModel clearingBackgroundViewModel = new(awarenessSettingsStore, new JsonUsageStore(awarenessUsagePath));
 await clearingBackgroundViewModel.InitializeAsync();
 await clearingBackgroundViewModel.StartOrResumeAsync();
+await Task.Delay(1100);
+await clearingBackgroundViewModel.TickAsync();
+await clearingBackgroundViewModel.ReloadSettingsAsync();
+Assert((await new JsonUsageStore(awarenessUsagePath).LoadAsync()).UsedSeconds > 3600,
+    "Ayar yenilemesi kaydedilmemiş oturum süresini düşürdü.");
+UsageLedger staleAwarenessLedger = await new JsonUsageStore(awarenessUsagePath).LoadAsync();
 await awarenessViewModel.ClearUsageHistoryAsync();
+await new JsonUsageStore(awarenessUsagePath).SaveAsync(staleAwarenessLedger);
 await clearingBackgroundViewModel.ReloadUsageAfterClearAsync();
 await clearingBackgroundViewModel.SaveAsync();
 UsageLedger clearedAwarenessLedger = await new JsonUsageStore(awarenessUsagePath).LoadAsync();
-Assert(clearedAwarenessLedger.AwarenessUsedSeconds == 0 && clearedAwarenessLedger.History.Count == 0,
+Assert(clearedAwarenessLedger.DataGeneration > staleAwarenessLedger.DataGeneration &&
+       clearedAwarenessLedger.AwarenessUsedSeconds == 0 && clearedAwarenessLedger.History.Count == 0,
     "Kullanım geçmişi cihazdan temizlenemedi.");
 
 ControlSettings strictPolicy = new();

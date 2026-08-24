@@ -278,6 +278,7 @@ public sealed class CafeViewModel : ObservableObject
 
         bool wasActive = _engine.Ledger.State == SessionState.Active;
         CommitPendingActiveTime();
+        await SaveAsync();
         ControlSettings settings;
         try
         {

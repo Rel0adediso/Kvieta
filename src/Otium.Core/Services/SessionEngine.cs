@@ -192,7 +192,7 @@ public sealed class SessionEngine
         DateOnly today = DateOnly.FromDateTime(now.LocalDateTime);
         if (Ledger.LocalDay != today)
         {
-            ArchiveCurrentDay();
+            ArchiveCurrentDay(today);
             Ledger.LocalDay = today;
             Ledger.UsedSeconds = 0;
             Ledger.BonusMinutes = 0;
@@ -273,7 +273,7 @@ public sealed class SessionEngine
         Ledger.LastUpdatedUtc = now.ToUniversalTime();
     }
 
-    private void ArchiveCurrentDay()
+    private void ArchiveCurrentDay(DateOnly retentionReferenceDay)
     {
         if (Ledger.UsedSeconds <= 0 && Ledger.AppUsedSeconds.Count == 0 && Ledger.AwarenessUsedSeconds <= 0 && Ledger.BreakCount == 0 &&
             Ledger.LimitReachedCount == 0 && Ledger.ExtraTimeGrantCount == 0)
@@ -316,10 +316,21 @@ public sealed class SessionEngine
 
         Ledger.History.RemoveAll(item => item.LocalDay == record.LocalDay);
         Ledger.History.Add(record);
+        DateOnly retentionCutoff = retentionReferenceDay.AddDays(-(Math.Clamp(_settings.UsageRetentionDays, 30, 180) - 1));
+        if (Ledger.RetainedFromDay is null || retentionCutoff > Ledger.RetainedFromDay)
+        {
+            Ledger.RetainedFromDay = retentionCutoff;
+        }
+
+        DateOnly activeCutoff = Ledger.RetainedFromDay.Value;
         Ledger.History = Ledger.History
+            .Where(item => item.LocalDay >= activeCutoff)
             .OrderByDescending(item => item.LocalDay)
-            .Take(Math.Clamp(_settings.UsageRetentionDays, 30, 180))
+            .Take(180)
             .OrderBy(item => item.LocalDay)
+            .ToList();
+        Ledger.RecentEvents = Ledger.RecentEvents
+            .Where(item => DateOnly.FromDateTime(item.OccurredAtUtc.ToLocalTime().DateTime) >= activeCutoff)
             .ToList();
     }
 
