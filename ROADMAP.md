@@ -143,7 +143,7 @@ Kabul kriteri:
 
 #### 4. Açıklamalı kurulum sihirbazı
 
-**Durum:** Açık; mevcut MSI standart WiX `FeatureTree` arayüzünü kullanıyor.
+**Durum:** Devam ediyor; kurulum sonrası uygulamayı başlatma eklendi, açıklamalı ilk ayar akışı açık.
 
 Yapılacaklar:
 
@@ -152,6 +152,7 @@ Yapılacaklar:
 - Önerilen kurulum ile gelişmiş seçenekleri ayırma.
 - Windows ile başlatma ve kısayol seçeneklerini açıkça seçtirme.
 - Kurulum öncesi özet ve kurulum sonrası başlangıç yönlendirmesi sunma.
+- İlk kurulum sonunda varsayılan seçili seçenekle Otium'u normal kullanıcı olarak başlatma.
 - Upgrade, repair ve uninstall öncesinde kullanıcı verisine ne olacağını açıklama.
 - Türkçe ve İngilizce metinleri aynı kapsamda sunma.
 

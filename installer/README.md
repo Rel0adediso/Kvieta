@@ -59,6 +59,10 @@ Test installers are written to `artifacts\installer-test\<version>`. They contai
 the development build (including its explicit test bypass) and are intentionally
 separate from signed release artifacts.
 
+On an interactive first install, the completion page offers a checked-by-default
+option to launch Otium. The launch action runs as the installing user and is not
+scheduled for repair, uninstall, upgrade, or unattended installation.
+
 The desktop shortcut is disabled by default and can be selected from the MSI's
 feature screen. It can also be enabled in an unattended install with:
 
