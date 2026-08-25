@@ -59,6 +59,32 @@ Assert(new SessionEngine(settings, new UsageLedger { LocalDay = new DateOnly(202
     "Oturum durumu ayarlardaki dil tercihine uymadı.");
 settings.Language = LanguagePreference.Turkish;
 
+ControlSettings flexibleSettings = new()
+{
+    SetupCompleted = true,
+    Mode = ControlMode.Personal,
+    PersonalProtectionLevel = PersonalProtectionLevel.Flexible
+};
+DaySchedule flexibleMonday = flexibleSettings.Schedule.Single(item => item.Day == DayOfWeek.Monday);
+flexibleMonday.IsEnabled = false;
+flexibleMonday.DailyLimitMinutes = 1;
+ScheduleStatus flexibleSchedule = ScheduleEvaluator.Evaluate(flexibleSettings, blockedTime);
+Assert(flexibleSchedule.IsAllowed && flexibleSchedule.DailyLimitMinutes == 1440 && flexibleSchedule.AllowedUntil is null,
+    "Esnek kişisel mod haftalık planı veya günlük limiti uygulamaya devam etti.");
+UsageLedger flexibleLedger = new() { LocalDay = new DateOnly(2026, 8, 24) };
+SessionEngine flexibleEngine = new(flexibleSettings, flexibleLedger, blockedTime);
+Assert(flexibleEngine.StartOrResume(blockedTime), "Esnek kişisel oturum plan dışında manuel başlatılamadı.");
+flexibleEngine.Accrue(TimeSpan.FromMinutes(2), blockedTime.AddMinutes(2));
+Assert(flexibleEngine.Pause(blockedTime.AddMinutes(2)) && flexibleEngine.GetSnapshot(blockedTime.AddMinutes(2)).State == SessionState.Paused,
+    "Esnek kişisel oturum kullanıcı tarafından duraklatılamadı.");
+flexibleEngine.EndSession(blockedTime.AddMinutes(3));
+Assert(flexibleEngine.GetSnapshot(blockedTime.AddMinutes(3)).State == SessionState.Ready,
+    "Esnek kişisel oturum kullanıcı tarafından bitirilemedi.");
+Assert(!CafeViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionState.Ready) &&
+       !CafeViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionState.Paused) &&
+       CafeViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionState.Active),
+    "Esnek kişisel uygulama kuralları manuel oturum durumuna bağlanmadı.");
+
 Assert(ProtectionServiceManager.EvaluateVersionCompatibility(
         new Version(0, 17, 0), new Version(0, 17, 0), new Version(0, 17, 0)) ==
     ProtectionVersionCompatibility.Compatible,
@@ -573,6 +599,18 @@ awarenessViewModel.SelectedPageIndex = 2;
 Assert(awarenessViewModel.SelectedPageIndex == 0, "Farkındalık modunda uygulama kuralı paneli açılabildi.");
 Assert(awarenessViewModel.UsedTodayMinutes == 10 && awarenessViewModel.TodayLimitText is "Sınırsız" or "Unlimited",
     "Farkındalık profili gerçek ön plan süresini sınırsız özet olarak göstermedi.");
+
+string flexibleSettingsPath = Path.Combine(testDirectory, "flexible-settings.json");
+string flexibleUsagePath = Path.Combine(testDirectory, "flexible-usage.json");
+JsonSettingsStore flexibleSettingsStore = new(flexibleSettingsPath);
+await flexibleSettingsStore.SaveAsync(flexibleSettings);
+MainViewModel flexibleViewModel = new(flexibleSettingsStore, new JsonUsageStore(flexibleUsagePath));
+await flexibleViewModel.InitializeAsync();
+Assert(flexibleViewModel.IsFlexiblePersonalMode && !flexibleViewModel.HasScheduledPlan &&
+       flexibleViewModel.TodayLimitText is "Manuel" or "Manual",
+    "Esnek kişisel modun manuel arayüz durumu oluşturulmadı.");
+flexibleViewModel.SelectedPageIndex = 1;
+Assert(flexibleViewModel.SelectedPageIndex == 0, "Esnek kişisel modda Plan sayfası açılabildi.");
 int elapsedWeekDays = ((int)DateTime.Today.DayOfWeek + 6) % 7 + 1;
 long expectedAverageMinutes = 10 / elapsedWeekDays;
 Assert(awarenessViewModel.HistoryDailyAverageText.StartsWith($"{expectedAverageMinutes} ", StringComparison.Ordinal),

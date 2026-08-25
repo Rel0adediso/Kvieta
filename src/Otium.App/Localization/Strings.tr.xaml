@@ -101,8 +101,8 @@
     <sys:String x:Key="ChoosePersonalLevelTitle">Kendin için ne kadar sıkı olsun?</sys:String>
     <sys:String x:Key="ChoosePersonalLevelDescription">Kuralların ne kadar kolay gevşetileceğini ve Guardian korumasını seç.</sys:String>
     <sys:String x:Key="PersonalFlexible">Esnek</sys:String>
-    <sys:String x:Key="PersonalFlexibleDescription">Sınırlarını uygular; gerektiğinde kendine ek süre verebilirsin.</sys:String>
-    <sys:String x:Key="PersonalFlexibleHint">Gevşetmeler kısa bekleme süresiyle uygulanır. Guardian kullanılmaz.</sys:String>
+    <sys:String x:Key="PersonalFlexibleDescription">Plan kullanmadan manuel odak oturumları başlat, duraklat ve bitir.</sys:String>
+    <sys:String x:Key="PersonalFlexibleHint">Saat veya günlük limit engeli yoktur. Uygulama kuralları yalnız oturum açıkken çalışır; Guardian kullanılmaz.</sys:String>
     <sys:String x:Key="PersonalBalanced">Dengeli</sys:String>
     <sys:String x:Key="PersonalBalancedDescription">Ani ek süreyi kapatır ve kural gevşetmelerini bekletir.</sys:String>
     <sys:String x:Key="PersonalBalancedHint">Otium'u kapatmaya karşı servis koruması yoktur.</sys:String>

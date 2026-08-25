@@ -101,8 +101,8 @@
     <sys:String x:Key="ChoosePersonalLevelTitle">How strict should it be for you?</sys:String>
     <sys:String x:Key="ChoosePersonalLevelDescription">Choose how easily rules can be relaxed and whether Guardian protects Otium.</sys:String>
     <sys:String x:Key="PersonalFlexible">Flexible</sys:String>
-    <sys:String x:Key="PersonalFlexibleDescription">Applies your limits while still allowing you to grant extra time.</sys:String>
-    <sys:String x:Key="PersonalFlexibleHint">Relaxations use a short waiting period. Guardian is not used.</sys:String>
+    <sys:String x:Key="PersonalFlexibleDescription">Start, pause, and end manual focus sessions without using a schedule.</sys:String>
+    <sys:String x:Key="PersonalFlexibleHint">There are no time-window or daily-limit blocks. App rules apply only during a session; Guardian is not used.</sys:String>
     <sys:String x:Key="PersonalBalanced">Balanced</sys:String>
     <sys:String x:Key="PersonalBalancedDescription">Disables instant extra time and delays rule relaxations.</sys:String>
     <sys:String x:Key="PersonalBalancedHint">There is no service protection against closing Otium.</sys:String>

@@ -13,6 +13,19 @@ public static class ScheduleEvaluator
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        if (settings.Mode == ControlMode.Personal &&
+            settings.PersonalProtectionLevel == PersonalProtectionLevel.Flexible)
+        {
+            return new ScheduleStatus(
+                true,
+                1440,
+                Localize(
+                    settings.Language,
+                    "Manuel odak modu. Oturumu istediğin zaman başlatabilirsin.",
+                    "Manual focus mode. Start a session whenever you want."),
+                null);
+        }
+
         DateOnly today = DateOnly.FromDateTime(now.LocalDateTime);
         DateOnly yesterday = today.AddDays(-1);
         DaySchedule? todaysSchedule = settings.Schedule.FirstOrDefault(item => item.Day == now.DayOfWeek);

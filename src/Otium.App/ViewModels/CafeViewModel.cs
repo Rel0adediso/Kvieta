@@ -41,6 +41,9 @@ public sealed class CafeViewModel : ObservableObject
     public bool IsGuardedPersonalMode =>
         _settings?.Mode == ControlMode.Personal &&
         _settings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded;
+    public bool IsFlexiblePersonalMode =>
+        _settings?.Mode == ControlMode.Personal &&
+        _settings.PersonalProtectionLevel == PersonalProtectionLevel.Flexible;
     public bool CanRequestExtraTime => State == SessionState.TimeExpired &&
         (_settings?.Mode != ControlMode.Personal || _settings.StrictPersonalMode == false);
     public bool IsOutsideSchedule => State == SessionState.OutsideSchedule;
@@ -155,8 +158,10 @@ public sealed class CafeViewModel : ObservableObject
                     clockChange == ClockChangeKind.Rollback ? "rollback" : "forward-jump");
             }
         }
-        if (_settings is not null && _settings.Mode != ControlMode.Awareness &&
-            _applicationRuleEnforcer.Enforce(_settings, _engine.Ledger, elapsed))
+        ControlSettings? activeSettings = _settings;
+        if (activeSettings is not null &&
+            ShouldEnforceApplicationRules(activeSettings, _engine.Ledger.State) &&
+            _applicationRuleEnforcer.Enforce(activeSettings, _engine.Ledger, elapsed))
         {
             _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
         }
@@ -203,6 +208,12 @@ public sealed class CafeViewModel : ObservableObject
 
         return started;
     }
+
+    public static bool ShouldEnforceApplicationRules(ControlSettings settings, SessionState state) =>
+        settings.Mode != ControlMode.Awareness &&
+        (settings.Mode != ControlMode.Personal ||
+         settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible ||
+         state == SessionState.Active);
 
     public async Task<bool> PauseAsync()
     {
@@ -330,6 +341,7 @@ public sealed class CafeViewModel : ObservableObject
         }
 
         bool wasActive = _engine.Ledger.State == SessionState.Active;
+        bool wasFlexiblePersonal = IsFlexiblePersonalMode;
         CommitPendingActiveTime();
         await SaveAsync();
         ControlSettings settings;
@@ -345,11 +357,13 @@ public sealed class CafeViewModel : ObservableObject
         _settings = settings;
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
         OnPropertyChanged(nameof(IsGuardedPersonalMode));
+        OnPropertyChanged(nameof(IsFlexiblePersonalMode));
         _settingsLastWriteUtc = GetSettingsLastWriteUtc();
         _pendingApplyAfterUtc = settings.PendingChange?.ApplyAfterUtc;
         UsageLedger latestLedger = await _usageStore.LoadAsync();
         _engine = new SessionEngine(settings, latestLedger, DateTimeOffset.Now);
-        if (wasActive)
+        bool enteredFlexiblePersonal = IsFlexiblePersonalMode && !wasFlexiblePersonal;
+        if (wasActive && !enteredFlexiblePersonal)
         {
             _engine.StartOrResume(DateTimeOffset.Now);
         }

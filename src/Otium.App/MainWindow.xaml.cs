@@ -926,6 +926,10 @@ public partial class MainWindow : Window
         {
             await _backgroundSessionWindow.SwitchToUserSettingsStoreAsync();
         }
+        else if (_backgroundSessionWindow is not null)
+        {
+            await _backgroundSessionWindow.ReloadSettingsAsync();
+        }
 
         RefreshProtectionStatus();
         EnsurePersonalBackgroundSession();
@@ -1150,7 +1154,7 @@ public partial class MainWindow : Window
         if (_backgroundSessionWindow is null)
         {
             _backgroundSessionWindow = new CafeWindow(
-                isDirectSession: true,
+                isDirectSession: !_viewModel.IsFlexiblePersonalMode,
                 requirePinToExit: false,
                 returnToControlCenter: true,
                 startHidden: _viewModel.IsAwarenessMode);

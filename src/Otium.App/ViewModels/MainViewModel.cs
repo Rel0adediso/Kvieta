@@ -64,7 +64,9 @@ public sealed class MainViewModel : ObservableObject
     public int SelectedPageIndex
     {
         get => _selectedPageIndex;
-        set => SetProperty(ref _selectedPageIndex, IsAwarenessMode && value is 1 or 2 ? 0 : value);
+        set => SetProperty(
+            ref _selectedPageIndex,
+            (IsAwarenessMode && value is 1 or 2) || (!HasScheduledPlan && value == 1) ? 0 : value);
     }
 
     public string DeviceName
@@ -143,6 +145,13 @@ public sealed class MainViewModel : ObservableObject
                 StrictPersonalMode = value != PersonalProtectionLevel.Flexible;
                 OnPropertyChanged(nameof(ControlModeText));
                 OnPropertyChanged(nameof(IsGuardianRequired));
+                OnPropertyChanged(nameof(IsFlexiblePersonalMode));
+                OnPropertyChanged(nameof(HasScheduledPlan));
+                OnPropertyChanged(nameof(TodayDescriptionText));
+                if (!HasScheduledPlan && SelectedPageIndex == 1)
+                {
+                    SelectedPageIndex = 0;
+                }
             }
         }
     }
@@ -178,6 +187,8 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsAwarenessMode));
                 OnPropertyChanged(nameof(IsGuardianRequired));
                 OnPropertyChanged(nameof(HasRestrictions));
+                OnPropertyChanged(nameof(IsFlexiblePersonalMode));
+                OnPropertyChanged(nameof(HasScheduledPlan));
                 OnPropertyChanged(nameof(TodayDescriptionText));
                 OnPropertyChanged(nameof(RhythmPlanMetricLabel));
                 if (value == ControlMode.Awareness && SelectedPageIndex is 1 or 2)
@@ -196,13 +207,18 @@ public sealed class MainViewModel : ObservableObject
     public bool IsPersonalMode => SelectedControlMode == ControlMode.Personal;
     public bool IsProtectedMode => SelectedControlMode == ControlMode.Protected;
     public bool IsAwarenessMode => SelectedControlMode == ControlMode.Awareness;
+    public bool IsFlexiblePersonalMode =>
+        IsPersonalMode && PersonalProtectionLevel == PersonalProtectionLevel.Flexible;
     public bool IsGuardianRequired =>
         IsProtectedMode ||
         IsPersonalMode && PersonalProtectionLevel == PersonalProtectionLevel.Guarded;
     public bool HasRestrictions => SelectedControlMode != ControlMode.Awareness;
+    public bool HasScheduledPlan => HasRestrictions && !IsFlexiblePersonalMode;
     public string TodayDescriptionText => IsAwarenessMode
         ? L("Bugünkü gerçek uygulama kullanımını tek bakışta gör.", "See today's actual application usage at a glance.")
-        : LocalizationService.Get("TodayDescription");
+        : IsFlexiblePersonalMode
+            ? L("Manuel odak oturumunu istediğin zaman başlat, duraklat veya bitir.", "Start, pause, or end a manual focus session whenever you want.")
+            : LocalizationService.Get("TodayDescription");
     public string RhythmPlanMetricLabel => LocalizationService.Get(IsAwarenessMode ? "RhythmObservedDays" : "RhythmPlanAligned");
 
     public string ChangeDelay
@@ -242,11 +258,15 @@ public sealed class MainViewModel : ObservableObject
     }
 
     public string UsedTodayText => FormatMinutes(UsedTodayMinutes);
-    public string TodayLimitText => IsAwarenessMode ? L("Sınırsız", "Unlimited") : FormatMinutes(GetTodayLimit());
+    public string TodayLimitText => IsAwarenessMode
+        ? L("Sınırsız", "Unlimited")
+        : IsFlexiblePersonalMode ? L("Manuel", "Manual") : FormatMinutes(GetTodayLimit());
     public string UsedTodayDisplayText => $"{LocalizationService.Get("Used")}  {UsedTodayText}";
     public string TodayLimitDisplayText => $"{LocalizationService.Get("Total")}  {TodayLimitText}";
-    public string RemainingText => IsAwarenessMode ? L("Sınırsız", "Unlimited") : FormatMinutes(Math.Max(0, GetTodayLimit() - UsedTodayMinutes));
-    public double UsagePercent => IsAwarenessMode || GetTodayLimit() == 0
+    public string RemainingText => IsAwarenessMode
+        ? L("Sınırsız", "Unlimited")
+        : IsFlexiblePersonalMode ? L("Manuel", "Manual") : FormatMinutes(Math.Max(0, GetTodayLimit() - UsedTodayMinutes));
+    public double UsagePercent => IsAwarenessMode || IsFlexiblePersonalMode || GetTodayLimit() == 0
         ? 0
         : Math.Clamp((double)UsedTodayMinutes / GetTodayLimit() * 100, 0, 100);
     public int BlockedAppCount => AppRules.Count(rule => rule.ToModel().Mode == AppRuleMode.Blocked);
@@ -858,6 +878,8 @@ public sealed class MainViewModel : ObservableObject
         ScheduleStatus status = ScheduleEvaluator.Evaluate(previewSettings, DateTimeOffset.Now);
         CurrentWindowStatus = IsAwarenessMode
             ? L("Sadece yerel ölçüm açık · Hiçbir kısıtlama uygulanmıyor", "Local tracking only · No restrictions are applied")
+            : IsFlexiblePersonalMode
+                ? L("Manuel odak · Kontrol sende", "Manual focus · You're in control")
             : status.Reason;
 
         OnPropertyChanged(nameof(CurrentWindowStatus));
