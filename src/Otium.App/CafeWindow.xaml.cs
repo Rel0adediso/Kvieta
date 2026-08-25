@@ -53,6 +53,7 @@ public partial class CafeWindow : Window
 
         if (_startHidden)
         {
+            WindowState = WindowState.Normal;
             Opacity = 0;
             ShowActivated = false;
             ShowInTaskbar = false;
@@ -78,6 +79,7 @@ public partial class CafeWindow : Window
         EnsureCorrectSurface();
         if (_startHidden)
         {
+            WindowState = WindowState.Maximized;
             Opacity = 1;
             ShowActivated = true;
             ShowInTaskbar = true;
