@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     private bool _sidebarAnimationRunning;
     private bool _baselineMilestoneShown;
     private bool _goalMilestoneShown;
+    private bool _sessionSurfaceTransitionInProgress;
 
     public MainWindow(CafeWindow? existingSessionWindow = null, string? managementPin = null)
     {
@@ -1118,29 +1119,48 @@ public partial class MainWindow : Window
 
     private async void OpenCafeMode_Click(object sender, RoutedEventArgs e)
     {
-        if (!await _viewModel.SaveAsync())
+        if (_sessionSurfaceTransitionInProgress)
         {
             return;
         }
 
-        if (_backgroundSessionWindow is not null)
+        _sessionSurfaceTransitionInProgress = true;
+        SessionScreenButton.IsEnabled = false;
+        try
         {
+            if (!await _viewModel.SaveAsync())
+            {
+                return;
+            }
+
+            EnsurePersonalBackgroundSession();
+            if (_backgroundSessionWindow is not null)
+            {
+                ShowInTaskbar = false;
+                Hide();
+                _backgroundSessionWindow.ShowSessionSurface();
+                return;
+            }
+
+            CafeWindow cafeWindow = new();
+            cafeWindow.Closed += async (_, _) =>
+            {
+                ShowInTaskbar = true;
+                Show();
+                Activate();
+                await _viewModel.ReloadUsageAsync();
+                _viewModel.RefreshOverview();
+            };
+
+            ShowInTaskbar = false;
             Hide();
-            _backgroundSessionWindow.ShowSessionSurface();
-            return;
+            cafeWindow.Show();
         }
-
-        CafeWindow cafeWindow = new();
-        cafeWindow.Closed += async (_, _) =>
+        finally
         {
-            Show();
-            Activate();
-            await _viewModel.ReloadUsageAsync();
-            _viewModel.RefreshOverview();
-        };
-
-        Hide();
-        cafeWindow.Show();
+            SessionScreenButton.IsEnabled = true;
+            _sessionSurfaceTransitionInProgress = false;
+        }
     }
 
     private void EnsurePersonalBackgroundSession()

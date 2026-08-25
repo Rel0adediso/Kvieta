@@ -23,6 +23,7 @@ public sealed class CafeViewModel : ObservableObject
     private DateTime _settingsLastWriteUtc;
     private string? _persistenceWarning;
     private bool _clockAnomalyAudited;
+    private long _flexibleSessionBaselineSeconds;
 
     public CafeViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
@@ -77,7 +78,14 @@ public sealed class CafeViewModel : ObservableObject
     };
 
     public string Description => _persistenceWarning ?? _snapshot?.Reason ?? "Kullanım bilgileri yükleniyor…";
-    public string RemainingText => FormatClock(_snapshot?.RemainingSeconds ?? 0);
+    public bool HasCountdown => !IsFlexiblePersonalMode;
+    public string TimeMetricLabel => LocalizationService.Get(
+        IsFlexiblePersonalMode ? "ElapsedTimeLong" : "RemainingTimeLong");
+    public string TimeMetricLabelShort => LocalizationService.Get(
+        IsFlexiblePersonalMode ? "OtiumElapsed" : "OtiumRemaining");
+    public string RemainingText => IsFlexiblePersonalMode
+        ? FormatClock(Math.Max(0, (_snapshot?.UsedSeconds ?? 0) - _flexibleSessionBaselineSeconds))
+        : FormatClock(_snapshot?.RemainingSeconds ?? 0);
     public string UsedText => FormatDuration(_snapshot?.UsedSeconds ?? 0);
     public string LimitText => FormatDuration(_snapshot?.LimitSeconds ?? 0);
     public string UsedDisplayText => $"{LocalizationService.Get("Used")}  {UsedText}";
@@ -115,6 +123,7 @@ public sealed class CafeViewModel : ObservableObject
         _pendingApplyAfterUtc = settings.PendingChange?.ApplyAfterUtc;
         UsageLedger ledger = await _usageStore.LoadAsync();
         _engine = new SessionEngine(settings, ledger, DateTimeOffset.Now);
+        _flexibleSessionBaselineSeconds = ledger.UsedSeconds;
         _engine.ObserveClock(DateTimeOffset.Now, WindowsMonotonicClock.Uptime, WindowsMonotonicClock.GetBootId());
         _tickWatch.Restart();
         RefreshSnapshot(notifyStateChange: false);
@@ -196,9 +205,14 @@ public sealed class CafeViewModel : ObservableObject
             return false;
         }
 
+        bool startingNewFlexibleSession = IsFlexiblePersonalMode && State == SessionState.Ready;
         bool started = _engine.StartOrResume(DateTimeOffset.Now);
         if (started)
         {
+            if (startingNewFlexibleSession)
+            {
+                _flexibleSessionBaselineSeconds = _engine.Ledger.UsedSeconds;
+            }
             _pauseStartedAt = null;
             _uncommittedSeconds = 0;
             _tickWatch.Restart();
@@ -254,6 +268,10 @@ public sealed class CafeViewModel : ObservableObject
 
         CommitPendingActiveTime();
         _engine.EndSession(DateTimeOffset.Now);
+        if (IsFlexiblePersonalMode)
+        {
+            _flexibleSessionBaselineSeconds = _engine.Ledger.UsedSeconds;
+        }
         _pauseStartedAt = null;
         RefreshSnapshot(notifyStateChange: true);
         await SaveAsync();
@@ -363,6 +381,10 @@ public sealed class CafeViewModel : ObservableObject
         UsageLedger latestLedger = await _usageStore.LoadAsync();
         _engine = new SessionEngine(settings, latestLedger, DateTimeOffset.Now);
         bool enteredFlexiblePersonal = IsFlexiblePersonalMode && !wasFlexiblePersonal;
+        if (enteredFlexiblePersonal)
+        {
+            _flexibleSessionBaselineSeconds = latestLedger.UsedSeconds;
+        }
         if (wasActive && !enteredFlexiblePersonal)
         {
             _engine.StartOrResume(DateTimeOffset.Now);
@@ -436,6 +458,9 @@ public sealed class CafeViewModel : ObservableObject
         OnPropertyChanged(nameof(CanRequestExtraTime));
         OnPropertyChanged(nameof(IsOutsideSchedule));
         OnPropertyChanged(nameof(IsClockRollbackDetected));
+        OnPropertyChanged(nameof(HasCountdown));
+        OnPropertyChanged(nameof(TimeMetricLabel));
+        OnPropertyChanged(nameof(TimeMetricLabelShort));
         OnPropertyChanged(nameof(BlockedReasonText));
         OnPropertyChanged(nameof(StateLabel));
         OnPropertyChanged(nameof(Headline));

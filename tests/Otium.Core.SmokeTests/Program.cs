@@ -611,6 +611,18 @@ Assert(flexibleViewModel.IsFlexiblePersonalMode && !flexibleViewModel.HasSchedul
     "Esnek kişisel modun manuel arayüz durumu oluşturulmadı.");
 flexibleViewModel.SelectedPageIndex = 1;
 Assert(flexibleViewModel.SelectedPageIndex == 0, "Esnek kişisel modda Plan sayfası açılabildi.");
+CafeViewModel flexibleCafeViewModel = new(flexibleSettingsStore, new JsonUsageStore(flexibleUsagePath));
+await flexibleCafeViewModel.InitializeAsync();
+Assert(!flexibleCafeViewModel.HasCountdown && flexibleCafeViewModel.RemainingText == "00:00",
+    "Esnek kişisel oturum kronometre yerine geri sayımla hazırlandı.");
+Assert(await flexibleCafeViewModel.StartOrResumeAsync(), "Esnek kişisel kronometre başlatılamadı.");
+await Task.Delay(1100);
+await flexibleCafeViewModel.TickAsync();
+Assert(flexibleCafeViewModel.RemainingText != "00:00",
+    "Esnek kişisel kronometre başlatıldıktan sonra ilerlemedi.");
+await flexibleCafeViewModel.EndSessionAsync();
+Assert(flexibleCafeViewModel.RemainingText == "00:00",
+    "Esnek kişisel kronometre yeni oturum için sıfırlanmadı.");
 int elapsedWeekDays = ((int)DateTime.Today.DayOfWeek + 6) % 7 + 1;
 long expectedAverageMinutes = 10 / elapsedWeekDays;
 Assert(awarenessViewModel.HistoryDailyAverageText.StartsWith($"{expectedAverageMinutes} ", StringComparison.Ordinal),
