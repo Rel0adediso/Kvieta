@@ -520,6 +520,11 @@ public partial class CafeWindow : Window
     {
         if (_returnToControlCenter)
         {
+            if (_controlCenterOpen)
+            {
+                return;
+            }
+
             SuspendForControlCenter();
             ControlCenterRequested?.Invoke(this, new ControlCenterRequestEventArgs());
             return;

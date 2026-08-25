@@ -12,6 +12,7 @@ public partial class App : System.Windows.Application
     private readonly SystemThemeService _themeService = new();
     private SingleInstanceCoordinator? _singleInstance;
     private MainWindow? _activatedControlCenter;
+    private bool _controlCenterActivationInProgress;
     private AdminCredential? _guardianCredential;
 
     public SystemThemeService ThemeService => _themeService;
@@ -293,66 +294,79 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        ControlSettings settings;
-        if (_guardianCredential?.IsConfigured == true)
+        if (_controlCenterActivationInProgress)
         {
-            settings = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
-                ? await new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true).LoadAsync()
-                : new ControlSettings { SetupCompleted = true, Mode = ControlMode.Protected };
-            settings.AdminPin = _guardianCredential;
+            return;
         }
-        else
+
+        _controlCenterActivationInProgress = true;
+        try
         {
-            settings = await new JsonSettingsStore().LoadAsync();
-        }
-        string? managementPin = null;
-        if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
-        {
-            if (!string.IsNullOrWhiteSpace(verifiedPin) && AdminPinService.Verify(verifiedPin, settings.AdminPin))
+            ControlSettings settings;
+            if (_guardianCredential?.IsConfigured == true)
             {
-                managementPin = verifiedPin;
+                settings = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+                    ? await new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true).LoadAsync()
+                    : new ControlSettings { SetupCompleted = true, Mode = ControlMode.Protected };
+                settings.AdminPin = _guardianCredential;
             }
             else
             {
-                AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                    pin => AdminPinService.Verify(pin, settings.AdminPin),
-                    owner => RunRecoveryPinResetAsync(
-                        owner,
-                        File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
-                            ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
-                            : new JsonSettingsStore(),
-                        settings,
-                        ProtectionServiceManager.GetState() == ProtectionServiceState.Running));
-                verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-                verification.ShowInTaskbar = true;
-                verification.Topmost = true;
-                if (verification.ShowDialog() != true)
+                settings = await new JsonSettingsStore().LoadAsync();
+            }
+            string? managementPin = null;
+            if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
+            {
+                if (!string.IsNullOrWhiteSpace(verifiedPin) && AdminPinService.Verify(verifiedPin, settings.AdminPin))
                 {
-                    return;
+                    managementPin = verifiedPin;
+                }
+                else
+                {
+                    AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                        pin => AdminPinService.Verify(pin, settings.AdminPin),
+                        owner => RunRecoveryPinResetAsync(
+                            owner,
+                            File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+                                ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
+                                : new JsonSettingsStore(),
+                            settings,
+                            ProtectionServiceManager.GetState() == ProtectionServiceState.Running));
+                    verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                    verification.ShowInTaskbar = true;
+                    verification.Topmost = true;
+                    if (verification.ShowDialog() != true)
+                    {
+                        return;
+                    }
+
+                    managementPin = verification.ResultPin;
                 }
 
-                managementPin = verification.ResultPin;
+                _guardianCredential = settings.AdminPin;
+                RestoreProtectedSettingsToUserProfile();
             }
 
-            _guardianCredential = settings.AdminPin;
-            RestoreProtectedSettingsToUserProfile();
+            sessionWindow.EnableControlCenterReturn();
+            _activatedControlCenter = new MainWindow(sessionWindow, managementPin);
+            if (sessionWindow.KeepsSessionBehindControlCenter)
+            {
+                _activatedControlCenter.Owner = sessionWindow;
+                _activatedControlCenter.Topmost = true;
+                _activatedControlCenter.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            }
+            _activatedControlCenter.Closed += (_, _) =>
+            {
+                _activatedControlCenter = null;
+                sessionWindow.ResumeFromControlCenter();
+            };
+            _activatedControlCenter.Show();
+            _activatedControlCenter.Activate();
         }
-
-        sessionWindow.EnableControlCenterReturn();
-        _activatedControlCenter = new MainWindow(sessionWindow, managementPin);
-        if (sessionWindow.KeepsSessionBehindControlCenter)
+        finally
         {
-            _activatedControlCenter.Owner = sessionWindow;
-            _activatedControlCenter.Topmost = true;
-            _activatedControlCenter.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            _controlCenterActivationInProgress = false;
         }
-        _activatedControlCenter.Closed += (_, _) =>
-        {
-            _activatedControlCenter = null;
-            sessionWindow.ResumeFromControlCenter();
-        };
-        _activatedControlCenter.Show();
-        _activatedControlCenter.Activate();
     }
 
     private void DirectSession_ControlCenterRequested(object? sender, ControlCenterRequestEventArgs e)
