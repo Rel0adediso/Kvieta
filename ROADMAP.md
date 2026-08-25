@@ -254,6 +254,12 @@ Tamamlandı. Kurallar yolun yanında WinTrust ile doğrulanan publisher imzası,
 - Personal ve Protected akışlarının uçtan uca kararlı olması.
 - Test backdoor'u içermeyen public paket.
 - Güvenli installer, recovery ve upgrade yolu.
+- Açıklamalı ve yönlendirmeli kurulum sihirbazı:
+  - Otium ile Guardian'ın ne kurduğunu ve neden yönetici izni istediğini sade biçimde anlatma.
+  - `Sadece takip`, `Kendim için` ve `Yönettiğim biri için` kullanım biçimlerini kurulum sırasında kısa sonuçlarıyla gösterme.
+  - Önerilen kurulum ile gelişmiş seçenekleri ayırma; Windows ile başlatma ve masaüstü/Başlat menüsü kısayollarını açıkça seçtirme.
+  - Kurulumdan önce yapılacakları özetleme, kurulum sonunda seçilen modu ve Kontrol Merkezi'ne nasıl dönüleceğini gösterme.
+  - Güncelleme, onarım ve kaldırma işlemlerinde kullanıcı verisine ne olacağını işlem başlamadan açıklama.
 - Ritim, geçmiş ve gizlilik kontrolleri.
 - Guardian ve uygulama kural motoru için belgelenmiş güvenlik sınırları.
 - Kurulum, kullanım, kurtarma ve katkı rehberleri.
