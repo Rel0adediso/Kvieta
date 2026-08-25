@@ -65,7 +65,7 @@ public sealed class JsonSettingsStore
                     : PersonalProtectionLevel.Flexible;
             }
             settings.SchemaVersion = 9;
-            settings.StrictPersonalMode = settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible;
+            NormalizePersonalProtection(settings);
             settings.SetupCompleted = true;
             settings.AwarenessTrackingEnabled = settings.Mode == ControlMode.Awareness || settings.AwarenessTrackingEnabled;
             await SaveAsync(settings, cancellationToken);
@@ -125,14 +125,17 @@ public sealed class JsonSettingsStore
             }
 
             settings.SchemaVersion = 9;
-            settings.StrictPersonalMode = settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible;
+            changed |= NormalizePersonalProtection(settings);
             if (settings.PendingChange?.TargetSettings is { } target && target.SchemaVersion < 9)
             {
                 target.PersonalProtectionLevel = target.StrictPersonalMode
                     ? PersonalProtectionLevel.Balanced
                     : PersonalProtectionLevel.Flexible;
                 target.SchemaVersion = 9;
-                target.StrictPersonalMode = target.PersonalProtectionLevel != PersonalProtectionLevel.Flexible;
+            }
+            if (settings.PendingChange?.TargetSettings is { } pendingTarget)
+            {
+                changed |= NormalizePersonalProtection(pendingTarget);
             }
             if (settings.Mode == ControlMode.Awareness)
             {
@@ -159,4 +162,16 @@ public sealed class JsonSettingsStore
             settings.RecoveryCodes ??= [];
             return new MigrationResult<ControlSettings>(settings, changed);
         });
+
+    private static bool NormalizePersonalProtection(ControlSettings settings)
+    {
+        PersonalProtectionLevel level = settings.Mode == ControlMode.Personal
+            ? settings.PersonalProtectionLevel
+            : PersonalProtectionLevel.Balanced;
+        bool strict = settings.Mode == ControlMode.Personal && level != PersonalProtectionLevel.Flexible;
+        bool changed = settings.PersonalProtectionLevel != level || settings.StrictPersonalMode != strict;
+        settings.PersonalProtectionLevel = level;
+        settings.StrictPersonalMode = strict;
+        return changed;
+    }
 }

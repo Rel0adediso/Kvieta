@@ -446,10 +446,21 @@ string legacyPath = Path.Combine(testDirectory, "legacy-settings.json");
 await File.WriteAllTextAsync(legacyPath, "{\"SchemaVersion\":1,\"DeviceName\":\"Eski Kurulum\"}");
 ControlSettings migratedSettings = await new JsonSettingsStore(legacyPath).LoadAsync();
 Assert(migratedSettings.SchemaVersion == 9, "Eski ayar şeması yükseltilemedi.");
-Assert(migratedSettings.PersonalProtectionLevel == PersonalProtectionLevel.Flexible,
-    "Eski kişisel ayar koruma seviyesine güvenli biçimde taşınmadı.");
+Assert(migratedSettings.Mode == ControlMode.Protected &&
+       migratedSettings.PersonalProtectionLevel == PersonalProtectionLevel.Balanced &&
+       !migratedSettings.StrictPersonalMode,
+    "Eski korumalı ayardaki ilgisiz kişisel seviye temizlenmedi.");
 Assert(!migratedSettings.AwarenessTrackingEnabled && migratedSettings.UsageRetentionDays == 90, "Migration açık rıza gerektiren ölçümü kendiliğinden etkinleştirdi.");
 Assert(migratedSettings.WeeklyReductionGoalPercent == 0, "Migration kullanıcı onayı olmadan azaltma hedefi oluşturdu.");
+
+string legacyPersonalPath = Path.Combine(testDirectory, "legacy-personal-settings.json");
+await File.WriteAllTextAsync(
+    legacyPersonalPath,
+    "{\"SchemaVersion\":8,\"SetupCompleted\":true,\"Mode\":\"Personal\",\"StrictPersonalMode\":false}");
+ControlSettings migratedPersonalSettings = await new JsonSettingsStore(legacyPersonalPath).LoadAsync();
+Assert(migratedPersonalSettings.PersonalProtectionLevel == PersonalProtectionLevel.Flexible &&
+       !migratedPersonalSettings.StrictPersonalMode,
+    "Eski kişisel ayar koruma seviyesine güvenli biçimde taşınmadı.");
 
 DateOnly rhythmToday = new(2026, 8, 24);
 ControlSettings rhythmSettings = new() { WeeklyReductionGoalPercent = 10 };
@@ -731,7 +742,9 @@ await personalViewModel.SetControlModeAsync(ControlMode.Awareness);
 ControlSettings queuedAwarenessSettings = await personalSettingsStore.LoadAsync();
 Assert(queuedAwarenessSettings.Mode == ControlMode.Personal, "Farkındalık moduna geçiş kişisel beklemeyi deldi.");
 Assert(queuedAwarenessSettings.PendingChange?.TargetSettings.Mode == ControlMode.Awareness &&
-       queuedAwarenessSettings.PendingChange.TargetSettings.AwarenessTrackingEnabled,
+       queuedAwarenessSettings.PendingChange.TargetSettings.AwarenessTrackingEnabled &&
+       queuedAwarenessSettings.PendingChange.TargetSettings.PersonalProtectionLevel == PersonalProtectionLevel.Balanced &&
+       !queuedAwarenessSettings.PendingChange.TargetSettings.StrictPersonalMode,
     "Bekleyen farkındalık profili doğru hazırlanmadı.");
 #if OTIUM_DEVELOPMENT_BUILD
 Assert(await personalViewModel.ForceApplyPendingForTestingAsync(), "Kontrol merkezi test atlaması bekleyen değişikliği uygulamadı.");

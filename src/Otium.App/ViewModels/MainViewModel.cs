@@ -774,19 +774,23 @@ public sealed class MainViewModel : ObservableObject
         string? newPin = null,
         AdminCredential? newCredential = null)
     {
+        PersonalProtectionLevel normalizedPersonalLevel = mode == ControlMode.Personal
+            ? personalProtectionLevel
+            : PersonalProtectionLevel.Balanced;
         bool personalTightening = SelectedControlMode == ControlMode.Personal &&
             mode == ControlMode.Personal &&
-            (int)personalProtectionLevel > (int)PersonalProtectionLevel;
+            (int)normalizedPersonalLevel > (int)PersonalProtectionLevel;
         bool personalRelaxation = SelectedControlMode == ControlMode.Personal &&
             (mode != ControlMode.Personal &&
              !(mode == ControlMode.Protected && PersonalProtectionLevel == PersonalProtectionLevel.Guarded) ||
-             mode == ControlMode.Personal && (int)personalProtectionLevel < (int)PersonalProtectionLevel);
+             mode == ControlMode.Personal && (int)normalizedPersonalLevel < (int)PersonalProtectionLevel);
         if (personalRelaxation)
         {
             ControlSettings target = CloneSettings(_settings.PendingChange?.TargetSettings ?? _settings);
             target.Mode = mode;
-            target.PersonalProtectionLevel = personalProtectionLevel;
-            target.StrictPersonalMode = personalProtectionLevel != PersonalProtectionLevel.Flexible;
+            target.PersonalProtectionLevel = normalizedPersonalLevel;
+            target.StrictPersonalMode = mode == ControlMode.Personal &&
+                normalizedPersonalLevel != PersonalProtectionLevel.Flexible;
             target.AwarenessTrackingEnabled = mode == ControlMode.Awareness || target.AwarenessTrackingEnabled;
             target.PendingChange = null;
             if (!string.IsNullOrWhiteSpace(newPin))
@@ -830,7 +834,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         SelectedControlMode = mode;
-        PersonalProtectionLevel = personalProtectionLevel;
+        PersonalProtectionLevel = normalizedPersonalLevel;
         if (mode == ControlMode.Awareness)
         {
             AwarenessTrackingEnabled = true;

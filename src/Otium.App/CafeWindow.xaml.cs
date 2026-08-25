@@ -24,6 +24,7 @@ public partial class CafeWindow : Window
     private readonly bool _requirePinToExit;
     private readonly AdminCredential? _exitCredentialOverride;
     private readonly bool _isDirectSession;
+    private readonly bool _startHidden;
     private bool _returnToControlCenter;
     private bool _forceSurfaceVisible;
     private bool _controlCenterOpen;
@@ -34,6 +35,7 @@ public partial class CafeWindow : Window
         bool isDirectSession = false,
         bool requirePinToExit = false,
         bool returnToControlCenter = false,
+        bool startHidden = false,
         AdminCredential? exitCredentialOverride = null,
         CafeViewModel? viewModel = null)
     {
@@ -41,12 +43,20 @@ public partial class CafeWindow : Window
         Title = $"Otium · {LocalizationService.Get("SessionScreen")}";
         _viewModel = viewModel ?? new CafeViewModel();
         _isDirectSession = isDirectSession;
+        _startHidden = startHidden;
         _requirePinToExit = requirePinToExit;
         _exitCredentialOverride = exitCredentialOverride;
         _returnToControlCenter = returnToControlCenter;
         ExitButton.Content = LocalizationService.Get(
             returnToControlCenter ? "ControlCenter" : !isDirectSession ? "ExitPreview" : requirePinToExit ? "AdminExit" : "ExitOtium");
         DataContext = _viewModel;
+
+        if (_startHidden)
+        {
+            Opacity = 0;
+            ShowActivated = false;
+            ShowInTaskbar = false;
+        }
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += Timer_Tick;
@@ -66,6 +76,12 @@ public partial class CafeWindow : Window
 
         _timer.Start();
         EnsureCorrectSurface();
+        if (_startHidden)
+        {
+            Opacity = 1;
+            ShowActivated = true;
+            ShowInTaskbar = true;
+        }
         MotionService.Enter(SessionSurface, 0, 9, 220);
         await HandleLimitReachedAsync();
     }

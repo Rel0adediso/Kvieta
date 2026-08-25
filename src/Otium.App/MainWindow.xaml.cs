@@ -1152,7 +1152,8 @@ public partial class MainWindow : Window
             _backgroundSessionWindow = new CafeWindow(
                 isDirectSession: true,
                 requirePinToExit: false,
-                returnToControlCenter: true);
+                returnToControlCenter: true,
+                startHidden: _viewModel.IsAwarenessMode);
             _ownsBackgroundSessionWindow = true;
             AttachSessionEvents();
             _backgroundSessionWindow.Show();
