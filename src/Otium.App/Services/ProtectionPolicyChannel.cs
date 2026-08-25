@@ -256,7 +256,7 @@ public static class ProtectionPolicyChannel
             return;
         }
 
-        if (candidate is null || candidate.Mode != ControlMode.Protected || !candidate.AdminPin.IsConfigured)
+        if (candidate is null || !candidate.RequiresGuardian || !candidate.AdminPin.IsConfigured)
         {
             await writer.WriteLineAsync("ERR".AsMemory(), requestTimeout.Token);
             return;

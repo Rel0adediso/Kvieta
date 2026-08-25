@@ -444,7 +444,9 @@ Assert(loadedLedger.UsedSeconds == ledger.UsedSeconds, "Kullanım kaydı geri y�
 string legacyPath = Path.Combine(testDirectory, "legacy-settings.json");
 await File.WriteAllTextAsync(legacyPath, "{\"SchemaVersion\":1,\"DeviceName\":\"Eski Kurulum\"}");
 ControlSettings migratedSettings = await new JsonSettingsStore(legacyPath).LoadAsync();
-Assert(migratedSettings.SchemaVersion == 8, "Eski ayar şeması yükseltilemedi.");
+Assert(migratedSettings.SchemaVersion == 9, "Eski ayar şeması yükseltilemedi.");
+Assert(migratedSettings.PersonalProtectionLevel == PersonalProtectionLevel.Flexible,
+    "Eski kişisel ayar koruma seviyesine güvenli biçimde taşınmadı.");
 Assert(!migratedSettings.AwarenessTrackingEnabled && migratedSettings.UsageRetentionDays == 90, "Migration açık rıza gerektiren ölçümü kendiliğinden etkinleştirdi.");
 Assert(migratedSettings.WeeklyReductionGoalPercent == 0, "Migration kullanıcı onayı olmadan azaltma hedefi oluşturdu.");
 
@@ -715,6 +717,14 @@ strictPersonal.StrictPersonalMode = true;
 ControlSettings relaxedPersonal = CloneForTest(strictPersonal);
 relaxedPersonal.StrictPersonalMode = false;
 Assert(SettingsPolicyComparer.HasRelaxation(strictPersonal, relaxedPersonal), "Sıkı kişisel modu kapatma gevşetme olarak algılanmadı.");
+ControlSettings guardedPersonal = CloneForTest(strictPersonal);
+guardedPersonal.Mode = ControlMode.Personal;
+guardedPersonal.PersonalProtectionLevel = PersonalProtectionLevel.Guarded;
+ControlSettings balancedPersonal = CloneForTest(guardedPersonal);
+balancedPersonal.PersonalProtectionLevel = PersonalProtectionLevel.Balanced;
+Assert(guardedPersonal.RequiresGuardian, "Sıkı kişisel seviye Guardian gerektirmedi.");
+Assert(SettingsPolicyComparer.HasRelaxation(guardedPersonal, balancedPersonal),
+    "Guardian destekli kişisel seviyeyi düşürme gevşetme olarak algılanmadı.");
 
 await personalViewModel.SetControlModeAsync(ControlMode.Awareness);
 ControlSettings queuedAwarenessSettings = await personalSettingsStore.LoadAsync();
@@ -737,6 +747,20 @@ await strictCafe.InitializeAsync();
 Assert(strictCafe.State == SessionState.TimeExpired && !strictCafe.CanRequestExtraTime, "Sıkı kişisel modda ek süre isteği kapatılmadı.");
 await strictCafe.AddBonusMinutesAsync(30);
 Assert((await new JsonUsageStore(strictUsagePath).LoadAsync()).BonusMinutes == 0, "Sıkı kişisel mod ek süreyi model katmanında reddetmedi.");
+
+await personalViewModel.SetControlModeAsync(
+    ControlMode.Personal,
+    PersonalProtectionLevel.Guarded,
+    "4826");
+ControlSettings guardedModeSettings = await personalSettingsStore.LoadAsync();
+Assert(guardedModeSettings.Mode == ControlMode.Personal &&
+       guardedModeSettings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded &&
+       guardedModeSettings.RequiresGuardian,
+    "Sıkı kişisel seviye hemen ve Guardian zorunlu olarak uygulanmadı.");
+Assert(guardedModeSettings.PendingChange?.TargetSettings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded,
+    "Sıkılaştırma mevcut bekleyen hedefe birleştirilmedi.");
+Assert(AdminPinService.Verify("4826", guardedModeSettings.AdminPin),
+    "Sıkı kişisel Guardian PIN'i güvenli biçimde saklanmadı.");
 
 await personalViewModel.SetControlModeAsync(ControlMode.Protected, "4826");
 ControlSettings queuedModeSettings = await personalSettingsStore.LoadAsync();
@@ -889,6 +913,7 @@ static ControlSettings CloneForTest(ControlSettings settings) => new()
     UsageRetentionDays = settings.UsageRetentionDays,
     PersonalChangeDelayMinutes = settings.PersonalChangeDelayMinutes,
     StrictPersonalMode = settings.StrictPersonalMode,
+    PersonalProtectionLevel = settings.PersonalProtectionLevel,
     WeeklyReductionGoalPercent = settings.WeeklyReductionGoalPercent,
     AdminPin = settings.AdminPin,
     WarningMinutes = [.. settings.WarningMinutes],

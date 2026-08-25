@@ -6,14 +6,17 @@ namespace Otium.App;
 
 public partial class ModeSelectionWindow : Window
 {
-    public ModeSelectionWindow(ControlMode? currentMode = null)
+    public ModeSelectionWindow(ControlMode? currentMode = null, PersonalProtectionLevel currentPersonalLevel = PersonalProtectionLevel.Balanced)
     {
         InitializeComponent();
         SelectedMode = currentMode;
+        SelectedPersonalProtectionLevel = currentPersonalLevel;
         UpdateSelectionStyles();
+        UpdatePersonalSelectionStyles();
     }
 
     public ControlMode? SelectedMode { get; private set; }
+    public PersonalProtectionLevel SelectedPersonalProtectionLevel { get; private set; }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
@@ -26,20 +29,9 @@ public partial class ModeSelectionWindow : Window
         Height = Math.Min(Height, MaxHeight);
     }
 
-    private void Awareness_Click(object sender, RoutedEventArgs e)
-    {
-        SelectMode(ControlMode.Awareness);
-    }
-
-    private void Personal_Click(object sender, RoutedEventArgs e)
-    {
-        SelectMode(ControlMode.Personal);
-    }
-
-    private void Protected_Click(object sender, RoutedEventArgs e)
-    {
-        SelectMode(ControlMode.Protected);
-    }
+    private void Awareness_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Awareness);
+    private void Personal_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Personal);
+    private void Protected_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Protected);
 
     private void SelectMode(ControlMode mode)
     {
@@ -57,12 +49,46 @@ public partial class ModeSelectionWindow : Window
         ConfirmModeButton.IsEnabled = SelectedMode is not null;
     }
 
+    private void Flexible_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Flexible);
+    private void Balanced_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Balanced);
+    private void Guarded_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Guarded);
+
+    private void SelectPersonalLevel(PersonalProtectionLevel level)
+    {
+        SelectedPersonalProtectionLevel = level;
+        UpdatePersonalSelectionStyles();
+    }
+
+    private void UpdatePersonalSelectionStyles()
+    {
+        Style normal = (Style)FlexibleButton.FindResource("ModeCardStyle");
+        Style selected = (Style)FlexibleButton.FindResource("SelectedModeCardStyle");
+        FlexibleButton.Style = SelectedPersonalProtectionLevel == PersonalProtectionLevel.Flexible ? selected : normal;
+        BalancedButton.Style = SelectedPersonalProtectionLevel == PersonalProtectionLevel.Balanced ? selected : normal;
+        GuardedButton.Style = SelectedPersonalProtectionLevel == PersonalProtectionLevel.Guarded ? selected : normal;
+    }
+
     private void Confirm_Click(object sender, RoutedEventArgs e)
     {
+        if (SelectedMode == ControlMode.Personal)
+        {
+            UsageStepPanel.Visibility = Visibility.Collapsed;
+            PersonalStepPanel.Visibility = Visibility.Visible;
+            return;
+        }
+
         if (SelectedMode is not null)
         {
             DialogResult = true;
         }
+    }
+
+    private void ConfirmPersonal_Click(object sender, RoutedEventArgs e) => DialogResult = true;
+
+    private void Back_Click(object sender, RoutedEventArgs e)
+    {
+        PersonalStepPanel.Visibility = Visibility.Collapsed;
+        UsageStepPanel.Visibility = Visibility.Visible;
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;

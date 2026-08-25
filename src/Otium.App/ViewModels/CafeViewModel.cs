@@ -8,7 +8,7 @@ namespace Otium.App.ViewModels;
 
 public sealed class CafeViewModel : ObservableObject
 {
-    private readonly JsonSettingsStore _settingsStore;
+    private JsonSettingsStore _settingsStore;
     private readonly JsonUsageStore _usageStore;
     private readonly Stopwatch _tickWatch = Stopwatch.StartNew();
     private readonly ApplicationRuleEnforcer _applicationRuleEnforcer = new();
@@ -269,7 +269,7 @@ public sealed class CafeViewModel : ObservableObject
         {
             ControlSettings target = pending.TargetSettings;
             target.PendingChange = null;
-            target.SchemaVersion = 8;
+            target.SchemaVersion = 9;
             target.SetupCompleted = true;
             await _settingsStore.SaveAsync(target);
             _settings = target;
@@ -352,6 +352,12 @@ public sealed class CafeViewModel : ObservableObject
         _tickWatch.Restart();
         RefreshSnapshot(notifyStateChange: true);
         await SaveAsync();
+    }
+
+    public async Task SwitchToUserSettingsStoreAsync()
+    {
+        _settingsStore = new JsonSettingsStore();
+        await ReloadSettingsAsync();
     }
 
     public async Task ReloadUsageAfterClearAsync()

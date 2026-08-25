@@ -550,6 +550,12 @@ public partial class CafeWindow : Window
         Hide();
     }
 
+    public async Task SwitchToUserSettingsStoreAsync()
+    {
+        await _viewModel.SwitchToUserSettingsStoreAsync();
+        EnsureCorrectSurface();
+    }
+
 #if OTIUM_DEVELOPMENT_BUILD
     private async void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
 #else

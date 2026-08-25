@@ -98,4 +98,19 @@
     <sys:String x:Key="RepairInstallationAction">Kurulumu onar</sys:String>
     <sys:String x:Key="RecoveryCenterPrivacyNote">Her kurtarma işlemi cihazdaki güvenlik günlüğüne yalnız işlem adı, sonuç ve zaman olarak yazılır; PIN, kurtarma kodu veya özel içerik kaydedilmez.</sys:String>
     <sys:String x:Key="RecoveryCenterOpenFailed">Kurtarma Merkezi açılamadı</sys:String>
+    <sys:String x:Key="ChoosePersonalLevelTitle">Kendin için ne kadar sıkı olsun?</sys:String>
+    <sys:String x:Key="ChoosePersonalLevelDescription">Kuralların ne kadar kolay gevşetileceğini ve Guardian korumasını seç.</sys:String>
+    <sys:String x:Key="PersonalFlexible">Esnek</sys:String>
+    <sys:String x:Key="PersonalFlexibleDescription">Sınırlarını uygular; gerektiğinde kendine ek süre verebilirsin.</sys:String>
+    <sys:String x:Key="PersonalFlexibleHint">Gevşetmeler kısa bekleme süresiyle uygulanır. Guardian kullanılmaz.</sys:String>
+    <sys:String x:Key="PersonalBalanced">Dengeli</sys:String>
+    <sys:String x:Key="PersonalBalancedDescription">Ani ek süreyi kapatır ve kural gevşetmelerini bekletir.</sys:String>
+    <sys:String x:Key="PersonalBalancedHint">Otium'u kapatmaya karşı servis koruması yoktur.</sys:String>
+    <sys:String x:Key="PersonalGuarded">Sıkı · Guardian</sys:String>
+    <sys:String x:Key="PersonalGuardedDescription">Otium kapatılırsa Guardian yeniden açar ve kuralları ayakta tutar.</sys:String>
+    <sys:String x:Key="PersonalGuardedHint">Yönetici PIN'i ve güvenli kurtarma yolu gerekir.</sys:String>
+    <sys:String x:Key="PersonalLevelCanChangeLater">Daha düşük sıkılığa geçiş bekleme süresinden sonra uygulanır.</sys:String>
+    <sys:String x:Key="Back">Geri</sys:String>
+    <sys:String x:Key="PersonalStrictness">Kişisel sıkılık</sys:String>
+    <sys:String x:Key="PersonalStrictnessDescription">Seçilen kişisel koruma seviyesi</sys:String>
 </ResourceDictionary>

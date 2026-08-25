@@ -116,7 +116,11 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            settings.Mode = ControlMode.Protected;
+            if (!settings.RequiresGuardian)
+            {
+                Shutdown();
+                return;
+            }
             settings.AdminPin = settings.AdminPin.IsConfigured ? settings.AdminPin : enrollment.AdminPin;
             settings.SetupCompleted = true;
             _guardianCredential = settings.AdminPin;
@@ -132,7 +136,9 @@ public partial class App : System.Windows.Application
             }
 
             settings.Mode = modeWindow.SelectedMode.Value;
-            if (settings.Mode == ControlMode.Protected)
+            settings.PersonalProtectionLevel = modeWindow.SelectedPersonalProtectionLevel;
+            settings.StrictPersonalMode = settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible;
+            if (settings.RequiresGuardian)
             {
                 AdminPinWindow setup = AdminPinWindow.CreateSetup();
                 setup.WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -146,12 +152,12 @@ public partial class App : System.Windows.Application
                 settings.AdminPin = AdminPinService.Create(setup.ResultPin);
             }
 
-            settings.SchemaVersion = 8;
+            settings.SchemaVersion = 9;
             settings.SetupCompleted = true;
             await settingsStore.SaveAsync(settings);
         }
 
-        if (!guardianSession && settings.Mode == ControlMode.Protected &&
+        if (!guardianSession && settings.RequiresGuardian &&
             ProtectionServiceManager.GetState() != ProtectionServiceState.Running)
         {
             bool guardianReady = await ProtectionServiceManager.RunElevatedInstallerAsync(install: true) &&
@@ -185,7 +191,7 @@ public partial class App : System.Windows.Application
 
         if (guardianSession || e.Args.Any(argument => string.Equals(argument, "--session", StringComparison.OrdinalIgnoreCase)))
         {
-            if (settings.Mode == ControlMode.Protected && !settings.AdminPin.IsConfigured)
+            if (settings.RequiresGuardian && !settings.AdminPin.IsConfigured)
             {
                 System.Windows.MessageBox.Show(
                     settings.Language == LanguagePreference.English
@@ -200,7 +206,7 @@ public partial class App : System.Windows.Application
 
             CafeWindow sessionWindow = new(
                 isDirectSession: true,
-                requirePinToExit: guardianSession || settings.Mode == ControlMode.Protected,
+                requirePinToExit: guardianSession || settings.RequiresGuardian,
                 exitCredentialOverride: _guardianCredential,
                 viewModel: guardianSession ? new CafeViewModel(settingsStore) : null);
             sessionWindow.ControlCenterRequested += DirectSession_ControlCenterRequested;
@@ -279,19 +285,17 @@ public partial class App : System.Windows.Application
         ControlSettings settings;
         if (_guardianCredential?.IsConfigured == true)
         {
-            settings = new ControlSettings
-            {
-                SetupCompleted = true,
-                Mode = ControlMode.Protected,
-                AdminPin = _guardianCredential
-            };
+            settings = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+                ? await new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true).LoadAsync()
+                : new ControlSettings { SetupCompleted = true, Mode = ControlMode.Protected };
+            settings.AdminPin = _guardianCredential;
         }
         else
         {
             settings = await new JsonSettingsStore().LoadAsync();
         }
         string? managementPin = null;
-        if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
+        if (settings.RequiresGuardian && settings.AdminPin.IsConfigured)
         {
             if (!string.IsNullOrWhiteSpace(verifiedPin) && AdminPinService.Verify(verifiedPin, settings.AdminPin))
             {

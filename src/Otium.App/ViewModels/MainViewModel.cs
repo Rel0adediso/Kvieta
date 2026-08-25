@@ -27,6 +27,7 @@ public sealed class MainViewModel : ObservableObject
     private bool _startWithWindows;
     private bool _awarenessTrackingEnabled;
     private bool _strictPersonalMode;
+    private PersonalProtectionLevel _personalProtectionLevel = PersonalProtectionLevel.Balanced;
     private string _reductionGoal = "Hedef yok";
     private string _retentionPeriod = "90 gün";
     private ControlMode _controlMode = ControlMode.Protected;
@@ -132,6 +133,20 @@ public sealed class MainViewModel : ObservableObject
         set => SetProperty(ref _strictPersonalMode, value);
     }
 
+    public PersonalProtectionLevel PersonalProtectionLevel
+    {
+        get => _personalProtectionLevel;
+        private set
+        {
+            if (SetProperty(ref _personalProtectionLevel, value))
+            {
+                StrictPersonalMode = value != PersonalProtectionLevel.Flexible;
+                OnPropertyChanged(nameof(ControlModeText));
+                OnPropertyChanged(nameof(IsGuardianRequired));
+            }
+        }
+    }
+
     public string ReductionGoal
     {
         get => _reductionGoal;
@@ -161,6 +176,7 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(IsPersonalMode));
                 OnPropertyChanged(nameof(IsProtectedMode));
                 OnPropertyChanged(nameof(IsAwarenessMode));
+                OnPropertyChanged(nameof(IsGuardianRequired));
                 OnPropertyChanged(nameof(HasRestrictions));
                 OnPropertyChanged(nameof(TodayDescriptionText));
                 OnPropertyChanged(nameof(RhythmPlanMetricLabel));
@@ -172,12 +188,17 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public string ControlModeText => ModeDisplayName(SelectedControlMode);
+    public string ControlModeText => SelectedControlMode == ControlMode.Personal
+        ? $"{ModeDisplayName(SelectedControlMode)} · {PersonalLevelDisplayName(PersonalProtectionLevel)}"
+        : ModeDisplayName(SelectedControlMode);
     public string BuildInformationText =>
         $"Otium {BuildInfo.Version} · {LocalizationService.Get(BuildInfo.IsDevelopmentBuild ? "DevelopmentTestBuild" : "PublicReleaseBuild")}";
     public bool IsPersonalMode => SelectedControlMode == ControlMode.Personal;
     public bool IsProtectedMode => SelectedControlMode == ControlMode.Protected;
     public bool IsAwarenessMode => SelectedControlMode == ControlMode.Awareness;
+    public bool IsGuardianRequired =>
+        IsProtectedMode ||
+        IsPersonalMode && PersonalProtectionLevel == PersonalProtectionLevel.Guarded;
     public bool HasRestrictions => SelectedControlMode != ControlMode.Awareness;
     public string TodayDescriptionText => IsAwarenessMode
         ? L("Bugünkü gerçek uygulama kullanımını tek bakışta gör.", "See today's actual application usage at a glance.")
@@ -289,6 +310,7 @@ public sealed class MainViewModel : ObservableObject
             StartWithWindows = _settings.StartWithWindows;
             AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
             StrictPersonalMode = _settings.StrictPersonalMode;
+            PersonalProtectionLevel = _settings.PersonalProtectionLevel;
             ReductionGoal = ToDisplayGoal(_settings.WeeklyReductionGoalPercent);
             RetentionPeriod = ToDisplayRetention(_settings.UsageRetentionDays);
             SelectedControlMode = _settings.Mode;
@@ -336,6 +358,7 @@ public sealed class MainViewModel : ObservableObject
         StartWithWindows = _settings.StartWithWindows;
         AwarenessTrackingEnabled = _settings.AwarenessTrackingEnabled;
         StrictPersonalMode = _settings.StrictPersonalMode;
+        PersonalProtectionLevel = _settings.PersonalProtectionLevel;
         ReductionGoal = ToDisplayGoal(_settings.WeeklyReductionGoalPercent);
         RetentionPeriod = ToDisplayRetention(_settings.UsageRetentionDays);
         SelectedControlMode = _settings.Mode;
@@ -354,7 +377,7 @@ public sealed class MainViewModel : ObservableObject
     {
         try
         {
-            if (SelectedControlMode == ControlMode.Protected && !HasAdminPin)
+            if (IsGuardianRequired && !HasAdminPin)
             {
                 StatusMessage = L("Korumalı kullanım için yönetici PIN'i oluştur.", "Create an administrator PIN for protected mode.");
                 return false;
@@ -374,7 +397,7 @@ public sealed class MainViewModel : ObservableObject
 
             ControlSettings desired = new()
             {
-                SchemaVersion = 8,
+                SchemaVersion = 9,
                 SetupCompleted = true,
                 Mode = SelectedControlMode,
                 DeviceName = string.IsNullOrWhiteSpace(DeviceName) ? LocalizationService.Get("DefaultDeviceName") : DeviceName.Trim(),
@@ -387,6 +410,7 @@ public sealed class MainViewModel : ObservableObject
                 UsageRetentionDays = FromDisplayRetention(RetentionPeriod),
                 PersonalChangeDelayMinutes = FromDisplayDelay(ChangeDelay),
                 StrictPersonalMode = StrictPersonalMode,
+                PersonalProtectionLevel = PersonalProtectionLevel,
                 WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal),
                 AdminPin = _settings.AdminPin,
                 RecoveryCodes = CloneRecoveryCodes(_settings.RecoveryCodes),
@@ -403,6 +427,9 @@ public sealed class MainViewModel : ObservableObject
                 immediate.StartWithWindows = _settings.StartWithWindows;
                 immediate.PersonalChangeDelayMinutes = _settings.PersonalChangeDelayMinutes;
                 immediate.StrictPersonalMode = _settings.StrictPersonalMode || desired.StrictPersonalMode;
+                immediate.PersonalProtectionLevel = (PersonalProtectionLevel)Math.Max(
+                    (int)_settings.PersonalProtectionLevel,
+                    (int)desired.PersonalProtectionLevel);
                 immediate.Schedule = CloneSchedule(_settings.Schedule);
                 immediate.TemporaryAllowances = CloneTemporaryAllowances(_settings.TemporaryAllowances);
                 immediate.AppRules = CloneAppRules(_settings.AppRules);
@@ -735,12 +762,26 @@ public sealed class MainViewModel : ObservableObject
         return codes;
     }
 
-    public async Task SetControlModeAsync(ControlMode mode, string? newPin = null)
+    public Task SetControlModeAsync(ControlMode mode, string? newPin = null) =>
+        SetControlModeAsync(
+            mode,
+            mode == ControlMode.Personal ? PersonalProtectionLevel : PersonalProtectionLevel.Balanced,
+            newPin);
+
+    public async Task SetControlModeAsync(
+        ControlMode mode,
+        PersonalProtectionLevel personalProtectionLevel,
+        string? newPin = null)
     {
-        if (SelectedControlMode == ControlMode.Personal && mode != ControlMode.Personal)
+        bool personalRelaxation = SelectedControlMode == ControlMode.Personal &&
+            (mode != ControlMode.Personal ||
+             mode == ControlMode.Personal && (int)personalProtectionLevel < (int)PersonalProtectionLevel);
+        if (personalRelaxation)
         {
             ControlSettings target = CloneSettings(_settings.PendingChange?.TargetSettings ?? _settings);
             target.Mode = mode;
+            target.PersonalProtectionLevel = personalProtectionLevel;
+            target.StrictPersonalMode = personalProtectionLevel != PersonalProtectionLevel.Flexible;
             target.AwarenessTrackingEnabled = mode == ControlMode.Awareness || target.AwarenessTrackingEnabled;
             target.PendingChange = null;
             if (!string.IsNullOrWhiteSpace(newPin))
@@ -769,11 +810,15 @@ public sealed class MainViewModel : ObservableObject
         }
 
         SelectedControlMode = mode;
+        PersonalProtectionLevel = personalProtectionLevel;
         if (mode == ControlMode.Awareness)
         {
             AwarenessTrackingEnabled = true;
         }
-        _settings.PendingChange = null;
+        if (mode != ControlMode.Personal)
+        {
+            _settings.PendingChange = null;
+        }
         await SaveAsync();
         StatusMessage = mode switch
         {
@@ -1102,6 +1147,7 @@ public sealed class MainViewModel : ObservableObject
         if (current.UsageRetentionDays != desired.UsageRetentionDays) target.UsageRetentionDays = desired.UsageRetentionDays;
         if (current.PersonalChangeDelayMinutes != desired.PersonalChangeDelayMinutes) target.PersonalChangeDelayMinutes = desired.PersonalChangeDelayMinutes;
         if (current.StrictPersonalMode != desired.StrictPersonalMode) target.StrictPersonalMode = desired.StrictPersonalMode;
+        if (current.PersonalProtectionLevel != desired.PersonalProtectionLevel) target.PersonalProtectionLevel = desired.PersonalProtectionLevel;
         if (current.WeeklyReductionGoalPercent != desired.WeeklyReductionGoalPercent) target.WeeklyReductionGoalPercent = desired.WeeklyReductionGoalPercent;
         if (!JsonEquivalent(current.AdminPin, desired.AdminPin)) target.AdminPin = desired.AdminPin;
         if (!JsonEquivalent(current.WarningMinutes, desired.WarningMinutes)) target.WarningMinutes = [.. desired.WarningMinutes];
@@ -1522,6 +1568,13 @@ public sealed class MainViewModel : ObservableObject
         _ => LocalizationService.Get("ProtectedModeShort")
     };
 
+    private static string PersonalLevelDisplayName(PersonalProtectionLevel level) => level switch
+    {
+        PersonalProtectionLevel.Flexible => LocalizationService.Get("PersonalFlexible"),
+        PersonalProtectionLevel.Guarded => LocalizationService.Get("PersonalGuarded"),
+        _ => LocalizationService.Get("PersonalBalanced")
+    };
+
     private static DaySchedule CloneDaySchedule(DaySchedule day) => new()
     {
         Day = day.Day,
@@ -1583,6 +1636,7 @@ public sealed class MainViewModel : ObservableObject
         UsageRetentionDays = settings.UsageRetentionDays,
         PersonalChangeDelayMinutes = settings.PersonalChangeDelayMinutes,
         StrictPersonalMode = settings.StrictPersonalMode,
+        PersonalProtectionLevel = settings.PersonalProtectionLevel,
         WeeklyReductionGoalPercent = settings.WeeklyReductionGoalPercent,
         AdminPin = new AdminCredential
         {

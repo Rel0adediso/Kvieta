@@ -63,6 +63,19 @@ public partial class MainWindow : Window
                     _viewModel.StatusMessage = $"Windows başlangıcı ayarlanamadı: {exception.Message}";
                 }
 
+                if (_viewModel.IsGuardianRequired)
+                {
+                    await CloseOwnedBackgroundSessionAsync();
+                }
+                else
+                {
+                    if (_backgroundSessionWindow is not null && !_ownsBackgroundSessionWindow)
+                    {
+                        await _backgroundSessionWindow.SwitchToUserSettingsStoreAsync();
+                    }
+                    EnsurePersonalBackgroundSession();
+                }
+
                 ResetSettingsScrollPosition();
             }
 
@@ -772,7 +785,7 @@ public partial class MainWindow : Window
 
     private async Task<bool> SyncProtectedPolicyAsync()
     {
-        if (!_viewModel.IsProtectedMode ||
+        if (!_viewModel.IsGuardianRequired ||
             ProtectionServiceManager.GetState() != ProtectionServiceState.Running)
         {
             return true;
@@ -819,7 +832,9 @@ public partial class MainWindow : Window
 
     private async void ChangeMode_Click(object sender, RoutedEventArgs e)
     {
-        ModeSelectionWindow selection = new(_viewModel.SelectedControlMode)
+        ModeSelectionWindow selection = new(
+            _viewModel.SelectedControlMode,
+            _viewModel.PersonalProtectionLevel)
         {
             Owner = this,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -831,12 +846,14 @@ public partial class MainWindow : Window
         }
 
         ControlMode targetMode = selection.SelectedMode.Value;
-        if (targetMode == _viewModel.SelectedControlMode)
+        PersonalProtectionLevel targetPersonalLevel = selection.SelectedPersonalProtectionLevel;
+        if (targetMode == _viewModel.SelectedControlMode &&
+            (targetMode != ControlMode.Personal || targetPersonalLevel == _viewModel.PersonalProtectionLevel))
         {
             return;
         }
 
-        if (_viewModel.SelectedControlMode == ControlMode.Protected && _viewModel.HasAdminPin)
+        if (_viewModel.IsGuardianRequired && _viewModel.HasAdminPin)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
             verification.Owner = this;
@@ -847,7 +864,10 @@ public partial class MainWindow : Window
         }
 
         string? newPin = null;
-        if (targetMode == ControlMode.Protected && !_viewModel.HasAdminPin)
+        bool targetRequiresGuardian =
+            targetMode == ControlMode.Protected ||
+            targetMode == ControlMode.Personal && targetPersonalLevel == PersonalProtectionLevel.Guarded;
+        if (targetRequiresGuardian && !_viewModel.HasAdminPin)
         {
             AdminPinWindow setup = AdminPinWindow.CreateSetup();
             setup.Owner = this;
@@ -857,24 +877,28 @@ public partial class MainWindow : Window
             }
 
             newPin = setup.ResultPin;
-        }
-
-        if (targetMode != ControlMode.Protected &&
-            ProtectionServiceManager.GetState() != ProtectionServiceState.NotInstalled)
-        {
-            if (!await ProtectionServiceManager.RunElevatedInstallerAsync(install: false))
-            {
-                _viewModel.StatusMessage = LocalizationService.Get("ProtectionRemoveFailed");
-                RefreshProtectionStatus();
-                return;
-            }
+            _managementPin = newPin;
         }
 
         ControlSettings rollbackSettings = _viewModel.CreateSettingsSnapshot();
-        await _viewModel.SetControlModeAsync(targetMode, newPin);
+        await _viewModel.SetControlModeAsync(targetMode, targetPersonalLevel, newPin);
         if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
         {
             return;
+        }
+
+        if (!await SyncProtectedPolicyAsync())
+        {
+            return;
+        }
+
+        if (_viewModel.IsGuardianRequired)
+        {
+            await CloseOwnedBackgroundSessionAsync();
+        }
+        else if (_backgroundSessionWindow is not null && !_ownsBackgroundSessionWindow)
+        {
+            await _backgroundSessionWindow.SwitchToUserSettingsStoreAsync();
         }
 
         RefreshProtectionStatus();
@@ -1011,8 +1035,22 @@ public partial class MainWindow : Window
 
     private async Task<bool> EnsureGuardianForProtectedModeAsync(ControlSettings rollbackSettings)
     {
-        if (!_viewModel.IsProtectedMode ||
-            ProtectionServiceManager.GetState() == ProtectionServiceState.Running)
+        if (!_viewModel.IsGuardianRequired)
+        {
+            if (ProtectionServiceManager.GetState() != ProtectionServiceState.NotInstalled)
+            {
+                bool removed = await ProtectionServiceManager.RunElevatedInstallerAsync(install: false);
+                RefreshProtectionStatus();
+                if (!removed)
+                {
+                    _viewModel.StatusMessage = LocalizationService.Get("ProtectionRemoveFailed");
+                }
+            }
+
+            return true;
+        }
+
+        if (ProtectionServiceManager.GetState() == ProtectionServiceState.Running)
         {
             return true;
         }
@@ -1025,7 +1063,7 @@ public partial class MainWindow : Window
             return true;
         }
 
-        if (rollbackSettings.Mode == ControlMode.Protected)
+        if (rollbackSettings.RequiresGuardian)
         {
             System.Windows.MessageBox.Show(
                 LocalizationService.CurrentLanguage == LanguagePreference.English
@@ -1077,7 +1115,8 @@ public partial class MainWindow : Window
 
     private void EnsurePersonalBackgroundSession()
     {
-        if (!_viewModel.IsPersonalMode && !_viewModel.IsAwarenessMode)
+        if (_viewModel.IsGuardianRequired ||
+            !_viewModel.IsPersonalMode && !_viewModel.IsAwarenessMode)
         {
             return;
         }
@@ -1111,6 +1150,25 @@ public partial class MainWindow : Window
 
         _backgroundSessionWindow.ControlCenterRequested += BackgroundSession_ControlCenterRequested;
         _sessionEventsAttached = true;
+    }
+
+    private async Task CloseOwnedBackgroundSessionAsync()
+    {
+        if (!_ownsBackgroundSessionWindow || _backgroundSessionWindow is null)
+        {
+            return;
+        }
+
+        CafeWindow window = _backgroundSessionWindow;
+        if (_sessionEventsAttached)
+        {
+            window.ControlCenterRequested -= BackgroundSession_ControlCenterRequested;
+            _sessionEventsAttached = false;
+        }
+
+        _backgroundSessionWindow = null;
+        _ownsBackgroundSessionWindow = false;
+        await window.CloseFromControllerAsync();
     }
 
     private async void BackgroundSession_ControlCenterRequested(object? sender, EventArgs e)
@@ -1209,10 +1267,12 @@ public partial class MainWindow : Window
         EnsureTrayIcon();
         ShowInTaskbar = false;
         Hide();
+        _backgroundSessionWindow?.ResumeFromControlCenter();
     }
 
     private void RestoreControlCenter()
     {
+        _backgroundSessionWindow?.EnableControlCenterReturn();
         ShowInTaskbar = true;
         Show();
         WindowState = WindowState.Normal;

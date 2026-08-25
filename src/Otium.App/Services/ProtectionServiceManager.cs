@@ -108,7 +108,7 @@ public static class ProtectionServiceManager
     }
 
     public static bool RequiresPinForUninstall(ControlSettings settings) =>
-        settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured;
+        settings.RequiresGuardian && settings.AdminPin.IsConfigured;
 
     public static bool LaunchProductUninstall()
     {
@@ -364,7 +364,7 @@ public static class ProtectionServiceManager
                 .GetAwaiter()
                 .GetResult();
             TraceInstallStep("settings.loaded");
-            if (settings.Mode != ControlMode.Protected || !settings.AdminPin.IsConfigured)
+            if (!settings.RequiresGuardian || !settings.AdminPin.IsConfigured)
             {
                 TraceInstallStep("failure.policy-not-protected");
                 return 3;

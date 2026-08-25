@@ -58,7 +58,14 @@ public sealed class JsonSettingsStore
         {
             settings = pending.TargetSettings;
             settings.PendingChange = null;
-            settings.SchemaVersion = 8;
+            if (settings.SchemaVersion < 9)
+            {
+                settings.PersonalProtectionLevel = settings.StrictPersonalMode
+                    ? PersonalProtectionLevel.Balanced
+                    : PersonalProtectionLevel.Flexible;
+            }
+            settings.SchemaVersion = 9;
+            settings.StrictPersonalMode = settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible;
             settings.SetupCompleted = true;
             settings.AwarenessTrackingEnabled = settings.Mode == ControlMode.Awareness || settings.AwarenessTrackingEnabled;
             await SaveAsync(settings, cancellationToken);
@@ -98,19 +105,35 @@ public sealed class JsonSettingsStore
         static () => new ControlSettings(),
         static settings =>
         {
-            if (settings.SchemaVersion > 8)
+            if (settings.SchemaVersion > 9)
             {
                 throw new InvalidDataException($"Desteklenmeyen ayar şeması: {settings.SchemaVersion}");
             }
 
-            bool changed = settings.SchemaVersion < 8;
+            bool changed = settings.SchemaVersion < 9;
             if (settings.SchemaVersion < 2)
             {
                 settings.SetupCompleted = true;
                 settings.Mode = ControlMode.Protected;
             }
 
-            settings.SchemaVersion = 8;
+            if (settings.SchemaVersion < 9)
+            {
+                settings.PersonalProtectionLevel = settings.StrictPersonalMode
+                    ? PersonalProtectionLevel.Balanced
+                    : PersonalProtectionLevel.Flexible;
+            }
+
+            settings.SchemaVersion = 9;
+            settings.StrictPersonalMode = settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible;
+            if (settings.PendingChange?.TargetSettings is { } target && target.SchemaVersion < 9)
+            {
+                target.PersonalProtectionLevel = target.StrictPersonalMode
+                    ? PersonalProtectionLevel.Balanced
+                    : PersonalProtectionLevel.Flexible;
+                target.SchemaVersion = 9;
+                target.StrictPersonalMode = target.PersonalProtectionLevel != PersonalProtectionLevel.Flexible;
+            }
             if (settings.Mode == ControlMode.Awareness)
             {
                 changed |= !settings.AwarenessTrackingEnabled || settings.PendingChange is not null;

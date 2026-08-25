@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Otium.Core.Models;
 
 public enum LimitReachedAction
@@ -27,9 +29,16 @@ public enum ControlMode
     Awareness
 }
 
+public enum PersonalProtectionLevel
+{
+    Flexible,
+    Balanced,
+    Guarded
+}
+
 public sealed class ControlSettings
 {
-    public int SchemaVersion { get; set; } = 8;
+    public int SchemaVersion { get; set; } = 9;
     public bool SetupCompleted { get; set; }
     public ControlMode Mode { get; set; } = ControlMode.Protected;
     public string DeviceName { get; set; } = "Bu Bilgisayar";
@@ -42,6 +51,7 @@ public sealed class ControlSettings
     public int UsageRetentionDays { get; set; } = 90;
     public int PersonalChangeDelayMinutes { get; set; } = 60;
     public bool StrictPersonalMode { get; set; }
+    public PersonalProtectionLevel PersonalProtectionLevel { get; set; } = PersonalProtectionLevel.Balanced;
     public int WeeklyReductionGoalPercent { get; set; }
     public PendingPolicyChange? PendingChange { get; set; }
     public AdminCredential AdminPin { get; set; } = new();
@@ -50,6 +60,11 @@ public sealed class ControlSettings
     public List<DaySchedule> Schedule { get; set; } = CreateDefaultSchedule();
     public List<TemporaryAllowance> TemporaryAllowances { get; set; } = [];
     public List<AppRule> AppRules { get; set; } = [];
+
+    [JsonIgnore]
+    public bool RequiresGuardian =>
+        Mode == ControlMode.Protected ||
+        Mode == ControlMode.Personal && PersonalProtectionLevel == PersonalProtectionLevel.Guarded;
 
     public static List<DaySchedule> CreateDefaultSchedule()
     {

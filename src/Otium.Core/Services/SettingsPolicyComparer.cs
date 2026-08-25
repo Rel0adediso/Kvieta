@@ -24,6 +24,11 @@ public static class SettingsPolicyComparer
             return true;
         }
 
+        if ((int)desired.PersonalProtectionLevel < (int)current.PersonalProtectionLevel)
+        {
+            return true;
+        }
+
         Dictionary<DayOfWeek, DaySchedule> currentDays = current.Schedule.ToDictionary(day => day.Day);
         foreach (DaySchedule desiredDay in desired.Schedule)
         {
