@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:services="clr-namespace:Otium.App.Services"
         Title="Otium · Oturum" WindowStyle="None" WindowState="Maximized" ResizeMode="NoResize"
-        Topmost="True" ShowInTaskbar="True" Loaded="Window_Loaded" Closing="Window_Closing" Closed="Window_Closed" PreviewKeyDown="Window_PreviewKeyDown">
+        Topmost="True" ShowInTaskbar="True" Loaded="Window_Loaded" Closing="Window_Closing" Closed="Window_Closed"
+        StateChanged="Window_StateChanged" Deactivated="Window_Deactivated" PreviewKeyDown="Window_PreviewKeyDown">
     <Grid Background="{DynamicResource BackgroundBrush}">
         <Grid Margin="42,30">
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>

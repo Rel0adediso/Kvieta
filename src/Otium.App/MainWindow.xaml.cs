@@ -1318,16 +1318,39 @@ public partial class MainWindow : Window
         EnsureTrayIcon();
         ShowInTaskbar = false;
         Hide();
+        if (Owner is CafeWindow)
+        {
+            Owner = null;
+        }
+        Topmost = false;
         _backgroundSessionWindow?.ResumeFromControlCenter();
     }
 
     private void RestoreControlCenter()
     {
         _backgroundSessionWindow?.EnableControlCenterReturn();
+        ConfigureControlCenterForSession();
         ShowInTaskbar = true;
         Show();
         WindowState = WindowState.Normal;
         Activate();
+    }
+
+    private void ConfigureControlCenterForSession()
+    {
+        if (_backgroundSessionWindow?.KeepsSessionBehindControlCenter == true)
+        {
+            Owner = _backgroundSessionWindow;
+            Topmost = true;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            return;
+        }
+
+        if (Owner is CafeWindow)
+        {
+            Owner = null;
+        }
+        Topmost = false;
     }
 
     public void ActivateFromExternalRequest()

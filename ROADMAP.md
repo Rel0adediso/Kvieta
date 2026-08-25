@@ -1,281 +1,400 @@
-# Otium — Güncel Yol Haritası
+# Otium — Ürün ve Release Yol Haritası
 
-Bu belge Otium'un v0.15 sonrasındaki güncel ve bağlayıcı geliştirme sırasıdır. Eski handoff belgelerindeki yol haritası maddeleri tarihsel bağlam olarak kalır; yeni planlama için bu dosya esas alınır.
+**Son güncelleme:** 26 Ağustos 2026
 
-## Temel ürün ilkeleri
+**Mevcut sürüm:** `v1.0.0-rc.1`
 
-- Otium hesap ve bulut zorunluluğu olmadan yerel çalışır.
-- Farkındalık modu hiçbir kısıtlama uygulamadan yalnız yerel kullanım verisini gösterir.
-- Kişisel mod kullanıcıyı suçlamadan kendi kararına sadık kalmasına yardım eder.
-- Korumalı mod standart Windows kullanıcısının basit kaçışlarına direnç gösterir.
-- Arayüz krem/haki ve zeytin/grafit kimliğini, kompakt bilgi hiyerarşisini ve sakin ürün dilini korur.
-- Yeni özellikler kullanıcıyı zorla içeride tutmaz; ölçülebilir fayda, güven ve iyi deneyim yoluyla kalıcı değer üretir.
+**Aktif hedef:** Güvenilir, imzalı ve tekrar üretilebilir `v1.0.0` Windows sürümü
 
-## Hemen — Proje güvenliği ve sürüm kontrolü
+Bu belge Otium'un bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
+kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
+bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği için
+öncelikle **Aktif çalışma planı** bölümü esas alınır.
 
-### Git ve sürüm geçmişi
+## Ürün ilkeleri
 
-- Projeyi gerçek bir Git deposuna alma.
-- Kaynak, test ve dokümantasyon değişikliklerini anlamlı commit'lerle izleme.
-- Kararlı paketleri sürüm etiketiyle işaretleme.
-- Build çıktıları ile kullanıcı verilerini depoya almama.
-- Her büyük değişiklik için güvenli geri dönüş noktası oluşturma.
+- Otium hesap veya bulut zorunluluğu olmadan yerel çalışır.
+- Kullanım verisi, planlar, kurallar ve tanılama kayıtları varsayılan olarak cihazda kalır.
+- **Sadece takip** hiçbir kısıtlama uygulamadan kullanım farkındalığı sağlar.
+- **Kendim için** kullanıcıyı cezalandırmadan kendi kararına sadık kalmasına yardım eder.
+- **Yönettiğim biri için** standart Windows kullanıcısının yaygın kaçış yollarına direnç gösterir.
+- Güvenlik iddiaları açık, test edilebilir ve belgelenmiş sınırlar içinde tutulur.
+- Arayüz krem/haki ve zeytin/grafit kimliğini, sakin ürün dilini ve kompakt bilgi hiyerarşisini korur.
+- Public paketler test geçidi, belgelenmemiş veri toplama veya sessiz güvenlik gevşetmesi içermez.
 
-## v0.15.1 — Veri sağlamlığı
+## Doğrulanmış mevcut durum
 
-**Durum:** Tamamlandı.
+26 Ağustos 2026 tarihinde yeni geliştirme bilgisayarında aşağıdaki kontroller yeniden yapıldı:
 
-### Crash-safe veri katmanı
+- `main`, `origin/main` ile eşleşiyor ve çalışma ağacı temizdi.
+- Debug ve Release derlemeleri `0` uyarı ve `0` hatayla tamamlandı.
+- Debug ve Release çekirdek smoke testleri geçti.
+- Smoke test paketinde 190 davranış ve regresyon doğrulaması bulunuyor.
+- `dotnet format --verify-no-changes` başarılı; 81 kaynak dosyada değişiklik gerekmedi.
+- NuGet'in güncel verisine göre bilinen zafiyet içeren paket bulunmadı.
+- Self-contained `win-x64` Release EXE üretildi; mevcut çıktı yaklaşık 69,6 MB.
+- WiX `smartcab` gecikmesinin Türkçe karakter içeren kullanıcı `TEMP` yolundan
+  kaynaklandığı doğrulandı; ASCII staging ile imzasız geliştirme MSI'sı üretildi.
 
-- Ayar, kullanım ve geçmiş dosyalarında süreçler arası yazma kilidi.
-- Eşzamanlı yazarların birbirinin verisini ezmesini engelleme.
-- Geçici dosya + doğrulama + atomik değiştirme akışı.
-- Disk dolu, yarım yazma ve bozuk JSON senaryoları.
+Bu sonuçlar çekirdek ve kaynak build sağlığını doğrular. Gerçek Windows yaşam
+döngüsü, Guardian, installer ve ekran davranışlarının tamamının doğrulandığı
+anlamına gelmez.
 
-### Son sağlam kopya ve kurtarma
+## Aktif çalışma planı
 
-- Her doğrulanmış kayıttan sonra `last-known-good` kopyası.
-- Ana dosya bozuksa otomatik algılama ve kontrollü geri dönüş.
-- Kurtarma gerçekleştiğinde kullanıcıya açık bilgi verme.
-- Sessizce sınırsız kullanıma geçmeme.
-
-### Veri şeması ve migration sistemi
-
-- Ayarlar, kullanım ve geçmiş için açık şema sürümleri.
-- Her sürüm geçişi için test edilebilir migration adımları.
-- Eski PIN, özel cihaz adı, plan, izin ve kullanım geçmişini koruma.
-- Yeni sürümün desteklemediği veride güvenli hata ve onarım yolu.
-
-## v0.16 — Ritim ve kullanıcı farkındalığı
-
-**Durum:** Tamamlandı.
+### P0 — `v1.0.0` release engelleri
 
-- Kural sayacı ile farkındalık sayacı veri modelinde ayrıldı.
-- Ön plan uygulaması ölçümü açık rızaya bağlandı ve varsayılan olarak kapalı tutuldu.
-- Yalnız güvenli uygulama adı ve süre saklanıyor; pencere başlığı, belge, yazılan metin ve site bilgisi kaydedilmiyor.
-- Şema 5 migration'ı eski ayarları ve kullanım geçmişini koruyor; yeni kayıtlar saatlik dağılımı, veri neslini ve saklama kesimini de tutuyor.
-- Ritim ekranındaki uygulama özeti yalnız farkındalık verisini kullanıyor; kural motoru verisiyle karıştırılmıyor.
-- İsteğe bağlı sıkı kişisel mod, anında öz-ek süreyi kapatıyor; modu gevşetmek bekleme süresine tabi.
-- Uygulama özeti ilk üç kayıtla sınırlı; tüm sıralama ayrı ayrıntı panelinde açılıyor ve hareket listesi sabit uzunlukta tutuluyor.
-- İlk 7–14 günlük başlangıç ritmi, haftalık günlük ortalama karşılaştırması, planla uyumlu günler ve geri kazanılan zaman hesaplanıyor.
-- Kullanıcı isterse %5/%10/%15 küçük azaltma hedefi seçebiliyor; hedefler suçlayıcı streak dili kullanmıyor.
-- Haftalık uygulama artış ve azalış eğilimleri yalnız yeterli karşılaştırma verisi olduğunda üretiliyor.
-- Üçüncü kullanım profili olan Farkındalık modu eklendi; plan, limit, uygulama engeli ve zorunlu mola uygulamadan yerel ön plan kullanımını ölçüyor.
-- Son yedi günün saatlik dağılımından yoğun kullanım aralığı hesaplanıyor; eski veride sonuç uydurulmuyor.
-- Son 28 gündeki gözlemlerle hafta içi ve hafta sonu günlük ortalamaları karşılaştırılıyor.
-- Gizlilik ve veri merkezi 30/90/180 günlük saklama, JSON/CSV dışa aktarma ve bugün dahil geçmişi silme sunuyor.
+Bu bölümdeki bütün maddeler kapanmadan final `v1.0.0` etiketi oluşturulmaz.
 
-Tamamlanan aşama: v0.17 kurulum, güvenli güncelleme ve rollback.
+#### 1. Balanced oturum yüzeyi ve masaüstü kaçışları
 
-Tamamlanan aşama: v0.18 recovery ve güvenlik sertleştirmesi.
+**Durum:** Devam ediyor; ilk pencere recovery sertleştirmesi uygulandı, gerçek Windows matrisi açık.
 
-### Ritim
+Balanced kişisel modda gösterilen oturum yüzeyi yalnız `Topmost` ve `Maximized`
+pencere davranışına dayanıyor. Pencere küçültülebiliyor, arkaya gönderilebiliyor
+veya masaüstü geçişleriyle aşılabiliyor.
 
-- İlk 7–14 günlük kişisel başlangıç ritmi.
-- Haftalık toplam ve günlük ortalama karşılaştırmaları.
-- Planla uyumlu günler.
-- Başlangıç ritmine göre geri kazanılan zaman.
-- Uygulama kullanımındaki artış ve azalışlar.
-- Yoğun kullanım saatleri ve hafta içi/hafta sonu farkları.
-- Küçük, kullanıcı tarafından onaylanan azaltma hedefleri.
-- Bağışlayıcı ilerleme dili; kırılan streak veya suçlayıcı mesaj yok.
+26 Ağustos 2026'da tamamlanan ilk sertleştirme:
 
-### Kural sayacı ve farkındalık sayacı ayrımı
+- Zorunlu tam ekran yüzey minimize edildiğinde anında maximize durumuna dönüyor.
+- Pencere odağı kaybedildiğinde recovery işlemi UI kuyruğundan tekrar değerlendiriliyor.
+- Recovery kararı ayrı ve test edilebilir bir policy'ye taşındı.
+- Aktif oturum widget'ı, Sadece takip, Kontrol Merkezi, modal doğrulama ve yüzey geçişleri recovery dışında tutuldu.
+- Debug/Release build ve yeni policy regresyon testleri geçti.
 
-- Kural motoru için uygulamanın çalıştığı süreyi ölçme.
-- Ritim için yalnız gerçekten önde kullanılan uygulamanın süresini ölçme.
-- İki veriyi farklı amaçlarla saklama ve UI'da karıştırmama.
+Kalan doğrulama:
 
-### Yerel aktif uygulama takibi
+- Görev çubuğu, `Alt+Tab`, `Win+D`, sanal masaüstü ve Explorer restart gerçek Windows üzerinde test edilmeli.
+- Bulunan davranış farkları düzeltildikten sonra UI otomasyonuna bağlanmalı.
 
-- Yalnız aktif ön plan uygulamasını ölçme.
-- Pencere başlığı, belge adı, yazılan metin veya ziyaret edilen siteyi kaydetmeme.
-- Özelliği açık rıza ile etkinleştirme ve istenildiğinde kapatma.
-- Tüm veriyi yalnız cihazda tutma.
+Yapılacaklar:
 
-### Gizlilik ve veri sahipliği merkezi
+- Minimize girişimini algılayıp güvenli pencere durumunu geri yükleme.
+- Deactivation, görev çubuğu, `Alt+Tab`, `Win+D` ve sanal masaüstü geçişlerini test etme.
+- Modal PIN/recovery pencereleri açıkken oturum yüzeyinin klavye odağını çalmamasını koruma.
+- Kontrol Merkezi açılırken tek oturum yüzeyi ve tek yönetim penceresi garantisini koruma.
+- Explorer yeniden başlatılması ve süreç yeniden oluşturulması senaryolarını test etme.
+- Davranışı mümkün olan ölçüde otomatik Windows UI regresyon testine bağlama.
 
-- Hangi verinin neden ölçüldüğünü açıkça gösterme.
-- 30/90/180 günlük saklama seçeneği.
-- Geçmişi silme.
-- JSON/CSV dışa aktarma.
-- Buluta veri gönderilmediğini anlaşılır biçimde belirtme.
+Kabul kriteri:
 
-## v0.16.1 — Otium hareket dili ve animasyonlar
+- Kullanıcı izin verilen akış dışında masaüstüne ulaşamıyor.
+- Koruma döngüsü normal kullanım veya yönetici doğrulama pencerelerini kilitlemiyor.
+- Flexible modun kullanıcı kontrollü davranışı yanlışlıkla sertleştirilmiyor.
 
-**Durum:** Tamamlandı.
+#### 2. Çoklu monitör, DPI ve ekran yaşam döngüsü
 
-- Sayfa geçişlerinde kısa fade + hafif yönlü hareket.
-- Ritim grafiklerinin ilk açılışta sakin biçimde dolması.
-- Sayaç ve ilerleme değerlerinde sert sıçrama yerine kontrollü geçiş.
-- Başarılı kaydetme, hedef ilerlemesi ve dönüm noktalarında küçük mikro animasyonlar.
-- Pending kartında yalnız kullanıcı yönlendirildiğinde kısa vurgu davranışını koruma.
-- Sidebar açılıp kapanırken optik merkezi bozmayan akıcı geçiş.
-- Tema değişiminde mümkünse yumuşak renk geçişi.
-- Animasyonları kısa, sade ve işlevsel tutma; sürekli glow, konfeti ve dikkat dağıtan loop kullanmama.
-- Windows `Reduce motion`/erişilebilirlik tercihini izleme ve animasyonları kapatabilme.
-- Animasyonların sayaç, servis veya kural motorunu hiçbir şekilde geciktirmemesi.
+**Durum:** Devam ediyor; ikincil ekran kalkanları uygulandı, fiziksel donanım testi bekliyor.
 
-## v0.17 — Kurulum, güvenli güncelleme ve rollback
+26 Ağustos 2026'da ikincil ekranları görev çubuğu dahil kaplayan, monitör
+takma/çıkarma ve çözünürlük değişiminde kendini yenileyen ekran kalkanı altyapısı
+eklendi. Geliştirme bilgisayarında bağlanabilir ikinci ekran bulunmadığı için bu
+davranış henüz gerçek donanımda doğrulanmadı. Final `v1.0.0` öncesinde genişletilmiş
+masaüstü kullanan en az iki fiziksel ekranla test edilmesi zorunludur; bu madde test
+kanıtı olmadan tamamlandı sayılmaz.
 
-**Durum:** Tamamlandı.
+Bekleyen fiziksel test:
 
-Tamamlananlar:
+- Birincil ekranda normal Otium kontrollerinin kalması.
+- İkincil ekranların masaüstü ve görev çubuğunu göstermeyen Otium kalkanıyla kaplanması.
+- Monitör çalışma sırasında takıldığında kalkanın otomatik oluşması.
+- Monitör çıkarıldığında yardımcı pencerenin temizlenmesi ve yeniden bağlandığında geri gelmesi.
+- Farklı DPI, çözünürlük, ekran yönü ve negatif koordinat yerleşimlerinin doğrulanması.
 
-- Tek komutla self-contained uygulama ve x64 MSI üreten tekrar edilebilir build akışı.
-- `Program Files\Otium` kurulumu ve Başlat menüsü kısayolu.
-- İsteğe bağlı masaüstü kısayolu için installer özelliği.
-- Guardian servis yaşam döngüsünün Windows Installer tarafından kurulup kaldırılması.
-- MSI tarafından yönetilen Guardian ile uygulama içi koruma açma/kapatma akışının ayrılması.
-- Her release EXE, MSI ve dağıtım betiğini aynı güvenilir sertifikayla Authenticode imzalama ve zaman damgalama.
-- Her MSI çıktısına SHA-256 bütünlük dosyası üretimi.
-- Sürüm paketlerini ayrı klasörlerde tutarak önceki rollback paketini koruma.
-- MSI dosya adı, boyut, SHA-256 ve kurulu sürüme sabitlenmiş imzalayan kimliğini kurulum öncesi doğrulayan release manifesti.
-- Upgrade sırasında kullanıcı ayarları, kullanım geçmişi ve korunan policy verisine dokunmama.
-- Temiz kurulum, repair, kaldırma, `0.17.0 → 0.17.1` yükseltme ve downgrade engeli gerçek Windows Installer üzerinde doğrulandı.
-- Başlat menüsündeki kontrollü kaldırma yolu, korumalı modda yönetici PIN'i ve ardından Windows yönetici izni istiyor; doğrudan ARP kaldırma/değiştirme seçenekleri kapatıldı.
-- Uygulama, kurulu Guardian ikilisi ve installer kayıt sürümü eşleşmiyorsa korumalı başlangıç güvenli biçimde durduruluyor.
-- Manuel güncelleyici hedef ile rollback manifestlerini yükseltmeden önce ve sonra doğruluyor, sağlık kontrolü yapıyor ve hata halinde çalışan eski sürümü geri getiriyor.
-- Güncelleme ve rollback sırasında isteğe bağlı masaüstü kısayolu tercihi ile `%LocalAppData%` ve `%ProgramData%` altındaki kullanıcı/policy verileri korunuyor.
-- Her sürüm klasörü doğrulama ve güncelleme betiklerini de içeriyor; manuel release paketi kendi başına kullanılabiliyor.
+Yapılacaklar:
 
-### Installer
+- Her bağlı monitörü kapsayan koordineli oturum yüzeyleri oluşturma.
+- Monitör takma/çıkarma, ana ekran ve ekran yönü değişimini izleme.
+- Yüzde 100–200 ölçeklerde düzeni doğrulama.
+- Farklı çözünürlük ve negatif ekran koordinatlarında yerleşimi doğrulama.
+- Oturum kilidi, kullanıcı değiştirme ve Remote Desktop dönüşlerinde yüzeyleri yeniden kurma.
+- Ekran değişiklikleri sırasında yinelenen pencere veya korumasız boşluk oluşmasını engelleme.
 
-- Program Files altında sabit ve güvenli kurulum konumu.
-- Başlat menüsü ve isteğe bağlı masaüstü kısayolu.
-- Guardian servis kurulumu, onarımı ve kaldırılması.
-- Güncellemede ayar ve kullanım geçmişini koruma.
-- PIN ve Windows yönetici izniyle kontrollü kaldırma.
+Kabul kriteri:
 
-### Güvenli güncelleme
+- Aktif kısıtlama gerektiğinde bütün ekranlar kapsanıyor.
+- Ekran topolojisi değiştiğinde koruma güvenli biçimde yeniden kuruluyor.
+- DPI değişimi kırpılmış metin, erişilemeyen düğme veya görünmeyen modal pencere üretmiyor.
 
-- Uygulama ve Guardian sürüm uyumu kontrolü.
-- Güncelleme paketi bütünlük doğrulaması.
-- Başarısız güncellemede çalışan eski sürüme rollback.
-- Eski sürüme dönerek korumayı aşmayı engelleme.
-- İlk kararlı sürümde kontrollü manuel güncelleme; otomatik güncellemeyi daha sonra değerlendirme.
+#### 3. Installer üretim hattı
 
-## v0.18 — Recovery ve güvenlik sertleştirmesi
+**Durum:** Devam ediyor; tekrar üretilebilir test MSI'sı hazır, gerçek kurulum yaşam döngüsü testi bekliyor.
 
-**Durum:** Tamamlandı.
+26 Ağustos 2026'da `smartcab` sorunu Windows'un yerel CAB araçlarının Türkçe
+karakter içeren kullanıcı geçici yolunu güvenilir işleyememesine kadar indirildi.
+Build kapsamındaki `TEMP`/`TMP`, WiX girdi, ara ve çıktı yolları ASCII staging
+dizinine alınarak paketleme yaklaşık dokuz saniyede tamamlandı. Dağıtıma kapalı,
+Debug geçitli imzasız MSI için ayrı `build-test-installer.ps1` komutu eklendi;
+üretilen paket ve SHA-256 çıktısı release artifact'lerinden ayrıldı.
 
-### Test ve public build ayrımı
+Yapılacaklar:
 
-Tamamlandı:
+- İmzasız geliştirme MSI'sında temiz kurulum, açılış, Guardian ve kaldırma akışını doğrulama.
+- EXE/MSI boyutu, sıkıştırma seviyesi ve build süresini release raporuna ekleme.
+- Windows SDK signing tools içinden `signtool.exe` kurma.
+- Temiz kurulum, upgrade, repair, uninstall, rollback ve downgrade engelini tekrar çalıştırma.
+- MSI hatasında kullanıcı verisi ile korunan policy alanlarının bozulmadığını doğrulama.
 
-- `Ctrl+Alt+Shift+F12` geçidini yalnız Development/Test build'de derleme.
-- Public Release paketinde test geçidini tamamen çıkarma.
-- Paket türünü sürüm bilgisinde ve tanılama ekranında açıkça gösterme.
+Kabul kriteri:
 
-### Yönetici kurtarma sistemi
+- Temiz checkout'tan tek belgelenmiş komutla aynı sürüm paketi üretilebiliyor.
+- Paketleme takılmadan tamamlanıyor ve hatada açık tanılama veriyor.
+- Dosya, manifest, boyut, SHA-256 ve sürüm bilgileri birbiriyle eşleşiyor.
 
-Tamamlandı:
+#### 4. Açıklamalı kurulum sihirbazı
 
-- Tek kullanımlık recovery kodları.
-- Windows yönetici doğrulaması.
-- Installer repair ve last-known-good kurtarma yolu.
-- Kurtarma işlemlerini yerel audit kaydına yazma.
+**Durum:** Açık; mevcut MSI standart WiX `FeatureTree` arayüzünü kullanıyor.
 
-### Guardian ve IPC güvenliği
+Yapılacaklar:
 
-Tamamlandı. Public istemci, Program Files konumu ve installer'da pinlenen geçerli Authenticode imzasıyla doğrulanır; bağlantı başına nonce, PIN/recovery sırrından türetilen HMAC, zaman penceresi ve request ID replay önlemi uygulanır. Artan bekleme servis verisinde kalıcıdır ve reddedilen komutlar hassas içerik olmadan audit kaydına yazılır.
+- Otium ve Guardian'ın ne kurduğunu, yönetici izninin neden gerektiğini açıklama.
+- Üç kullanım biçimini sonuçlarıyla gösterme.
+- Önerilen kurulum ile gelişmiş seçenekleri ayırma.
+- Windows ile başlatma ve kısayol seçeneklerini açıkça seçtirme.
+- Kurulum öncesi özet ve kurulum sonrası başlangıç yönlendirmesi sunma.
+- Upgrade, repair ve uninstall öncesinde kullanıcı verisine ne olacağını açıklama.
+- Türkçe ve İngilizce metinleri aynı kapsamda sunma.
 
-- İstemci kimliği ve yetkisini doğrulama.
-- Mesaj bütünlüğü ve tekrar oynatma saldırısı koruması.
-- Artan PIN beklemesini servis tarafında otoriter tutma.
-- Yetkisiz servis komutlarını reddetme ve kaydetme.
+Kabul kriteri:
 
-### Monotonic zaman güvenliği
+- İlk kullanıcı Guardian, kullanım biçimi ve veri sonuçlarını anlayarak seçim yapabiliyor.
+- Sessiz kurulum ve kurumsal `msiexec` özellikleri korunuyor.
 
-Tamamlandı. Windows uptime ve boot kimliği duvar saatiyle birlikte saklanır; reboot, saat dilimi değişimi, ileri sıçrama ve rollback ayrı durumlara ayrılır. Anomali yalnız PIN ve Windows yönetici onayıyla temizlenebilir.
+#### 5. Kod imzalama ve public paket
 
-- Sistem saatine ek olarak monotonic süre kaynağı kullanma.
-- Reboot, saat dilimi ve ileri/geri tarih değişikliklerini ayırma.
-- Son güvenilir zamanı saklama.
-- Yanlış pozitif kilitlenmede yönetici kurtarma yolu bırakma.
+**Durum:** Engelli; bu bilgisayarda `signtool.exe` ve code-signing sertifikası yok.
 
-### Uygulama kimliği 2.0
+Yapılacaklar:
 
-Tamamlandı. Kurallar yolun yanında WinTrust ile doğrulanan publisher imzası, original filename, ürün bilgisi, isteğe bağlı/zorunlu SHA-256 ve varsa package family kullanır; launcher ile alt süreç ağacı aynı kurala bağlanır. İmzasız portable uygulamalar SHA-256 ile pinlenir. AppLocker/WDAC, Windows sürümü ve kurum politikası bağımlılığı nedeniyle v0.18'in varsayılanı yapılmadı; ileride isteğe bağlı gelişmiş seviye olarak kalır.
+- Güvenilir code-signing sertifikası edinme ve private key saklama yöntemini belirleme.
+- Windows SDK signing tools kurma.
+- EXE, MSI, verifier ve updater'ı aynı yayıncı kimliğiyle imzalama.
+- Güvenilir zaman damgası ve sertifika zinciri doğrulamasını çalıştırma.
+- Guardian'ın Program Files konumu ile installer tarafından pinlenen imzayı doğrulamasını test etme.
+- İmza bilgisini veya private key'i Git deposuna koymama.
 
-- EXE yoluna ek olarak publisher imzası ve original filename.
-- Ürün bilgisi ve isteğe bağlı SHA-256 kimliği.
-- Launcher ve child-process ilişkileri.
-- Portable ve Microsoft Store uygulamaları.
-- AppLocker/WDAC entegrasyonunu isteğe bağlı gelişmiş koruma seviyesi olarak değerlendirme.
+Kabul kriteri:
 
-## v0.19 — Tanılama, platform sağlamlığı ve regresyon
+- Bütün dağıtım dosyaları geçerli ve aynı yayıncı kimliğiyle imzalıdır.
+- Değiştirilmiş, imzasız veya yanlış yayıncıya ait paketler reddedilir.
 
-**Durum:** Kesintisiz regresyonlar ve Guardian kill/crash recovery tamamlandı; sistemi kesintiye uğratan Windows yaşam döngüsü ve ekran matrisi testleri sürüyor.
+#### 6. Gerçek Windows yaşam döngüsü matrisi
 
-### Koruma sağlık kontrolü
+**Durum:** Kısmen tamamlandı; final matris açık.
 
-- Guardian servis durumu.
-- Uygulama/servis sürüm uyumu.
-- ProgramData ve kurulum izinleri.
-- Windows başlangıç kaydı ve korunan policy durumu.
-- Sorun bulunduğunda güvenli `Onar` akışı.
+Zorunlu senaryolar:
 
-### Yerel audit ve tanılama günlüğü
+- Standart kullanıcı ve ayrı yönetici hesabı.
+- Guardian service stop, kill, crash ve recovery.
+- Otium süreç kill/crash ve korunan oturumun geri gelmesi.
+- Reboot, `Win+L`, uyku, hibernation ve güç kesintisi sonrası açılış.
+- Explorer restart, kullanıcı değiştirme ve Remote Desktop.
+- Tek/çoklu monitör, ekran takma/çıkarma, DPI ve çözünürlük değişimi.
+- Bozuk JSON/yedek, disk dolu ve yazma izni kaybı.
+- Temiz kurulum, upgrade, repair, uninstall, rollback ve downgrade denemesi.
+- Türkçe/İngilizce, açık/koyu/system tema ve Reduce Motion.
 
-- Servis restart, crash ve recovery olayları.
-- Yanlış PIN ve saat manipülasyonu olayları.
-- Kural değişiklikleri ve engelleme olayları.
-- PIN, pencere başlığı, belge veya özel içerik kaydetmeme.
-- Sınırlı saklama ve dışa aktarılabilir tanılama raporu.
+Her test için ön koşul, adımlar, beklenen sonuç, gerçek sonuç, build SHA'sı ve kanıt
+saklanır. Manuel testler yalnız “denendi” olarak değil, tekrar edilebilir test vakası
+olarak belgelenir.
 
-### Gerçek Windows entegrasyon testleri
+### P1 — Release kalitesi ve proje altyapısı
 
-- Servis kurma/kaldırma ve Task Manager kill.
-- Windows reboot, Win+L, uyku ve hibernation.
-- Elektrik kesintisi ve crash recovery.
-- Standart/yönetici Windows hesapları ve kullanıcı değiştirme.
-- Bozuk veri, disk dolu ve başarısız upgrade.
+P0 işleriyle paralel ilerleyebilir; final public release öncesinde tamamlanması hedeflenir.
 
-### WPF UI otomasyon ve görsel regresyon
+#### CI ve otomatik kalite kapıları
 
-- Türkçe/English ve açık/koyu/system tema.
-- Sidebar açık/kapalı ve seçili 40×40 hizası.
-- Plan, Ritim, pending kartı ve tray menüsü.
-- Farklı DPI, çözünürlük ve metin uzunlukları.
-- Erişilebilirlik ve `Reduce motion` davranışı.
+**Mevcut eksik:** GitHub Actions veya eşdeğer CI bulunmuyor.
 
-### Çoklu monitör, DPI ve Windows oturum sağlamlığı
+- Her push/PR için restore, format, Debug/Release build ve smoke test çalıştırma.
+- Public build'de development unlock kodunun bulunmadığını otomatik doğrulama.
+- NuGet zafiyet taraması ve dependency güncelleme bildirimi ekleme.
+- Self-contained publish çıktısını doğrulama.
+- İmzalama sırlarını yalnız korumalı release ortamında kullanma.
+- Başarısız kalite kapısıyla release oluşturulmasını engelleme.
 
-- Oturum/engel yüzünü bütün monitörlerde doğru yönetme.
-- Monitör takma/çıkarma ve ana ekran değişimi.
-- DPI/ölçek ve ekran yönü değişimi.
-- Explorer restart, kullanıcı değiştirme ve Remote Desktop senaryoları.
+#### Test mimarisini güçlendirme
 
-## v1.0 — İlk kararlı açık kaynak sürüm
+**Mevcut eksik:** 190 doğrulama tek, büyük console smoke-test dosyasında bulunuyor.
 
-**Durum:** `1.0.0` yerel sürüm adayı hazırlandı. İmzalı public MSI ve kalan gerçek Windows matrisi tamamlanmadan final etiketi verilmeyecek.
+- Core testlerini konu bazlı birim testlerine ayırma.
+- Session, schedule, persistence, migration, recovery, clock ve policy testlerini bağımsızlaştırma.
+- Guardian IPC ve installer için entegrasyon test katmanı oluşturma.
+- WPF yaşam döngüsü ve temel kullanıcı yolculuklarına UI otomasyonu ekleme.
+- Satır/branch coverage ölçümü ve kritik güvenlik yolu kapsamı ekleme.
+- Flaky Windows testleri için etiket, tekrar stratejisi ve tanılama çıktısı belirleme.
 
-### Açık v1.0 release blocker'ları
+#### Açık kaynak ve proje yönetişimi
 
-- Dengeli kişisel modda Otium kapatıldığında açılan oturum yüzeyi küçültülememeli, alta atılamamalı veya masaüstüne geçilerek atlanamamalı. Pencere kapatma, görev çubuğu, `Alt+Tab`, `Win+D` ve benzeri masaüstü geçişleri tek oturum yüzeyiyle doğrulanmalı.
-- Açıklamalı kurulum sihirbazı, imzalı public MSI ve temiz kurulum/güncelleme/onarım/kaldırma matrisi tamamlanmalı.
-- Guardian, standart/yönetici hesap, reboot, Win+L, uyku/hibernation, Explorer restart ve çoklu monitör yaşam döngüsü testleri tamamlanmalı.
+**Mevcut eksik:** Depoda `LICENSE` dosyası yok.
 
-- Personal ve Protected akışlarının uçtan uca kararlı olması.
-- Test backdoor'u içermeyen public paket.
-- Güvenli installer, recovery ve upgrade yolu.
-- Açıklamalı ve yönlendirmeli kurulum sihirbazı:
-  - Otium ile Guardian'ın ne kurduğunu ve neden yönetici izni istediğini sade biçimde anlatma.
-  - `Sadece takip`, `Kendim için` ve `Yönettiğim biri için` kullanım biçimlerini kurulum sırasında kısa sonuçlarıyla gösterme.
-  - Önerilen kurulum ile gelişmiş seçenekleri ayırma; Windows ile başlatma ve masaüstü/Başlat menüsü kısayollarını açıkça seçtirme.
-  - Kurulumdan önce yapılacakları özetleme, kurulum sonunda seçilen modu ve Kontrol Merkezi'ne nasıl dönüleceğini gösterme.
-  - Güncelleme, onarım ve kaldırma işlemlerinde kullanıcı verisine ne olacağını işlem başlamadan açıklama.
-- Ritim, geçmiş ve gizlilik kontrolleri.
-- Guardian ve uygulama kural motoru için belgelenmiş güvenlik sınırları.
-- Kurulum, kullanım, kurtarma ve katkı rehberleri.
-- Lisanslı, etiketlenmiş ve tekrar üretilebilir GitHub sürümü.
+- Ürün hedeflerine uygun lisansı seçip `LICENSE` ekleme.
+- README ve contribution belgelerinde lisans, destek ve güvenlik yollarını belirtme.
+- Özel güvenlik bildirimi için kanal belirleme.
+- Issue ve pull request şablonlarını ekleme.
+- Katkıların test, güvenlik ve gizlilik gereksinimlerini netleştirme.
 
-## v1.0 sonrasına bırakılanlar
+#### Dokümantasyon tutarlılığı
 
-- Kullanım verisine dayalı tek tık uygulama önerileri ve güvenilir otomatik/canlı yenileme.
-- Tarayıcı eklentisi ve site kuralları.
-- Aynı Wi-Fi üzerinden telefon kontrolü.
-- İnternet üzerinden uzaktan yönetim.
-- Bulut senkronizasyonu ve çoklu cihaz paneli.
-- Her sistemde zorunlu AppLocker/WDAC yönetimi.
+**Mevcut eksik:** README bazı yerlerde iki kullanım biçiminden söz ediyor; ürün artık üç
+biçime sahip. Application Identity bazı metinlerde planlanmış, bazı metinlerde
+tamamlanmış görünüyor.
+
+- Türkçe ve İngilizce README'leri güncel ürünle eşitleme.
+- Kurulum, ilk kullanım, recovery, update ve uninstall rehberlerini final sihirbazla eşleştirme.
+- Güvenlik sınırlarını test edilmiş davranışlardan ayırarak yazma.
+- Bilinen sorunları ve desteklenen Windows sürümlerini belirtme.
+- Release notes, tag ve GitHub Release metinlerini tutarlı tutma.
+
+#### Gözlemlenebilirlik ve desteklenebilirlik
+
+- Build SHA'sı, paket türü ve uygulama/Guardian/installer sürümünü birlikte gösterme.
+- Gizlilik güvenli tanılama paketine ilgili yaşam döngüsü olaylarını ekleme.
+- PIN, recovery code, pencere başlığı, belge, site veya yazılan içerik kaydetmeme.
+- Log saklama süresi ve maksimum boyut sınırı belirleme.
+- Kullanıcıya tanılama raporunu kolayca dışa aktarma yolu sunma.
+
+## `v1.0.0` çıkış tanımı
+
+Final sürüm ancak aşağıdaki koşulların tamamı sağlandığında yayınlanır:
+
+- P0 release engellerinin tamamı kapalı ve kanıtlıdır.
+- Build, format, smoke, birim ve zorunlu entegrasyon testleri geçer.
+- Balanced ve Protected kaçış matrisi geçer.
+- Çoklu monitör/DPI ve Windows yaşam döngüsü matrisi tamamlanır.
+- Installer kurulum, upgrade, repair, uninstall ve rollback testlerini geçer.
+- EXE, MSI, verifier ve updater geçerli Authenticode imzasına sahiptir.
+- Public build development/test unlock geçidi içermez.
+- Lisans, güvenlik, kurulum, kullanım ve recovery belgeleri hazırdır.
+- GitHub Release doğru notları, SHA-256, manifest ve imzalı MSI'yı içerir.
+- `v1.0.0` etiketi test edilen release commit'ine atanır.
+
+## Önerilen uygulama sırası
+
+1. Balanced oturum yüzeyi kaçışlarını düzelt ve regresyon testlerini yaz.
+2. Çoklu monitör/DPI yüzey yöneticisini geliştir.
+3. WiX `smartcab` sorununu çöz ve imzasız MSI'yı doğrula.
+4. Açıklamalı ve iki dilli installer sihirbazını tamamla.
+5. CI kalite kapıları ve ayrıştırılmış test altyapısını kur.
+6. Gerçek Windows yaşam döngüsü matrisini çalıştır ve hataları düzelt.
+7. Lisans, README, güvenlik ve kullanıcı belgelerini tamamla.
+8. Signing tools ve code-signing sertifikasını hazırla.
+9. İmzalı yeni release candidate üret ve temiz makinede doğrula.
+10. Bütün kanıtlar tamamlandıktan sonra `v1.0.0` yayınla.
+
+## v1 sonrası plan
+
+Sürüm numaraları yön gösterir; kullanıcı geri bildirimi ve v1 stabilizasyonuna göre
+yeniden sıralanabilir. Yerel çalışma ve hesap zorunluluğu olmaması ilkesi korunur.
+
+### v1.0.x — Stabilizasyon ve uyumluluk
+
+- Public sürümden gelen crash, installer ve Guardian regresyonlarını düzeltme.
+- Desteklenen Windows sürümleri için uyumluluk tablosunu genişletme.
+- ARM64 teknik fizibilitesi ve paketleme değerlendirmesi.
+- Yüksek kontrast, ekran okuyucu, klavye navigasyonu ve büyük metin iyileştirmeleri.
+- Installer ve uygulama açılış süresini ölçme ve iyileştirme.
+- Migration ve rollback senaryolarını her patch release'te doğrulama.
+
+### v1.1 — Daha yararlı yerel farkındalık
+
+- Yeterli yerel veri olduğunda tek tık uygulama kuralı önerileri.
+- Güvenilir canlı öneri yenileme ve öneri nedenini açıklama.
+- Haftalık eğilimleri suçlayıcı olmayan özetlere dönüştürme.
+- Kullanıcı onaylı azaltma hedeflerini düzenleme ve duraklatma.
+- Bütün analizleri cihazda tutma.
+
+### v1.2 — Tarayıcı ve site kuralları
+
+- İsteğe bağlı tarayıcı eklentisi için tehdit, gizlilik ve izin modelini tasarlama.
+- Site kategorisi, süre limiti ve engelleme davranışını açıklama.
+- Tam URL veya sayfa içeriği saklamayan minimum veri modelini araştırma.
+- Eklenti yokken masaüstü uygulamasının normal çalışmasını koruma.
+- Chrome, Edge ve Firefox desteğini ayrı değerlendirme.
+
+### v1.3 — Yerel ağ üzerinden yardımcı kontrol
+
+- Aynı yerel ağdaki telefondan durum görüntüleme ve izin isteği.
+- Varsayılan kapalı eşleştirme, kısa ömürlü kod ve cihaz iptali.
+- Kimlik doğrulama, replay koruması ve açık ağ uyarıları.
+- Bulut hesabı zorunluluğu olmadan yerel kullanım.
+- Özelliğin Protected güvenlik sınırını zayıflatmamasını doğrulama.
+
+### v1.x — İsteğe bağlı gelişmiş Windows koruması
+
+- Uygun Windows sürümlerinde AppLocker/WDAC entegrasyonu.
+- Varsayılan yerine açıkça seçilen gelişmiş seviye sunma.
+- Yanlış kuralda güvenli recovery ve yönetici geri dönüş yolu.
+- Kurumsal politikaları değiştirmeden önce salt okunur uyumluluk analizi.
+
+### v2 araştırma alanları
+
+Bu maddeler taahhüt değil, ürün ve güvenlik kararı gerektiren araştırma alanlarıdır:
+
+- İsteğe bağlı, uçtan uca şifreli çoklu cihaz eşitleme.
+- Aile veya küçük ekip için uzaktan yönetim.
+- İnternet üzerinden izin isteği ve durum görüntüleme.
+- Cihazlar arası ortak plan ve kural şablonları.
+- Yerel veriyi buluta taşımadan çalışan kişiselleştirilmiş öneriler.
+
+Bulut veya uzaktan yönetim için hesap zorunluluğu, veri minimizasyonu, şifreleme,
+silme, recovery, kötüye kullanım ve çocuk güvenliği modeli ayrıca onaylanmadan
+uygulama geliştirmesi başlatılmaz.
+
+## Tamamlanan kilometre taşları
+
+### v0.15.0 — İlk ürün temeli
+
+- WPF uygulama, yerel ayarlar, plan, günlük limit, uygulama kuralları ve temel oturum akışı.
+
+### v0.15.1 — Veri sağlamlığı
+
+- Süreçler arası kilit, atomik JSON yazma, doğrulama ve last-known-good kurtarma.
+- Ayar ve kullanım verisi migration sistemi.
+- Eşzamanlı sayaç ve geçmiş birleştirme regresyonları.
+
+### v0.16.0 — Ritim, farkındalık ve gizlilik
+
+- Kural sayacı ile ön plan farkındalık sayacının ayrılması.
+- Açık rızaya bağlı yerel uygulama takibi.
+- Saklama süresi, geçmiş silme ve JSON/CSV dışa aktarma.
+- Başlangıç ritmi, haftalık karşılaştırma ve azaltma hedefleri.
+
+### v0.16.1 — Hareket ve erişilebilirlik
+
+- Kısa geçişler, mikro animasyonlar ve Reduce Motion desteği.
+
+### v0.17.0 — Installer, update ve rollback temeli
+
+- Self-contained uygulama ve WiX MSI yapısı.
+- Program Files, kısayollar ve Guardian servis yaşam döngüsü.
+- Manifest, SHA-256, imza doğrulama, update, rollback ve downgrade engeli.
+
+### v0.18.0 — Recovery ve güvenlik sertleştirmesi
+
+- Public/development build ayrımı.
+- Tek kullanımlık recovery kodları ve Windows yönetici doğrulaması.
+- Guardian IPC nonce/HMAC/replay koruması ve kalıcı throttling.
+- Monotonic zaman doğrulaması ve Application Identity 2.0.
+
+### v0.19.0 — Tanılama ve Guardian güvenilirliği
+
+- Guardian sağlık ve sürüm uyumluluğu kontrolleri.
+- Gizlilik güvenli tanılama dışa aktarma.
+- Installer repair, policy recovery ve Guardian kill/crash iyileştirmeleri.
+
+### v1.0.0-rc.1 — Kullanım biçimleri ve release candidate
+
+- Üç kullanıcı odaklı kullanım biçimi.
+- Flexible, Balanced ve Guardian destekli Guarded kişisel koruma.
+- Flexible manuel odak kronometresi.
+- Tek oturum yüzeyi, Control Center geçiş korumaları ve startup düzeltmeleri.
+- Final release engellerinin açıkça belgelenmesi.
+
+## Roadmap bakım kuralları
+
+- Her aktif madde `Açık`, `Devam ediyor`, `Engelli` veya `Tamamlandı` durumuna sahip olur.
+- Bir madde yalnız kod yazıldığında değil, test ve belge kanıtı tamamlandığında kapanır.
+- Yeni release engelleri önce bu belgeye eklenir; final tanımı sessizce gevşetilmez.
+- Tamamlanan ayrıntılar release notes'a taşınır; roadmap aktif işleri görünür tutar.
+- Her release candidate sonrasında doğrulanmış durum ve test tarihi güncellenir.

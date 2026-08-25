@@ -14,6 +14,8 @@ public partial class CafeWindow : Window
 {
     private readonly CafeViewModel _viewModel;
     private readonly DispatcherTimer _timer;
+    private readonly SessionShortcutGuard _shortcutGuard;
+    private readonly SessionDisplayShieldManager _displayShieldManager;
     private SessionWidgetWindow? _widget;
     private bool _allowClose;
     private bool _tickInProgress;
@@ -28,8 +30,11 @@ public partial class CafeWindow : Window
     private bool _returnToControlCenter;
     private bool _forceSurfaceVisible;
     private bool _controlCenterOpen;
+    private bool _keepSessionBehindControlCenter;
     private bool _limitActionHandled;
     private bool _surfaceTransitionInProgress;
+    private bool _surfaceRecoveryQueued;
+    private bool _surfaceRecoveryInProgress;
 
     public CafeWindow(
         bool isDirectSession = false,
@@ -47,6 +52,8 @@ public partial class CafeWindow : Window
         _requirePinToExit = requirePinToExit;
         _exitCredentialOverride = exitCredentialOverride;
         _returnToControlCenter = returnToControlCenter;
+        _shortcutGuard = new SessionShortcutGuard(ShouldRecoverSessionSurface);
+        _displayShieldManager = new SessionDisplayShieldManager(this, ShouldCoverAllDisplays);
         ExitButton.Content = LocalizationService.Get(
             returnToControlCenter ? "ControlCenter" : !isDirectSession ? "ExitPreview" : requirePinToExit ? "AdminExit" : "ExitOtium");
         DataContext = _viewModel;
@@ -337,10 +344,12 @@ public partial class CafeWindow : Window
             return;
         }
 
+        _displayShieldManager.Refresh();
+
         if (_controlCenterOpen)
         {
             _widget?.Hide();
-            if (_viewModel.IsGuardedPersonalMode)
+            if (_keepSessionBehindControlCenter)
             {
                 if (!IsVisible)
                 {
@@ -385,6 +394,81 @@ public partial class CafeWindow : Window
         Activate();
     }
 
+    private bool ShouldRecoverSessionSurface()
+    {
+        return SessionSurfaceRecoveryPolicy.ShouldRecover(
+            _viewModel.ShouldShowSessionSurfaces,
+            IsVisible,
+            _forceSurfaceVisible || !_viewModel.IsActive,
+            _controlCenterOpen,
+            _modalDialogOpen,
+            _surfaceTransitionInProgress);
+    }
+
+    private bool ShouldCoverAllDisplays()
+    {
+        return SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
+            _viewModel.ShouldShowSessionSurfaces,
+            _forceSurfaceVisible || !_viewModel.IsActive,
+            _controlCenterOpen,
+            _keepSessionBehindControlCenter);
+    }
+
+    private void QueueSessionSurfaceRecovery()
+    {
+        if (_surfaceRecoveryQueued || _surfaceRecoveryInProgress || !ShouldRecoverSessionSurface())
+        {
+            return;
+        }
+
+        _surfaceRecoveryQueued = true;
+        Dispatcher.BeginInvoke(() =>
+        {
+            _surfaceRecoveryQueued = false;
+            RecoverSessionSurface();
+        }, DispatcherPriority.ApplicationIdle);
+    }
+
+    private void RecoverSessionSurface()
+    {
+        if (_surfaceRecoveryInProgress || !ShouldRecoverSessionSurface())
+        {
+            return;
+        }
+
+        _surfaceRecoveryInProgress = true;
+        try
+        {
+            if (!IsVisible)
+            {
+                Show();
+            }
+
+            ShowInTaskbar = true;
+            WindowState = WindowState.Maximized;
+            Topmost = true;
+            Activate();
+            Focus();
+        }
+        finally
+        {
+            _surfaceRecoveryInProgress = false;
+        }
+    }
+
+    private void Window_StateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            QueueSessionSurfaceRecovery();
+        }
+    }
+
+    private void Window_Deactivated(object? sender, EventArgs e)
+    {
+        QueueSessionSurfaceRecovery();
+    }
+
     public void ShowSessionSurface()
     {
         _controlCenterOpen = false;
@@ -395,6 +479,7 @@ public partial class CafeWindow : Window
         }
 
         _forceSurfaceVisible = true;
+        _displayShieldManager.Refresh();
         _ = _widget?.HideSmoothAsync();
         bool wasVisible = IsVisible;
         if (!IsVisible)
@@ -420,6 +505,7 @@ public partial class CafeWindow : Window
     public void ResumeFromControlCenter()
     {
         _controlCenterOpen = false;
+        _keepSessionBehindControlCenter = false;
         EnsureCorrectSurface();
     }
 
@@ -522,6 +608,7 @@ public partial class CafeWindow : Window
         {
             if (_controlCenterOpen)
             {
+                ControlCenterRequested?.Invoke(this, new ControlCenterRequestEventArgs());
                 return;
             }
 
@@ -576,14 +663,18 @@ public partial class CafeWindow : Window
 
     public event EventHandler<ControlCenterRequestEventArgs>? ControlCenterRequested;
 
-    public bool KeepsSessionBehindControlCenter => _viewModel.IsGuardedPersonalMode;
+    public bool KeepsSessionBehindControlCenter => _keepSessionBehindControlCenter;
 
     private void SuspendForControlCenter()
     {
+        _keepSessionBehindControlCenter = SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
+            _viewModel.IsGuardedPersonalMode,
+            _forceSurfaceVisible,
+            _viewModel.IsActive);
         _controlCenterOpen = true;
-        _forceSurfaceVisible = _viewModel.IsGuardedPersonalMode;
+        _forceSurfaceVisible = _keepSessionBehindControlCenter;
         _widget?.Hide();
-        if (_viewModel.IsGuardedPersonalMode)
+        if (_keepSessionBehindControlCenter)
         {
             if (!IsVisible)
             {
@@ -595,6 +686,7 @@ public partial class CafeWindow : Window
         {
             Hide();
         }
+        _displayShieldManager.Refresh();
     }
 
     public async Task SwitchToUserSettingsStoreAsync()
@@ -631,12 +723,15 @@ public partial class CafeWindow : Window
         if (!_allowClose)
         {
             e.Cancel = true;
+            QueueSessionSurfaceRecovery();
         }
     }
 
     private void Window_Closed(object? sender, EventArgs e)
     {
         _timer.Stop();
+        _shortcutGuard.Dispose();
+        _displayShieldManager.Dispose();
         _viewModel.SessionStateChanged -= ViewModel_SessionStateChanged;
         SystemEvents.SessionSwitch -= SystemEvents_SessionSwitch;
         SystemEvents.PowerModeChanged -= SystemEvents_PowerModeChanged;

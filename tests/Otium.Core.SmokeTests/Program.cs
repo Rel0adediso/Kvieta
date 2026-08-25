@@ -23,6 +23,117 @@ Assert(!new ProtectionHealthReport(
         [ProtectionHealthIssue.GuardianSessionMissing]).IsHealthy &&
     !new ProtectionHealthReport(ProtectionServiceState.Stopped, []).IsHealthy,
     "Eksik veya durmuş Guardian sağlık raporu yanlışlıkla sağlıklı sayıldı.");
+Assert(SessionSurfaceRecoveryPolicy.ShouldRecover(
+        shouldShowSessionSurfaces: true,
+        isSurfaceVisible: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: false,
+        isModalDialogOpen: false,
+        isTransitionInProgress: false),
+    "Zorunlu tam ekran oturum yüzeyi kaçış sonrasında geri getirilmiyor.");
+Assert(!SessionSurfaceRecoveryPolicy.ShouldRecover(
+        shouldShowSessionSurfaces: true,
+        isSurfaceVisible: true,
+        isFullSurfaceRequired: false,
+        isControlCenterOpen: false,
+        isModalDialogOpen: false,
+        isTransitionInProgress: false),
+    "Aktif oturum widget'ı yanlışlıkla tam ekran yüzeye zorlanıyor.");
+Assert(!SessionSurfaceRecoveryPolicy.ShouldRecover(
+        shouldShowSessionSurfaces: true,
+        isSurfaceVisible: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: true,
+        isModalDialogOpen: false,
+        isTransitionInProgress: false) &&
+    !SessionSurfaceRecoveryPolicy.ShouldRecover(
+        shouldShowSessionSurfaces: true,
+        isSurfaceVisible: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: false,
+        isModalDialogOpen: true,
+        isTransitionInProgress: false),
+    "Kontrol Merkezi veya modal doğrulama penceresi oturum yüzeyi tarafından örtülüyor.");
+Assert(!SessionSurfaceRecoveryPolicy.ShouldRecover(
+        shouldShowSessionSurfaces: false,
+        isSurfaceVisible: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: false,
+        isModalDialogOpen: false,
+        isTransitionInProgress: false),
+    "Sadece takip modu yanlışlıkla tam ekran yüzey korumasını etkinleştiriyor.");
+Assert(SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
+        isGuardedPersonalMode: false,
+        isFullSurfaceForced: false,
+        isSessionActive: false) &&
+    SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
+        isGuardedPersonalMode: false,
+        isFullSurfaceForced: true,
+        isSessionActive: true) &&
+    SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
+        isGuardedPersonalMode: true,
+        isFullSurfaceForced: false,
+        isSessionActive: true),
+    "Zorunlu veya Guardian destekli oturum yüzeyi Kontrol Merkezi arkasında korunmuyor.");
+Assert(!SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
+        isGuardedPersonalMode: false,
+        isFullSurfaceForced: false,
+        isSessionActive: true),
+    "Normal aktif oturum widget'ı Kontrol Merkezi arkasında tam ekrana zorlanıyor.");
+Assert(SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
+        shouldShowSessionSurfaces: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: false,
+        keepSessionBehindControlCenter: false) &&
+    SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
+        shouldShowSessionSurfaces: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: true,
+        keepSessionBehindControlCenter: true),
+    "Zorunlu oturum yüzeyi bütün bağlı ekranları kapsamıyor.");
+Assert(!SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
+        shouldShowSessionSurfaces: true,
+        isFullSurfaceRequired: false,
+        isControlCenterOpen: false,
+        keepSessionBehindControlCenter: false) &&
+    !SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
+        shouldShowSessionSurfaces: false,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: false,
+        keepSessionBehindControlCenter: false),
+    "Aktif widget veya Sadece takip modu ikincil ekranları yanlışlıkla kapatıyor.");
+Assert(SessionShortcutGuard.ShouldBlockShortcut(
+        SessionShortcutGuard.VirtualKeyLeftWindows,
+        controlPressed: false,
+        altPressed: false,
+        shiftPressed: false) &&
+    SessionShortcutGuard.ShouldBlockShortcut(
+        SessionShortcutGuard.VirtualKeyRightWindows,
+        controlPressed: false,
+        altPressed: false,
+        shiftPressed: false) &&
+    SessionShortcutGuard.ShouldBlockShortcut(
+        SessionShortcutGuard.VirtualKeyEscape,
+        controlPressed: true,
+        altPressed: false,
+        shiftPressed: false) &&
+    SessionShortcutGuard.ShouldBlockShortcut(
+        SessionShortcutGuard.VirtualKeyTab,
+        controlPressed: false,
+        altPressed: true,
+        shiftPressed: false),
+    "Zorunlu oturum yüzeyinde shell kaçış kısayolları engellenmiyor.");
+Assert(!SessionShortcutGuard.ShouldBlockShortcut(
+        virtualKey: 0x4C,
+        controlPressed: true,
+        altPressed: false,
+        shiftPressed: false) &&
+    !SessionShortcutGuard.ShouldBlockShortcut(
+        SessionShortcutGuard.VirtualKeyEscape,
+        controlPressed: false,
+        altPressed: false,
+        shiftPressed: false),
+    "Normal klavye girdileri zorunlu yüzey kısayol filtresinde yanlışlıkla engelleniyor.");
 Assert(!AdminPinService.IsValidFormat("12ab"), "Harf içeren PIN kabul edilmemeliydi.");
 AdminCredential credential = AdminPinService.Create("4826");
 Assert(AdminPinService.Verify("4826", credential), "Doğru yönetici PIN'i doğrulanamadı.");

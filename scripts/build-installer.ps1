@@ -16,11 +16,31 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-$publishDirectory = Join-Path $repositoryRoot 'artifacts\publish\win-x64'
+$publishedArtifactDirectory = Join-Path $repositoryRoot 'artifacts\publish\win-x64'
 $installerOutputDirectory = Join-Path $repositoryRoot "artifacts\installer\$Version"
 $applicationProject = Join-Path $repositoryRoot 'src\Otium.App\Otium.App.csproj'
 $installerProject = Join-Path $repositoryRoot 'installer\Otium.Setup\Otium.Setup.wixproj'
 $normalizedThumbprint = ($SigningCertificateThumbprint -replace '\s', '').ToUpperInvariant()
+$dotnetCommand = Get-Command 'dotnet.exe' -ErrorAction SilentlyContinue
+$dotnet = if ($null -ne $dotnetCommand) {
+    $dotnetCommand.Source
+} else {
+    Join-Path $env:ProgramFiles 'dotnet\dotnet.exe'
+}
+if (-not (Test-Path -LiteralPath $dotnet)) {
+    throw 'dotnet.exe was not found. Install the .NET SDK before building Otium.'
+}
+
+# makecab/smartcab can misread Turkish characters in the user TEMP path. Keep the
+# override local to this PowerShell process and use a writable ASCII path.
+$cabinetTempDirectory = Join-Path $env:PUBLIC 'OtiumBuildTemp'
+$wixStagingDirectory = Join-Path $env:PUBLIC "OtiumBuildStaging\release\$Version"
+$publishDirectory = Join-Path $wixStagingDirectory 'publish'
+$wixIntermediateDirectory = Join-Path $wixStagingDirectory 'obj\'
+$wixOutputDirectory = Join-Path $wixStagingDirectory 'installer\'
+New-Item -ItemType Directory -Path $cabinetTempDirectory -Force | Out-Null
+$env:TEMP = $cabinetTempDirectory
+$env:TMP = $cabinetTempDirectory
 
 function Get-SigningCertificate([string]$Thumbprint) {
     $certificate = Get-ChildItem -Path 'Cert:\CurrentUser\My', 'Cert:\LocalMachine\My' |
@@ -83,9 +103,10 @@ $signTool = Get-SignTool
 $certificateUsesMachineStore = $signingCertificate.PSParentPath -like '*LocalMachine*'
 
 New-Item -ItemType Directory -Path $publishDirectory -Force | Out-Null
+New-Item -ItemType Directory -Path $publishedArtifactDirectory -Force | Out-Null
 New-Item -ItemType Directory -Path $installerOutputDirectory -Force | Out-Null
 
-dotnet publish $applicationProject `
+& $dotnet publish $applicationProject `
     -c $Configuration `
     -r win-x64 `
     --self-contained true `
@@ -99,18 +120,27 @@ if ($LASTEXITCODE -ne 0) {
 $publishedExecutable = Join-Path $publishDirectory 'Otium.exe'
 Invoke-BinarySigning $publishedExecutable $signTool $normalizedThumbprint $certificateUsesMachineStore
 Assert-ValidSignature $publishedExecutable $normalizedThumbprint
+Copy-Item -LiteralPath $publishedExecutable `
+    -Destination (Join-Path $publishedArtifactDirectory 'Otium.exe') -Force
 
-dotnet build $installerProject `
+& $dotnet build $installerProject `
     -c $Configuration `
     -p:OtiumVersion=$Version `
     -p:OtiumPublishDir="$publishDirectory" `
     -p:OtiumSignerThumbprint=$normalizedThumbprint `
-    -p:OutputPath="$installerOutputDirectory"
+    -p:BaseIntermediateOutputPath="$wixIntermediateDirectory" `
+    -p:OutputPath="$wixOutputDirectory"
 if ($LASTEXITCODE -ne 0) {
     throw "Otium installer build failed with exit code $LASTEXITCODE."
 }
 
+$stagedInstaller = Join-Path $wixOutputDirectory "Otium-$Version-win-x64.msi"
+if (-not (Test-Path -LiteralPath $stagedInstaller)) {
+    throw "Installer staging output was not found: $stagedInstaller"
+}
+
 $installer = Join-Path $installerOutputDirectory "Otium-$Version-win-x64.msi"
+Copy-Item -LiteralPath $stagedInstaller -Destination $installer -Force
 if (-not (Test-Path -LiteralPath $installer)) {
     throw "Installer output was not found: $installer"
 }

@@ -43,6 +43,22 @@ executable and Guardian service, and restores the previous verified MSI if
 post-install health checks fail.
 Build and installer outputs are intentionally excluded from Git.
 
+The application is already compressed by the .NET single-file publisher. The MSI
+therefore uses the fast MSZIP cabinet level instead of applying the slower default
+LZX recompression to the same executable during every release build. The build
+scripts also give WiX an ASCII-only temporary path because Windows cabinet tooling
+cannot reliably process a Windows user profile path containing Turkish characters.
+
+Build an unsigned development installer for local testing (never for distribution):
+
+```powershell
+.\scripts\build-test-installer.ps1 -Version 1.0.0
+```
+
+Test installers are written to `artifacts\installer-test\<version>`. They contain
+the development build (including its explicit test bypass) and are intentionally
+separate from signed release artifacts.
+
 The desktop shortcut is disabled by default and can be selected from the MSI's
 feature screen. It can also be enabled in an unattended install with:
 
