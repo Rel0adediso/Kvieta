@@ -107,7 +107,7 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 - Gerçek Windows testinde Guardian, sonlandırılan korumalı oturumu ve çöken servisi otomatik olarak yeniden ayağa kaldırdı
 - Son public MSI için kod imzalama; reboot, uyku/hibernation ve çoklu monitör matrisi için son doğrulama bekleniyor
 
-Kalan v1.0 doğrulamaları ve sonraki hedefler için [güncel yol haritasına](ROADMAP.md) bakın.
+Kalan v1.0 doğrulamaları ve sonraki hedefler için [güncel yol haritasına](ROADMAP.md), sürümler arasındaki farklar için [sürüm notlarına](RELEASE_NOTES.md) bakın.
 
 ## Kaynaktan çalıştırma
 

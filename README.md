@@ -108,7 +108,7 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 - Real Windows tests confirmed automatic recovery after terminating the protected session and crashing the Guardian service
 - Code signing for the final public MSI and the reboot, sleep/hibernate, and multi-monitor validation matrix remain open
 
-See the [current roadmap](ROADMAP.md) for the remaining v1.0 validation and post-release goals.
+See the [current roadmap](ROADMAP.md) for the remaining v1.0 validation and post-release goals, and the [release notes](RELEASE_NOTES.md) for changes between versions.
 
 ## Run from source
 
