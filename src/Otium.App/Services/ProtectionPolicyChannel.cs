@@ -67,6 +67,45 @@ public static class ProtectionPolicyChannel
         }
     }
 
+    public static async Task<bool> SyncGuardedPersonalAsync(
+        string settingsJson,
+        AdminCredential credential,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(settingsJson) || !credential.IsConfigured)
+        {
+            return false;
+        }
+
+        try
+        {
+            using NamedPipeClientStream client = new(".", PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(12));
+            await client.ConnectAsync(timeout.Token);
+            if (!IsLocalSystemServer(client))
+            {
+                return false;
+            }
+
+            using StreamWriter writer = new(client, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
+            using StreamReader reader = new(client, Encoding.UTF8, leaveOpen: true);
+            PolicyChallenge? challenge = await ReadChallengeAsync(reader, timeout.Token);
+            if (challenge is null) return false;
+            byte[] key = Convert.FromBase64String(credential.HashBase64);
+            string settingsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(settingsJson));
+            PolicyRequest payload = new("sync-guarded", null, settingsBase64, null, null);
+            string request = CreateAuthenticatedRequest(payload, challenge.NonceBase64, key);
+            await writer.WriteLineAsync(request.AsMemory(), timeout.Token);
+            string? response = await reader.ReadLineAsync(timeout.Token);
+            return string.Equals(response, "OK", StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public static async Task<bool> ResetPinWithRecoveryCodeAsync(
         string recoveryCode,
         AdminCredential newCredential,
@@ -223,17 +262,22 @@ public static class ProtectionPolicyChannel
             return;
         }
 
-        if (!string.Equals(request.Operation, "sync", StringComparison.Ordinal) ||
-            string.IsNullOrWhiteSpace(request.Pin) || string.IsNullOrWhiteSpace(request.SettingsBase64))
+        bool pinSync = string.Equals(request.Operation, "sync", StringComparison.Ordinal);
+        bool guardedSync = string.Equals(request.Operation, "sync-guarded", StringComparison.Ordinal);
+        if ((!pinSync && !guardedSync) ||
+            pinSync && string.IsNullOrWhiteSpace(request.Pin) ||
+            string.IsNullOrWhiteSpace(request.SettingsBase64))
         {
             await writer.WriteLineAsync("ERR".AsMemory(), requestTimeout.Token);
             return;
         }
 
-        bool pinVerified = AdminPinService.Verify(request.Pin, enrollment.AdminPin) ||
-            enrollment.PreviousAdminPin is { IsConfigured: true } previousPin &&
-            AdminPinService.Verify(request.Pin, previousPin);
-        if (!pinVerified)
+        bool authenticated = guardedSync
+            ? IsGuardedPersonalPolicy(enrollment)
+            : AdminPinService.Verify(request.Pin!, enrollment.AdminPin) ||
+              enrollment.PreviousAdminPin is { IsConfigured: true } previousPin &&
+              AdminPinService.Verify(request.Pin!, previousPin);
+        if (!authenticated)
         {
             RegisterAuthenticationFailure(throttle);
             await AuditAsync("guardian.ipc.pin", "rejected", requestTimeout.Token);
@@ -257,6 +301,16 @@ public static class ProtectionPolicyChannel
         }
 
         if (candidate is null || !candidate.RequiresGuardian || !candidate.AdminPin.IsConfigured)
+        {
+            await writer.WriteLineAsync("ERR".AsMemory(), requestTimeout.Token);
+            return;
+        }
+
+        bool remainsGuardedPersonal = candidate.Mode == ControlMode.Personal &&
+            candidate.PersonalProtectionLevel == PersonalProtectionLevel.Guarded;
+        if (guardedSync &&
+            (!remainsGuardedPersonal && candidate.Mode != ControlMode.Protected ||
+             remainsGuardedPersonal && !CredentialsEqual(enrollment.AdminPin, candidate.AdminPin)))
         {
             await writer.WriteLineAsync("ERR".AsMemory(), requestTimeout.Token);
             return;
@@ -468,7 +522,7 @@ public static class ProtectionPolicyChannel
         byte[] key;
         try
         {
-            key = string.Equals(request.Operation, "sync", StringComparison.Ordinal)
+            key = request.Operation is "sync" or "sync-guarded"
                 ? Convert.FromBase64String(enrollment.AdminPin.HashBase64)
                 : string.Equals(request.Operation, "recovery-pin-reset", StringComparison.Ordinal) &&
                     !string.IsNullOrWhiteSpace(request.RecoveryCode)
@@ -511,6 +565,23 @@ public static class ProtectionPolicyChannel
 
     private static string NormalizeRecoveryCode(string code) =>
         new(code.Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+
+    private static bool IsGuardedPersonalPolicy(GuardianEnrollment enrollment)
+    {
+        try
+        {
+            ControlSettings? current = JsonSerializer.Deserialize<ControlSettings>(
+                File.ReadAllBytes(ProtectionServiceManager.ProtectedSettingsPath),
+                JsonOptions);
+            return current?.Mode == ControlMode.Personal &&
+                current.PersonalProtectionLevel == PersonalProtectionLevel.Guarded &&
+                CredentialsEqual(enrollment.AdminPin, current.AdminPin);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     private static bool IsAuthorizedClient(NamedPipeServerStream server)
     {

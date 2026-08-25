@@ -108,7 +108,7 @@
     <sys:String x:Key="PersonalBalancedHint">There is no service protection against closing Otium.</sys:String>
     <sys:String x:Key="PersonalGuarded">Strict · Guardian</sys:String>
     <sys:String x:Key="PersonalGuardedDescription">Guardian restores Otium if it is closed and keeps rules running.</sys:String>
-    <sys:String x:Key="PersonalGuardedHint">Requires an administrator PIN and a safe recovery path.</sys:String>
+    <sys:String x:Key="PersonalGuardedHint">No PIN required. Moving to a lower level uses your selected waiting period.</sys:String>
     <sys:String x:Key="PersonalLevelCanChangeLater">Moving to a lower level is applied after the waiting period.</sys:String>
     <sys:String x:Key="Back">Back</sys:String>
     <sys:String x:Key="PersonalStrictness">Personal strictness</sys:String>

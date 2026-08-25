@@ -6,6 +6,7 @@ using System.ServiceProcess;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Win32.SafeHandles;
+using Otium.Core.Models;
 using Otium.Core.Services;
 
 namespace Otium.App.Services;
@@ -73,6 +74,11 @@ public sealed class OtiumGuardianService : ServiceBase
         {
             try
             {
+                if (await ApplyDuePersonalRelaxationAsync(cancellationToken))
+                {
+                    continue;
+                }
+
                 EnsureProtectedSession();
             }
             catch
@@ -89,6 +95,30 @@ public sealed class OtiumGuardianService : ServiceBase
                 break;
             }
         }
+    }
+
+    private static async Task<bool> ApplyDuePersonalRelaxationAsync(CancellationToken cancellationToken)
+    {
+        GuardianEnrollment? enrollment = ProtectionServiceManager.LoadEnrollment();
+        if (enrollment is null || !File.Exists(ProtectionServiceManager.ProtectedSettingsPath))
+        {
+            return false;
+        }
+
+        ControlSettings settings = await new JsonSettingsStore(
+            ProtectionServiceManager.ProtectedSettingsPath).LoadAsync(cancellationToken);
+        if (settings.RequiresGuardian)
+        {
+            return false;
+        }
+
+        await new JsonSettingsStore(enrollment.SettingsPath).SaveAsync(settings, cancellationToken);
+        await new SecurityAuditLog().AppendAsync(
+            "guardian.personal-relaxation",
+            "applied",
+            cancellationToken);
+        ProtectionServiceManager.DeactivateGuardianPolicy();
+        return true;
     }
 
     private static void EnsureProtectedSession()

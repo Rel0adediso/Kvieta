@@ -108,7 +108,7 @@ public static class ProtectionServiceManager
     }
 
     public static bool RequiresPinForUninstall(ControlSettings settings) =>
-        settings.RequiresGuardian && settings.AdminPin.IsConfigured;
+        settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured;
 
     public static bool LaunchProductUninstall()
     {
@@ -342,6 +342,14 @@ public static class ProtectionServiceManager
         {
             return null;
         }
+    }
+
+    public static void DeactivateGuardianPolicy()
+    {
+        StopTrackedGuardianSessionIfPresent();
+        TryDelete(ProcessStatePath);
+        TryDelete(ProtectedSettingsPath);
+        TryDelete(EnrollmentPath);
     }
 
     private static int Install(string? payload)

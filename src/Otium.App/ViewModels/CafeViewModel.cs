@@ -38,6 +38,9 @@ public sealed class CafeViewModel : ObservableObject
     public bool CanEndSession => State == SessionState.Paused;
     public bool IsBlocked => State is SessionState.TimeExpired or SessionState.OutsideSchedule;
     public bool ShouldShowSessionSurfaces => _settings?.Mode != ControlMode.Awareness;
+    public bool IsGuardedPersonalMode =>
+        _settings?.Mode == ControlMode.Personal &&
+        _settings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded;
     public bool CanRequestExtraTime => State == SessionState.TimeExpired &&
         (_settings?.Mode != ControlMode.Personal || _settings.StrictPersonalMode == false);
     public bool IsOutsideSchedule => State == SessionState.OutsideSchedule;
@@ -104,6 +107,7 @@ public sealed class CafeViewModel : ObservableObject
         }
         _settings = settings;
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
+        OnPropertyChanged(nameof(IsGuardedPersonalMode));
         _settingsLastWriteUtc = GetSettingsLastWriteUtc();
         _pendingApplyAfterUtc = settings.PendingChange?.ApplyAfterUtc;
         UsageLedger ledger = await _usageStore.LoadAsync();
@@ -340,6 +344,7 @@ public sealed class CafeViewModel : ObservableObject
         }
         _settings = settings;
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
+        OnPropertyChanged(nameof(IsGuardedPersonalMode));
         _settingsLastWriteUtc = GetSettingsLastWriteUtc();
         _pendingApplyAfterUtc = settings.PendingChange?.ApplyAfterUtc;
         UsageLedger latestLedger = await _usageStore.LoadAsync();

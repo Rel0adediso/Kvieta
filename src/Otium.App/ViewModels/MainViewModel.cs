@@ -771,10 +771,15 @@ public sealed class MainViewModel : ObservableObject
     public async Task SetControlModeAsync(
         ControlMode mode,
         PersonalProtectionLevel personalProtectionLevel,
-        string? newPin = null)
+        string? newPin = null,
+        AdminCredential? newCredential = null)
     {
+        bool personalTightening = SelectedControlMode == ControlMode.Personal &&
+            mode == ControlMode.Personal &&
+            (int)personalProtectionLevel > (int)PersonalProtectionLevel;
         bool personalRelaxation = SelectedControlMode == ControlMode.Personal &&
-            (mode != ControlMode.Personal ||
+            (mode != ControlMode.Personal &&
+             !(mode == ControlMode.Protected && PersonalProtectionLevel == PersonalProtectionLevel.Guarded) ||
              mode == ControlMode.Personal && (int)personalProtectionLevel < (int)PersonalProtectionLevel);
         if (personalRelaxation)
         {
@@ -787,6 +792,10 @@ public sealed class MainViewModel : ObservableObject
             if (!string.IsNullOrWhiteSpace(newPin))
             {
                 target.AdminPin = AdminPinService.Create(newPin);
+            }
+            else if (newCredential is not null)
+            {
+                target.AdminPin = newCredential;
             }
 
             _settings.PendingChange = new PendingPolicyChange
@@ -807,6 +816,17 @@ public sealed class MainViewModel : ObservableObject
             _settings.AdminPin = AdminPinService.Create(newPin);
             OnPropertyChanged(nameof(HasAdminPin));
             OnPropertyChanged(nameof(AdminPinActionText));
+        }
+        else if (newCredential is not null)
+        {
+            _settings.AdminPin = newCredential;
+            OnPropertyChanged(nameof(HasAdminPin));
+            OnPropertyChanged(nameof(AdminPinActionText));
+        }
+
+        if (personalTightening)
+        {
+            _settings.PendingChange = null;
         }
 
         SelectedControlMode = mode;

@@ -644,7 +644,7 @@ public partial class MainWindow : Window
     private async void RestoreLastKnownGood_Click(object sender, RoutedEventArgs e)
     {
         string? authorizationPin = _managementPin;
-        if (_viewModel.HasAdminPin)
+        if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
             verification.Owner = this;
@@ -747,7 +747,7 @@ public partial class MainWindow : Window
 
     private async void ResetClockProtection_Click(object sender, RoutedEventArgs e)
     {
-        if (_viewModel.HasAdminPin)
+        if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
             verification.Owner = this;
@@ -783,12 +783,27 @@ public partial class MainWindow : Window
         RefreshProtectionStatus();
     }
 
-    private async Task<bool> SyncProtectedPolicyAsync()
+    private async Task<bool> SyncProtectedPolicyAsync(AdminCredential? guardedAuthorizationCredential = null)
     {
         if (!_viewModel.IsGuardianRequired ||
             ProtectionServiceManager.GetState() != ProtectionServiceState.Running)
         {
             return true;
+        }
+
+        if (guardedAuthorizationCredential is not null ||
+            _viewModel.IsPersonalMode &&
+            _viewModel.PersonalProtectionLevel == PersonalProtectionLevel.Guarded)
+        {
+            bool guardedSynced = await ProtectionPolicyChannel.SyncGuardedPersonalAsync(
+                _viewModel.ExportSettingsJson(),
+                guardedAuthorizationCredential ?? _viewModel.CreateSettingsSnapshot().AdminPin);
+            if (!guardedSynced)
+            {
+                await RestoreAuthoritativeProtectedPolicyAsync();
+            }
+
+            return guardedSynced;
         }
 
         if (string.IsNullOrWhiteSpace(_managementPin))
@@ -853,7 +868,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_viewModel.IsGuardianRequired && _viewModel.HasAdminPin)
+        if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
             verification.Owner = this;
@@ -864,10 +879,11 @@ public partial class MainWindow : Window
         }
 
         string? newPin = null;
+        AdminCredential? newCredential = null;
         bool targetRequiresGuardian =
             targetMode == ControlMode.Protected ||
             targetMode == ControlMode.Personal && targetPersonalLevel == PersonalProtectionLevel.Guarded;
-        if (targetRequiresGuardian && !_viewModel.HasAdminPin)
+        if (targetMode == ControlMode.Protected && !_viewModel.IsProtectedMode)
         {
             AdminPinWindow setup = AdminPinWindow.CreateSetup();
             setup.Owner = this;
@@ -879,15 +895,25 @@ public partial class MainWindow : Window
             newPin = setup.ResultPin;
             _managementPin = newPin;
         }
+        else if (targetMode == ControlMode.Personal &&
+                 targetPersonalLevel == PersonalProtectionLevel.Guarded &&
+                 !_viewModel.HasAdminPin)
+        {
+            newCredential = AdminPinService.CreateInternalCredential();
+        }
 
         ControlSettings rollbackSettings = _viewModel.CreateSettingsSnapshot();
-        await _viewModel.SetControlModeAsync(targetMode, targetPersonalLevel, newPin);
+        await _viewModel.SetControlModeAsync(targetMode, targetPersonalLevel, newPin, newCredential);
         if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
         {
             return;
         }
 
-        if (!await SyncProtectedPolicyAsync())
+        AdminCredential? guardedAuthorization = rollbackSettings.Mode == ControlMode.Personal &&
+            rollbackSettings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded
+                ? rollbackSettings.AdminPin
+                : null;
+        if (!await SyncProtectedPolicyAsync(guardedAuthorization))
         {
             return;
         }

@@ -74,7 +74,7 @@ public partial class App : System.Windows.Application
         JsonSettingsStore settingsStore = guardianSession && File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
             ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true)
             : protectedPolicyAvailable && File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
-                ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
+                ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true)
                 : new JsonSettingsStore();
         ControlSettings settings;
         try
@@ -94,6 +94,11 @@ public partial class App : System.Windows.Application
 
         LocalizationService.SetLanguage(this, settings.Language);
         _themeService.SetPreference(settings.Theme);
+
+        if (!guardianSession && protectedPolicyAvailable && settings.Mode != ControlMode.Protected)
+        {
+            RestoreProtectedSettingsToUserProfile();
+        }
 
         if (protectedPolicyAvailable &&
             ProtectionServiceManager.GetVersionCompatibility() == ProtectionVersionCompatibility.Mismatch)
@@ -138,7 +143,7 @@ public partial class App : System.Windows.Application
             settings.Mode = modeWindow.SelectedMode.Value;
             settings.PersonalProtectionLevel = modeWindow.SelectedPersonalProtectionLevel;
             settings.StrictPersonalMode = settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible;
-            if (settings.RequiresGuardian)
+            if (settings.Mode == ControlMode.Protected)
             {
                 AdminPinWindow setup = AdminPinWindow.CreateSetup();
                 setup.WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -150,6 +155,10 @@ public partial class App : System.Windows.Application
                 }
 
                 settings.AdminPin = AdminPinService.Create(setup.ResultPin);
+            }
+            else if (settings.RequiresGuardian)
+            {
+                settings.AdminPin = AdminPinService.CreateInternalCredential();
             }
 
             settings.SchemaVersion = 9;
@@ -206,7 +215,9 @@ public partial class App : System.Windows.Application
 
             CafeWindow sessionWindow = new(
                 isDirectSession: true,
-                requirePinToExit: guardianSession || settings.RequiresGuardian,
+                requirePinToExit: settings.Mode == ControlMode.Protected,
+                returnToControlCenter: settings.Mode == ControlMode.Personal &&
+                    settings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded,
                 exitCredentialOverride: _guardianCredential,
                 viewModel: guardianSession ? new CafeViewModel(settingsStore) : null);
             sessionWindow.ControlCenterRequested += DirectSession_ControlCenterRequested;
@@ -295,7 +306,7 @@ public partial class App : System.Windows.Application
             settings = await new JsonSettingsStore().LoadAsync();
         }
         string? managementPin = null;
-        if (settings.RequiresGuardian && settings.AdminPin.IsConfigured)
+        if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
         {
             if (!string.IsNullOrWhiteSpace(verifiedPin) && AdminPinService.Verify(verifiedPin, settings.AdminPin))
             {
@@ -329,6 +340,12 @@ public partial class App : System.Windows.Application
 
         sessionWindow.EnableControlCenterReturn();
         _activatedControlCenter = new MainWindow(sessionWindow, managementPin);
+        if (sessionWindow.KeepsSessionBehindControlCenter)
+        {
+            _activatedControlCenter.Owner = sessionWindow;
+            _activatedControlCenter.Topmost = true;
+            _activatedControlCenter.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        }
         _activatedControlCenter.Closed += (_, _) =>
         {
             _activatedControlCenter = null;

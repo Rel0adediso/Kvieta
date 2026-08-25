@@ -79,8 +79,9 @@ ControlSettings uninstallPolicy = new()
 Assert(ProtectionServiceManager.RequiresPinForUninstall(uninstallPolicy),
     "Korumalı mod kaldırma akışı PIN istemiyor.");
 uninstallPolicy.Mode = ControlMode.Personal;
+uninstallPolicy.PersonalProtectionLevel = PersonalProtectionLevel.Guarded;
 Assert(!ProtectionServiceManager.RequiresPinForUninstall(uninstallPolicy),
-    "Kişisel mod kaldırma akışı gereksiz PIN istiyor.");
+    "Sıkı kişisel mod kendi belirlediği PIN'i çıkış anahtarına dönüştürdü.");
 
 ControlSettings allowanceSettings = new();
 DaySchedule allowanceMonday = allowanceSettings.Schedule.Single(item => item.Day == DayOfWeek.Monday);
@@ -732,6 +733,16 @@ Assert(queuedAwarenessSettings.Mode == ControlMode.Personal, "Farkındalık modu
 Assert(queuedAwarenessSettings.PendingChange?.TargetSettings.Mode == ControlMode.Awareness &&
        queuedAwarenessSettings.PendingChange.TargetSettings.AwarenessTrackingEnabled,
     "Bekleyen farkındalık profili doğru hazırlanmadı.");
+#if OTIUM_DEVELOPMENT_BUILD
+Assert(await personalViewModel.ForceApplyPendingForTestingAsync(), "Kontrol merkezi test atlaması bekleyen değişikliği uygulamadı.");
+ControlSettings bypassedAwarenessSettings = await personalSettingsStore.LoadAsync();
+Assert(bypassedAwarenessSettings.Mode == ControlMode.Awareness && bypassedAwarenessSettings.PendingChange is null,
+    "Kontrol merkezi test atlaması bekleme süresini kaldıramadı.");
+Assert(!await personalViewModel.ForceApplyPendingForTestingAsync(), "Bekleyen değişiklik yokken test atlaması başarılı göründü.");
+#else
+Assert(typeof(MainViewModel).GetMethod("ForceApplyPendingForTestingAsync") is null,
+    "Public pakette kontrol merkezi test atlaması derlenmiş.");
+#endif
 
 string strictSettingsPath = Path.Combine(testDirectory, "strict-personal-settings.json");
 string strictUsagePath = Path.Combine(testDirectory, "strict-personal-usage.json");
@@ -748,37 +759,35 @@ Assert(strictCafe.State == SessionState.TimeExpired && !strictCafe.CanRequestExt
 await strictCafe.AddBonusMinutesAsync(30);
 Assert((await new JsonUsageStore(strictUsagePath).LoadAsync()).BonusMinutes == 0, "Sıkı kişisel mod ek süreyi model katmanında reddetmedi.");
 
+AdminCredential guardedCredential = AdminPinService.CreateInternalCredential();
 await personalViewModel.SetControlModeAsync(
     ControlMode.Personal,
     PersonalProtectionLevel.Guarded,
-    "4826");
+    newCredential: guardedCredential);
 ControlSettings guardedModeSettings = await personalSettingsStore.LoadAsync();
 Assert(guardedModeSettings.Mode == ControlMode.Personal &&
        guardedModeSettings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded &&
-       guardedModeSettings.RequiresGuardian,
+       guardedModeSettings.RequiresGuardian &&
+       guardedModeSettings.PendingChange is null,
     "Sıkı kişisel seviye hemen ve Guardian zorunlu olarak uygulanmadı.");
-Assert(guardedModeSettings.PendingChange?.TargetSettings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded,
-    "Sıkılaştırma mevcut bekleyen hedefe birleştirilmedi.");
-Assert(AdminPinService.Verify("4826", guardedModeSettings.AdminPin),
-    "Sıkı kişisel Guardian PIN'i güvenli biçimde saklanmadı.");
+Assert(guardedModeSettings.AdminPin.HashBase64 == guardedCredential.HashBase64 &&
+       !AdminPinService.Verify("4826", guardedModeSettings.AdminPin),
+    "Sıkı kişisel teknik Guardian anahtarı kullanıcı PIN'ine dönüştü.");
+
+await personalViewModel.SetControlModeAsync(
+    ControlMode.Personal,
+    PersonalProtectionLevel.Balanced);
+ControlSettings queuedGuardedExit = await personalSettingsStore.LoadAsync();
+Assert(queuedGuardedExit.PersonalProtectionLevel == PersonalProtectionLevel.Guarded &&
+       queuedGuardedExit.PendingChange?.TargetSettings.PersonalProtectionLevel == PersonalProtectionLevel.Balanced,
+    "Sıkı kişisel moddan çıkış bekleme süresini atladı.");
 
 await personalViewModel.SetControlModeAsync(ControlMode.Protected, "4826");
-ControlSettings queuedModeSettings = await personalSettingsStore.LoadAsync();
-Assert(queuedModeSettings.Mode == ControlMode.Personal, "Korumalı moda geçiş beklemeden uygulandı.");
-PendingPolicyChange queuedMode = queuedModeSettings.PendingChange ?? throw new InvalidOperationException("Mod değişikliği beklemeye alınmadı.");
-Assert(queuedMode.TargetSettings.Mode == ControlMode.Protected, "Bekleyen mod hedefi yanlış.");
-Assert(queuedMode.TargetSettings.Schedule.Single(day => day.Day == DayOfWeek.Monday).DailyLimitMinutes == 90, "Mod değişikliği mevcut bekleyen ayarı kaybetti.");
-Assert(AdminPinService.Verify("4826", queuedMode.TargetSettings.AdminPin), "Bekleyen korumalı mod PIN'i güvenli biçimde saklanmadı.");
-#if OTIUM_DEVELOPMENT_BUILD
-Assert(await personalViewModel.ForceApplyPendingForTestingAsync(), "Kontrol merkezi test atlaması bekleyen değişikliği uygulamadı.");
-ControlSettings bypassedModeSettings = await personalSettingsStore.LoadAsync();
-Assert(bypassedModeSettings.Mode == ControlMode.Protected && bypassedModeSettings.PendingChange is null,
-    "Kontrol merkezi test atlaması bekleme süresini kaldıramadı.");
-Assert(!await personalViewModel.ForceApplyPendingForTestingAsync(), "Bekleyen değişiklik yokken test atlaması başarılı göründü.");
-#else
-Assert(typeof(MainViewModel).GetMethod("ForceApplyPendingForTestingAsync") is null,
-    "Public pakette kontrol merkezi test atlaması derlenmiş.");
-#endif
+ControlSettings protectedFromGuarded = await personalSettingsStore.LoadAsync();
+Assert(protectedFromGuarded.Mode == ControlMode.Protected && protectedFromGuarded.PendingChange is null,
+    "Sıkı kişisel moddan daha korumalı moda geçiş gereksiz yere bekletildi.");
+Assert(AdminPinService.Verify("4826", protectedFromGuarded.AdminPin),
+    "Korumalı moda geçişte kullanıcı yönetici PIN'i uygulanmadı.");
 
 string blockedExecutable = Path.Combine(testDirectory, "otium-rule-test.exe");
 File.Copy(Path.Combine(Environment.SystemDirectory, "cmd.exe"), blockedExecutable);

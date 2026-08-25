@@ -322,7 +322,18 @@ public partial class CafeWindow : Window
         if (_controlCenterOpen)
         {
             _widget?.Hide();
-            Hide();
+            if (_viewModel.IsGuardedPersonalMode)
+            {
+                if (!IsVisible)
+                {
+                    Show();
+                }
+                WindowState = WindowState.Maximized;
+            }
+            else
+            {
+                Hide();
+            }
             return;
         }
 
@@ -542,12 +553,25 @@ public partial class CafeWindow : Window
 
     public event EventHandler<ControlCenterRequestEventArgs>? ControlCenterRequested;
 
+    public bool KeepsSessionBehindControlCenter => _viewModel.IsGuardedPersonalMode;
+
     private void SuspendForControlCenter()
     {
         _controlCenterOpen = true;
-        _forceSurfaceVisible = false;
+        _forceSurfaceVisible = _viewModel.IsGuardedPersonalMode;
         _widget?.Hide();
-        Hide();
+        if (_viewModel.IsGuardedPersonalMode)
+        {
+            if (!IsVisible)
+            {
+                Show();
+            }
+            WindowState = WindowState.Maximized;
+        }
+        else
+        {
+            Hide();
+        }
     }
 
     public async Task SwitchToUserSettingsStoreAsync()

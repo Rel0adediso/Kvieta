@@ -37,6 +37,13 @@ public static class AdminPinService
         };
     }
 
+    public static AdminCredential CreateInternalCredential() => new()
+    {
+        Iterations = DefaultIterations,
+        SaltBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(SaltSize)),
+        HashBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(HashSize))
+    };
+
     public static bool Verify(string pin, AdminCredential? credential)
     {
         if (!IsValidFormat(pin) || credential is null || !credential.IsConfigured)

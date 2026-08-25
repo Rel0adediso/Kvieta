@@ -108,7 +108,7 @@
     <sys:String x:Key="PersonalBalancedHint">Otium'u kapatmaya karşı servis koruması yoktur.</sys:String>
     <sys:String x:Key="PersonalGuarded">Sıkı · Guardian</sys:String>
     <sys:String x:Key="PersonalGuardedDescription">Otium kapatılırsa Guardian yeniden açar ve kuralları ayakta tutar.</sys:String>
-    <sys:String x:Key="PersonalGuardedHint">Yönetici PIN'i ve güvenli kurtarma yolu gerekir.</sys:String>
+    <sys:String x:Key="PersonalGuardedHint">PIN gerekmez. Daha düşük seviyeye geçiş seçtiğin bekleme süresinden sonra uygulanır.</sys:String>
     <sys:String x:Key="PersonalLevelCanChangeLater">Daha düşük sıkılığa geçiş bekleme süresinden sonra uygulanır.</sys:String>
     <sys:String x:Key="Back">Geri</sys:String>
     <sys:String x:Key="PersonalStrictness">Kişisel sıkılık</sys:String>
