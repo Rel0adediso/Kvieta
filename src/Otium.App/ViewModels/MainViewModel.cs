@@ -847,7 +847,7 @@ public sealed class MainViewModel : ObservableObject
         StatusMessage = mode switch
         {
             ControlMode.Protected => L("Korumalı kullanıma geçildi", "Switched to protected mode"),
-            ControlMode.Awareness => L("Farkındalık moduna geçildi · Kısıtlama yok", "Switched to awareness mode · No restrictions"),
+            ControlMode.Awareness => L("Sadece takip moduna geçildi · Kısıtlama yok", "Switched to tracking-only mode · No restrictions"),
             _ => L("Kişisel kullanıma geçildi", "Switched to personal mode")
         };
     }
