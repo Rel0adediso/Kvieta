@@ -251,6 +251,12 @@ Tamamlandı. Kurallar yolun yanında WinTrust ile doğrulanan publisher imzası,
 
 **Durum:** `1.0.0` yerel sürüm adayı hazırlandı. İmzalı public MSI ve kalan gerçek Windows matrisi tamamlanmadan final etiketi verilmeyecek.
 
+### Açık v1.0 release blocker'ları
+
+- Dengeli kişisel modda Otium kapatıldığında açılan oturum yüzeyi küçültülememeli, alta atılamamalı veya masaüstüne geçilerek atlanamamalı. Pencere kapatma, görev çubuğu, `Alt+Tab`, `Win+D` ve benzeri masaüstü geçişleri tek oturum yüzeyiyle doğrulanmalı.
+- Açıklamalı kurulum sihirbazı, imzalı public MSI ve temiz kurulum/güncelleme/onarım/kaldırma matrisi tamamlanmalı.
+- Guardian, standart/yönetici hesap, reboot, Win+L, uyku/hibernation, Explorer restart ve çoklu monitör yaşam döngüsü testleri tamamlanmalı.
+
 - Personal ve Protected akışlarının uçtan uca kararlı olması.
 - Test backdoor'u içermeyen public paket.
 - Güvenli installer, recovery ve upgrade yolu.
