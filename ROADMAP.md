@@ -214,6 +214,9 @@ Her test için ön koşul, adımlar, beklenen sonuç, gerçek sonuç, build SHA'
 saklanır. Manuel testler yalnız “denendi” olarak değil, tekrar edilebilir test vakası
 olarak belgelenir.
 
+Tekrar kullanılabilir koşu tablosu `docs/V1-TEST-MATRIX.md` altında hazırlandı;
+gerçek cihaz sonuçları bu matrise işlenecek.
+
 ### P1 — Release kalitesi ve proje altyapısı
 
 P0 işleriyle paralel ilerleyebilir; final public release öncesinde tamamlanması hedeflenir.
@@ -254,7 +257,7 @@ edilerek gereksiz kaynak tüketimi önlenir.
 - Ürün hedeflerine uygun lisansı seçip `LICENSE` ekleme.
 - README ve contribution belgelerinde lisans, destek ve güvenlik yollarını belirtme.
 - Özel güvenlik bildirimi için kanal belirleme.
-- İki dilli, gizli bilgi paylaşımını önleyen hata bildirimi ve özellik önerisi şablonları eklendi; pull request şablonu bekliyor.
+- İki dilli issue şablonları ve güvenlik/kalite kontrol listeli pull request şablonu eklendi.
 - Katkıların test, güvenlik ve gizlilik gereksinimlerini netleştirme.
 
 #### Dokümantasyon tutarlılığı
