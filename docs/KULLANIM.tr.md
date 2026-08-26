@@ -50,4 +50,4 @@ Kaldırma, yeniden kurulum veya yükseltme sırasında yerel ayarların ve geçm
 - Çoklu monitör, farklı DPI, uyku/hibernation ve tam installer yaşam döngüsü final V1 matrisi henüz tamamlanmadı.
 - Alpha test installer'ı imzasız olduğu için Windows SmartScreen uyarı gösterebilir.
 
-Güvenlik sınırları için [SECURITY.tr.md](SECURITY.tr.md), yardım ve bildirim yolu için [Destek](../SUPPORT.md) belgesine bakın.
+Güvenlik sınırları için [SECURITY.tr.md](SECURITY.tr.md), yardım ve bildirim yolu için [Destek](../.github/SUPPORT.md) belgesine bakın.

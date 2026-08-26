@@ -1,6 +1,6 @@
 <div align="center">
 
-[English](README.md) · **Türkçe**
+[English](../README.md) · **Türkçe**
 
 # Otium
 
@@ -134,9 +134,9 @@ dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c
 
 Otium'un korumalı modu esas olarak ayrı bir yönetici hesabı tarafından yönetilen **standart Windows kullanıcısı** için tasarlanır. Fiziksel erişimi ve Windows yönetici yetkisi bulunan bir kişiye karşı hiçbir masaüstü uygulaması mutlak kaldırılamazlık garanti edemez.
 
-Development paketlerindeki test geçitleri public sürümde derlenmez. Ayrıntılar için [güvenlik sınırları belgesine](docs/SECURITY.tr.md) bakın.
+Development paketlerindeki test geçitleri public sürümde derlenmez. Ayrıntılar için [güvenlik sınırları belgesine](SECURITY.tr.md) bakın.
 
-Kurulum, ilk kullanım, güncelleme, kurtarma ve kaldırma adımları için [Türkçe kullanım rehberine](docs/KULLANIM.tr.md) bakın. Yardım veya hata bildirimi için [Destek](SUPPORT.md) belgesini kullanın.
+Kurulum, ilk kullanım, güncelleme, kurtarma ve kaldırma adımları için [Türkçe kullanım rehberine](KULLANIM.tr.md) bakın. Yardım veya hata bildirimi için [Destek](../.github/SUPPORT.md) belgesini kullanın.
 
 ## Geliştirme yaklaşımı
 
@@ -148,7 +148,7 @@ Bu nedenle projeyi “%100 AI made” diye tanımlamak yerine, insan tarafından
 
 ## Lisans
 
-Otium, [MIT Lisansı](LICENSE) altında yayımlanan açık kaynak bir yazılımdır. Güvenlik sınırları ve platform kısıtları geçerliliğini korur; lisans, Protected modun hiçbir koşulda aşılamayacağı anlamına gelmez.
+Otium, [MIT Lisansı](../LICENSE) altında yayımlanan açık kaynak bir yazılımdır. Güvenlik sınırları ve platform kısıtları geçerliliğini korur; lisans, Protected modun hiçbir koşulda aşılamayacağı anlamına gelmez.
 
 ---
 

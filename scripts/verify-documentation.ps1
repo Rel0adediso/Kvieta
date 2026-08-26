@@ -7,10 +7,11 @@ $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $requiredFiles = @(
     'LICENSE'
     'README.md'
-    'README.tr.md'
-    'CONTRIBUTING.md'
-    'SUPPORT.md'
-    'ROADMAP.md'
+    'docs/README.tr.md'
+    '.github/CONTRIBUTING.md'
+    '.github/SUPPORT.md'
+    'docs/ROADMAP.md'
+    'docs/RELEASE_NOTES.md'
     'docs/USAGE.md'
     'docs/KULLANIM.tr.md'
     'docs/SECURITY.md'
@@ -26,7 +27,7 @@ foreach ($relativePath in $requiredFiles) {
 }
 
 $englishReadme = Get-Content -LiteralPath (Join-Path $repositoryRoot 'README.md') -Raw
-$turkishReadme = Get-Content -LiteralPath (Join-Path $repositoryRoot 'README.tr.md') -Raw
+$turkishReadme = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/README.tr.md') -Raw
 $englishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/USAGE.md') -Raw
 $turkishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/KULLANIM.tr.md') -Raw
 
@@ -40,7 +41,7 @@ $requiredText = @(
     @{ Name = 'English uninstall guidance'; Text = $englishGuide; Pattern = 'Uninstall' }
     @{ Name = 'Turkish uninstall guidance'; Text = $turkishGuide; Pattern = 'Kaldırma' }
     @{ Name = 'English MIT link'; Text = $englishReadme; Pattern = '\[MIT License\]\(LICENSE\)' }
-    @{ Name = 'Turkish MIT link'; Text = $turkishReadme; Pattern = '\[MIT Lisansı\]\(LICENSE\)' }
+    @{ Name = 'Turkish MIT link'; Text = $turkishReadme; Pattern = '\[MIT Lisansı\]\(\.\./LICENSE\)' }
 )
 
 foreach ($check in $requiredText) {

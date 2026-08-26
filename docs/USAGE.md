@@ -50,4 +50,4 @@ Local settings and history are intended to survive uninstall, reinstall, and upg
 - Multi-monitor, mixed-DPI, sleep/hibernate, and the complete installer lifecycle still await final V1 matrix validation.
 - The alpha test installer is unsigned and may trigger a Windows SmartScreen warning.
 
-See [SECURITY.md](SECURITY.md) for the security boundary and [Support](../SUPPORT.md) for help and reporting paths.
+See [SECURITY.md](SECURITY.md) for the security boundary and [Support](../.github/SUPPORT.md) for help and reporting paths.

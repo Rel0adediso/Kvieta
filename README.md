@@ -1,6 +1,6 @@
 <div align="center">
 
-**English** · [Türkçe](README.tr.md)
+**English** · [Türkçe](docs/README.tr.md)
 
 # Otium
 
@@ -108,7 +108,7 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 - Real Windows tests confirmed automatic recovery after terminating the protected session and crashing the Guardian service
 - Public distribution trust, installer lifecycle, reboot, sleep/hibernate, and multi-monitor validation remain open
 
-See the [current roadmap](ROADMAP.md) for the remaining v1.0 validation and post-release goals, and the [release notes](RELEASE_NOTES.md) for changes between versions.
+See the [current roadmap](docs/ROADMAP.md) for the remaining v1.0 validation and post-release goals, and the [release notes](docs/RELEASE_NOTES.md) for changes between versions.
 
 ## Run from source
 
@@ -137,7 +137,7 @@ Protected mode is primarily designed for a **standard Windows account** managed 
 
 Development-only test gates are not compiled into Public builds. See the [security boundaries](docs/SECURITY.md) for details.
 
-See the [English user guide](docs/USAGE.md) or [Turkish user guide](docs/KULLANIM.tr.md) for installation, first-use, update, recovery, and removal steps. For help or a bug report, see [Support](SUPPORT.md).
+See the [English user guide](docs/USAGE.md) or [Turkish user guide](docs/KULLANIM.tr.md) for installation, first-use, update, recovery, and removal steps. For help or a bug report, see [Support](.github/SUPPORT.md).
 
 ## Development approach
 
@@ -155,6 +155,6 @@ Otium is open-source software released under the [MIT License](LICENSE). Securit
 
 <div align="center">
 
-**Otium** · *Her şeyin bir zamanı var.*
+**Otium** · *All in good time.*
 
 </div>

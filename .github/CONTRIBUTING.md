@@ -17,4 +17,4 @@ Changes to Guardian, protected policy, PIN/recovery, installer, or update verifi
 
 Do not commit build output, local settings, usage data, recovery codes, signing certificates, or diagnostic reports. Unsigned local test packages must use `scripts/build-test-installer.ps1` and must never be presented as public releases.
 
-Contributions are accepted under the repository's [MIT License](LICENSE). Keep Turkish and English user-facing documentation equivalent in meaning, and update both sides in the same change.
+Contributions are accepted under the repository's [MIT License](../LICENSE). Keep Turkish and English user-facing documentation equivalent in meaning, and update both sides in the same change.

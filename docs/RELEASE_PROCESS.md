@@ -4,7 +4,7 @@ Every Otium version must follow this process:
 
 1. Update the application version and public build metadata.
 2. Run formatting verification, Debug and Release builds, and both smoke-test configurations.
-3. Update `RELEASE_NOTES.md` in detailed English.
+3. Update `docs/RELEASE_NOTES.md` in detailed English.
 4. Document highlights, behavior changes, security changes, migration notes, validation performed, and known issues.
 5. Create an annotated Git tag with an English release summary.
 6. Push the release commit and tag to GitHub.
