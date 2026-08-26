@@ -80,7 +80,7 @@ jobs:
         run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\otium-public' -ExpectedVersion 1.0.0
 
   package:
-    name: Package alpha installer
+    name: Package community alpha installer
     runs-on: windows-latest
     needs: validate
     timeout-minutes: 25
@@ -97,22 +97,22 @@ jobs:
           cache-dependency-path: |
             **/*.csproj
 
-      - name: Build test installer
+      - name: Build community installer
         shell: pwsh
-        run: ./scripts/build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel 1.0.0-alpha
+        run: ./scripts/build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel 1.0.0-alpha.1 -CommunityRelease
 
       - name: Verify package manifest
         shell: pwsh
         run: |
           ./scripts/verify-release-manifest.ps1 `
-            -ManifestPath './artifacts/installer-test/1.0.0/release-manifest.json' `
+            -ManifestPath './artifacts/installer-community/1.0.0/release-manifest.json' `
             -ExpectedCommit '${{ github.sha }}' `
-            -ExpectedPackageKind test
+            -ExpectedPackageKind community
 
       - name: Upload test package
         uses: actions/upload-artifact@v4
         with:
-          name: Otium-1.0.0-alpha-test
-          path: artifacts/installer-test/1.0.0/
+          name: Otium-1.0.0-alpha.1-community
+          path: artifacts/installer-community/1.0.0/
           if-no-files-found: error
           retention-days: 7

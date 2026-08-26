@@ -55,6 +55,20 @@ Build an unsigned development installer for local testing (never for distributio
 .\scripts\build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel 1.0.0-alpha
 ```
 
+Build the unsigned community Alpha.1 package in Release configuration, without
+development/test bypasses:
+
+```powershell
+.\scripts\build-test-installer.ps1 `
+  -Version 1.0.0 `
+  -ReleaseLabel 1.0.0-alpha.1 `
+  -CommunityRelease
+```
+
+Community output is written to `artifacts\installer-community\1.0.0`. Windows
+SmartScreen may display an unknown-publisher warning because this package is
+intentionally unsigned.
+
 Test installers are written to `artifacts\installer-test\<version>`. They contain
 the development build (including its explicit test bypass) and are intentionally
 separate from signed release artifacts. Both test and public pipelines inspect the
