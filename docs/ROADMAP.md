@@ -1,10 +1,10 @@
 # Otium — Ürün ve Release Yol Haritası
 
-**Son güncelleme:** 26 Ağustos 2026
+**Son güncelleme:** 27 Ağustos 2026
 
-**Mevcut sürüm:** `v1.0.0-alpha`
+**Mevcut sürüm:** `v1.0.0-alpha.1` hazırlığı
 
-**Aktif hedef:** Güvenilir, açık kaynak ve tekrar üretilebilir `v1.0.0` Windows sürümü
+**Aktif hedef:** GitHub'da imzasız community paketiyle `v1.0.0-alpha.1` prerelease yayını
 
 Bu belge Otium'un bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
@@ -39,6 +39,63 @@ bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği i�
 Bu sonuçlar çekirdek ve kaynak build sağlığını doğrular. Gerçek Windows yaşam
 döngüsü, Guardian, installer ve ekran davranışlarının tamamının doğrulandığı
 anlamına gelmez.
+
+## `v1.0.0-alpha.1` yayın planı
+
+`alpha.1`, final `v1.0.0` değil; gerçek cihaz kullanımından geri bildirim
+toplamak için hazırlanan ilk GitHub prerelease paketidir. Bu hedef için özellik
+kapsamı dondurulmuştur. Yayını kullanılamaz veya güvensiz hale getiren bir hata
+bulunmadıkça yeni büyük özellik eklenmez.
+
+### Alpha.1 için tamamlananlar
+
+- Release konfigürasyonunda, development/test bypass içermeyen imzasız community
+  paket hattı hazırlandı.
+- Self-contained Setup EXE, bağımsız MSI, iki SHA-256 dosyası ve şema v2
+  manifest birlikte üretilebiliyor.
+- Paket metadata'sı, gömülü MSI, kaynak commit'i, dosya boyutu ve SHA-256
+  eşleşmesi otomatik doğrulanıyor.
+- Public assembly'de development unlock yolu bulunmadığı ikili çıktıdan
+  doğrulanıyor.
+- Temel iki fiziksel ekran kullanımında oturum yüzeyi ve ekran kalkanları
+  başarıyla denendi.
+- Süre dolduğunda Windows oturumunu tekrar tekrar kapatan eylem kaldırıldı;
+  eski ayarlar güvenli biçimde Windows kilidine taşınıyor.
+- Korumalı mod seçimi Kaydet'e basılmadan Guardian veya policy değişikliği
+  uygulamıyor.
+
+### Alpha.1 yayın kapısı
+
+- [ ] Son release commit'i için GitHub Actions kalite hattının tamamı geçmeli.
+- [ ] Temiz kurulumda Türkçe ve English kurucu, uygulama açılışı ve temel
+  ayar kaydı doğrulanmalı.
+- [ ] Protected seçiminde Guardian kurulumu, enrollment ve korunan oturum açılışı
+  gerçek paketle doğrulanmalı.
+- [ ] Süre dolmasında Windows kilidi/engel ekranı ve yönetici geri dönüşü
+  çıkış veya kilit döngüsü oluşturmamalı.
+- [ ] Uygulama içinden kaldırma ve temel repair akışı gerçek paketle denenmeli.
+- [ ] Release notes son güvenlik, optimizasyon, mod kaydetme ve süre dolma
+  değişiklikleriyle güncellenmeli.
+- [ ] Eski `v1.0.0-rc.1` etiketinin alpha sürüm sırasıyla oluşturduğu
+  tutarsızlık yayından önce karara bağlanmalı.
+- [ ] Temiz release commit'inden son community paketi yeniden üretilmeli; manifest
+  commit'i release tag'iyle birebir eşmeli.
+- [ ] `v1.0.0-alpha.1` annotated tag'i oluşturulup GitHub Release, **Pre-release**
+  olarak yayınlanmalı.
+- [ ] Setup EXE, MSI, SHA-256 dosyaları ve `release-manifest.json` GitHub Release'e
+  eklenmeli; SmartScreen ve imzasız yayıncı uyarısı açıkça yazılmalı.
+
+### Alpha.1 sonrasına ertelenenler
+
+Aşağıdaki maddeler alpha kullanım testini başlatmaya engel değildir; final
+`v1.0.0` öncesindeki P0/P1 planında açık kalır:
+
+- Eksiksiz `Alt+Tab`, `Win+D`, sanal masaüstü, görev çubuğu ve Explorer restart matrisi.
+- Remote Desktop, kullanıcı değiştirme, hibernation ve güç kesintisi senaryoları.
+- Bütün DPI, dikey ekran, negatif koordinat ve monitör takma/çıkarma kombinasyonları.
+- WPF UI otomasyonu, testlerin konu bazlı projelere ayrılması ve coverage kapıları.
+- Authenticode imzalama, otomatik güncelleme, AppLocker/WDAC ve canlı uygulama önerileri.
+- Installer upgrade, rollback, downgrade ve hata enjeksiyonunun tam Windows matrisi.
 
 ## Aktif çalışma planı
 
@@ -84,14 +141,13 @@ Kabul kriteri:
 
 #### 2. Çoklu monitör, DPI ve ekran yaşam döngüsü
 
-**Durum:** Devam ediyor; ikincil ekran kalkanları uygulandı, fiziksel donanım testi bekliyor.
+**Durum:** Devam ediyor; temel iki fiziksel ekran testi geçti, genişletilmiş topoloji ve DPI matrisi alpha.1 sonrasına ertelendi.
 
 26 Ağustos 2026'da ikincil ekranları görev çubuğu dahil kaplayan, monitör
 takma/çıkarma ve çözünürlük değişiminde kendini yenileyen ekran kalkanı altyapısı
-eklendi. Geliştirme bilgisayarında bağlanabilir ikinci ekran bulunmadığı için bu
-davranış henüz gerçek donanımda doğrulanmadı. Final `v1.0.0` öncesinde genişletilmiş
-masaüstü kullanan en az iki fiziksel ekranla test edilmesi zorunludur; bu madde test
-kanıtı olmadan tamamlandı sayılmaz.
+eklendi. 27 Ağustos'ta iki fiziksel ekranla yapılan temel kullanım testi sorun
+göstermedi. Final `v1.0.0` öncesinde farklı DPI, yön, negatif koordinat ve
+takma/çıkarma kombinasyonları ayrıca kanıtlanacaktır.
 
 Bekleyen fiziksel test:
 
@@ -118,6 +174,10 @@ Kabul kriteri:
 
 #### 3. Installer üretim hattı
 
+**Alpha.1 güncellemesi:** Development bypass içermeyen Release community-alpha
+hattı hazır. Alpha yayın kapısı için minimum gerçek kurulum testi; final V1 için
+tam installer yaşam döngüsü matrisi bekliyor.
+
 **Durum:** Devam ediyor; MSI gömülü tek dosyalık test kurucusu hazır, gerçek kurulum yaşam döngüsü testi bekliyor.
 
 26 Ağustos 2026'da `smartcab` sorunu Windows'un yerel CAB araçlarının Türkçe
@@ -130,6 +190,10 @@ Ardından son kullanıcı için MSI'yı içinde taşıyan self-contained
 `Otium-Setup-<version>.exe` üretimi eklendi; bağımsız MSI sessiz ve yönetilen
 dağıtımlar için korunmaya devam ediyor.
 
+27 Ağustos 2026'da Debug test paketinden teknik olarak ayrı, development bypass
+içermeyen Release konfigürasyonlu `community` paket türü eklendi. Bu hat imzasız
+dağıtımı manifestte açıkça belirtir ve SmartScreen sonucunu saklamaz.
+
 Paket kalite kapısı MSI veritabanından ürün/sürüm/upgrade kimliğini, gömülü CAB'ı,
 Guardian servis kaydını ve uygulama içi kaldırma girişini doğrular. Setup dosya
 metadata'sı ile gömülü MSI ayrıca sınanır. Şema v2 release manifesti kaynak commit'i,
@@ -137,9 +201,9 @@ paket türünü, dosya boyutlarını ve iki artifact'in SHA-256 değerini birbir
 
 Yapılacaklar:
 
-- İmzasız geliştirme MSI'sında temiz kurulum, açılış, Guardian ve kaldırma akışını doğrulama.
+- Alpha.1 community paketinde temiz kurulum, açılış, Guardian, repair ve kaldırma akışını doğrulama.
 - Build süresini release raporuna ekleme; EXE/MSI boyutları artık manifestte kayıtlı.
-- Public community paketinin bütünlük doğrulama aracını üretim hattına bağlama.
+- Community paketinin kullanıcı tarafı SHA-256 doğrulama adımlarını yayın metnine bağlama.
 - Temiz kurulum, upgrade, repair, uninstall, rollback ve downgrade engelini tekrar çalıştırma.
 - MSI hatasında kullanıcı verisi ile korunan policy alanlarının bozulmadığını doğrulama.
 
@@ -183,6 +247,10 @@ Kabul kriteri:
 
 #### 5. Public paket güveni
 
+**Alpha.1 güncellemesi:** İmzasız Release community paketi Debug/test paketinden
+teknik olarak ayrıldı. Son release commit'inde bütünlük doğrulamasının yeniden
+çalıştırılması ve SmartScreen/SHA-256 yayın metni bekliyor.
+
 **Durum:** Devam ediyor; ticari sertifika satın alınmayacak, güvenli imzasız community dağıtım modeli açık.
 
 Proje kişisel ve ticari olmayan bir açık kaynak çalışma olarak yayımlanacak. Bu
@@ -193,8 +261,8 @@ kimliğinin bulunmaması kullanıcıya açıkça anlatılacaktır.
 
 Yapılacaklar:
 
-- İmzasız community paketini test/development paketinden teknik ve görsel olarak ayırma.
-- EXE, MSI, manifest, SHA-256 ve kaynak commit'inin aynı build'e ait olduğunu doğrulama.
+- Release community paketinin test/development paketinden teknik ayrımını koruma.
+- Son release commit'inde EXE, MSI, manifest, SHA-256 ve kaynak commit'inin aynı build'e ait olduğunu yeniden doğrulama.
 - Guardian'ın Development bypass kullanmadan yalnız installer'ın kurduğu beklenen istemciyi kabul edeceği bütünlük modelini tamamlama.
 - Değiştirilmiş veya farklı kaynaktan gelen istemcinin Guardian tarafından reddedildiğini test etme.
 - SmartScreen uyarısını ve SHA-256 doğrulamasını Türkçe/İngilizce belgeleme.
@@ -320,16 +388,20 @@ Final sürüm ancak aşağıdaki koşulların tamamı sağlandığında yayınla
 
 ## Önerilen uygulama sırası
 
-1. Balanced oturum yüzeyi kaçışlarını düzelt ve regresyon testlerini yaz.
-2. Çoklu monitör/DPI yüzey yöneticisini geliştir.
-3. WiX `smartcab` sorununu çöz ve imzasız MSI'yı doğrula.
-4. Açıklamalı ve iki dilli installer sihirbazını tamamla.
-5. CI kalite kapıları ve ayrıştırılmış test altyapısını kur.
-6. Gerçek Windows yaşam döngüsü matrisini çalıştır ve hataları düzelt.
-7. Lisans, README, güvenlik ve kullanıcı belgelerini tamamla.
-8. İmzasız community paketinin Guardian bütünlük modelini tamamla.
-9. Yeni release candidate üret ve temiz makinede SmartScreen dâhil doğrula.
-10. Bütün kanıtlar tamamlandıktan sonra `v1.0.0` yayınla.
+1. Alpha.1 release notes ve bilinen sınırları güncelle.
+2. Son release commit'inde build, smoke, format, NuGet audit ve dokümantasyon
+   kapılarını çalıştır.
+3. Community Setup EXE'yi temiz commit'ten yeniden üret ve manifest/SHA-256
+   eşleşmesini doğrula.
+4. Temiz kurulum, Guardian, süre dolması, repair ve kaldırma minimum matrisini
+   gerçek Windows cihazında tamamla.
+5. Eski RC etiketi hakkında karar ver; `v1.0.0-alpha.1` tag ve GitHub prerelease'i
+   paket varlıklarıyla yayınla.
+6. Bir veya iki günlük gerçek kullanım testinde yalnız alpha engelleyici ve veri/
+   güvenlik riski oluşturan hataları acil düzelt.
+7. Alpha.1 geri bildirimlerinden sonra Balanced/Protected kaçış, Windows yaşam
+   döngüsü, genişletilmiş ekran/DPI ve installer matrisine devam et.
+8. Bütün final P0 kanıtları tamamlandıktan sonra `v1.0.0` yayınla.
 
 ## v1 sonrası plan
 
@@ -432,13 +504,23 @@ uygulama geliştirmesi başlatılmaz.
 - Gizlilik güvenli tanılama dışa aktarma.
 - Installer repair, policy recovery ve Guardian kill/crash iyileştirmeleri.
 
-### v1.0.0-alpha — Kullanım biçimleri ve alpha hazırlığı
+### v1.0.0-alpha — Kullanım biçimleri ve alpha temeli
 
 - Üç kullanıcı odaklı kullanım biçimi.
 - Flexible, Balanced ve Guardian destekli Guarded kişisel koruma.
 - Flexible manuel odak kronometresi.
 - Tek oturum yüzeyi, Control Center geçiş korumaları ve startup düzeltmeleri.
 - Final release engellerinin açıkça belgelenmesi.
+
+### v1.0.0-alpha.1 — İlk GitHub prerelease (aktif)
+
+- Development bypass içermeyen imzasız Release community paketi.
+- Tek dosyalı Setup EXE, MSI, SHA-256 ve commit bağlı release manifesti.
+- Korumalı modun yalnız Kaydet sonrası uygulanması ve süre dolma çıkış
+  döngüsünün kaldırılması.
+- Minimum gerçek kurulum kapısından sonra bir veya iki günlük gerçek cihaz
+  kullanım testi.
+- Tam Windows, DPI, installer ve UI otomasyon matrislerinin final V1 planında açık tutulması.
 
 ## Roadmap bakım kuralları
 
