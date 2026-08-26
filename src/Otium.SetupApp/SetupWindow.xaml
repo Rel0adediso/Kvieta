@@ -24,10 +24,8 @@
                         <TextBlock Text="Otium Setup" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="—" Width="36" Background="Transparent" Foreground="{DynamicResource MutedTextBrush}"
-                                BorderThickness="0" Click="Minimize_Click" />
-                        <Button x:Name="CloseButton" Content="×" Width="36" Background="Transparent"
-                                Foreground="{DynamicResource MutedTextBrush}" BorderThickness="0" FontSize="18"
+                        <Button Content="—" Width="36" Style="{StaticResource TitleBarButton}" Click="Minimize_Click" />
+                        <Button x:Name="CloseButton" Content="×" Width="36" Style="{StaticResource TitleBarButton}" FontSize="18"
                                 Click="Close_Click" />
                     </StackPanel>
                 </Grid>
@@ -136,6 +134,13 @@
                         <TextBlock x:Name="ExistingTitle" Text="Bu cihazda Otium ayarları bulundu." FontSize="27" FontWeight="SemiBold" />
                         <TextBlock x:Name="ExistingDescription" Grid.Row="1" Text="Kullanım geçmişin silinmez. Mevcut ayarlarla devam edebilir veya ayarları baştan yapılandırabilirsin." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,9,0,0" />
                         <StackPanel Grid.Row="2" VerticalAlignment="Center">
+                            <Border x:Name="ExistingVersionCard" Style="{StaticResource FeatureBox}" Margin="0,0,0,14">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock x:Name="InstalledVersionLabel" Text="KURULU" Foreground="{DynamicResource MutedTextBrush}" FontSize="9.5"/><TextBlock x:Name="InstalledVersionValue" Text="1.0.0" FontSize="16" FontWeight="SemiBold" Margin="0,5,0,0"/></StackPanel>
+                                    <TextBlock Grid.Column="1" Text="→" Foreground="{DynamicResource PrimaryBrush}" FontSize="20" VerticalAlignment="Center" Margin="28,0"/>
+                                    <StackPanel Grid.Column="2"><TextBlock x:Name="PackageVersionLabel" Text="BU PAKET" Foreground="{DynamicResource MutedTextBrush}" FontSize="9.5"/><TextBlock x:Name="PackageVersionValue" Text="1.0.0-alpha" FontSize="16" FontWeight="SemiBold" Margin="0,5,0,0"/></StackPanel>
+                                </Grid>
+                            </Border>
                             <Button x:Name="KeepExistingButton" Style="{StaticResource LanguageCard}" Click="KeepExisting_Click" Margin="0,0,0,14"><StackPanel><TextBlock x:Name="KeepExistingTitle" Text="Mevcut ayarlarla devam et" FontSize="16" FontWeight="SemiBold" /><TextBlock x:Name="KeepExistingText" Text="Kurulumu yenile; modunu, kurallarını ve geçmişini koru." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
                             <Button x:Name="ConfigureNewButton" Style="{StaticResource LanguageCard}" Click="ConfigureNew_Click"><StackPanel><TextBlock x:Name="ConfigureNewTitle" Text="Ayarları baştan yapılandır" FontSize="16" FontWeight="SemiBold" /><TextBlock x:Name="ConfigureNewText" Text="Mod ve başlangıç ayarlarını yeniden seç; geçmiş verilerine dokunma." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
                             <TextBlock x:Name="ExistingSecurityNotice" Foreground="#D89A64" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0" />

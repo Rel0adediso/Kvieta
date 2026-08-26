@@ -21,6 +21,11 @@ public partial class SetupWindow : Window
     private ControlSettings? _existingSettings;
     private bool _hasExistingSettings;
     private bool _existingPolicyLocked;
+    private readonly Version _packageVersion = GetPackageVersion();
+    private Version? _installedVersion;
+    private string? _installedReleaseLabel;
+    private SetupPackageAction _packageAction = SetupPackageAction.FreshInstall;
+    private bool _openedForExistingInstallation;
     private bool _installationInProgress;
     private bool _languageChosen;
     private WizardPage _page = WizardPage.Language;
@@ -38,6 +43,16 @@ public partial class SetupWindow : Window
         VersionText.Text = $"Otium · {GetDisplayVersion()}";
         RefreshLanguage();
         UpdateSelectionStyles();
+
+        _installedVersion = ReadInstalledVersion();
+        _installedReleaseLabel = ReadInstallerValue("InstalledReleaseLabel") as string;
+        if (string.IsNullOrWhiteSpace(_installedReleaseLabel) &&
+            string.Equals(ReadInstallerValue("SignerThumbprint") as string, "UNSIGNED-DEVELOPMENT-BUILD", StringComparison.Ordinal))
+        {
+            _installedReleaseLabel = $"{_installedVersion?.ToString(3)}-alpha";
+        }
+        _packageAction = SetupPlan.DeterminePackageAction(_installedVersion, _packageVersion);
+        _openedForExistingInstallation = _installedVersion is not null;
 
         try
         {
@@ -66,7 +81,19 @@ public partial class SetupWindow : Window
             _hasExistingSettings = _existingPolicyLocked;
         }
 
-        ShowPage(WizardPage.Language);
+        if (_openedForExistingInstallation)
+        {
+            _plan.Language = _existingSettings?.Language == LanguagePreference.English
+                ? SetupLanguage.English
+                : SetupLanguage.Turkish;
+            _languageChosen = true;
+            _hasExistingSettings = true;
+            ShowPage(WizardPage.Existing);
+        }
+        else
+        {
+            ShowPage(WizardPage.Language);
+        }
     }
 
     private void Window_Closed(object? sender, EventArgs e) =>
@@ -133,11 +160,27 @@ public partial class SetupWindow : Window
     private void WelcomeBack_Click(object sender, RoutedEventArgs e) => ShowPage(WizardPage.Language);
     private void WelcomeNext_Click(object sender, RoutedEventArgs e) =>
         ShowPage(_hasExistingSettings ? WizardPage.Existing : WizardPage.Mode);
-    private void ExistingBack_Click(object sender, RoutedEventArgs e) => ShowPage(WizardPage.Welcome);
-
-    private void KeepExisting_Click(object sender, RoutedEventArgs e)
+    private void ExistingBack_Click(object sender, RoutedEventArgs e)
     {
+        if (_openedForExistingInstallation)
+        {
+            Close();
+            return;
+        }
+
+        ShowPage(WizardPage.Welcome);
+    }
+
+    private async void KeepExisting_Click(object sender, RoutedEventArgs e)
+    {
+        if (_packageAction == SetupPackageAction.DowngradeBlocked) return;
         _plan.ExistingChoice = SetupChoice.KeepExisting;
+        if (_openedForExistingInstallation)
+        {
+            await InstallAsync();
+            return;
+        }
+
         PopulateSummary();
         ShowPage(WizardPage.Summary);
     }
@@ -528,15 +571,13 @@ public partial class SetupWindow : Window
         FeatureChoiceTitle.Text = T("Üç kullanım biçimi", "Three usage modes"); FeatureChoiceText.Text = T("Yalnız takip et, kendi planına destek al veya kuralları Guardian ile koru.", "Track only, get support for your own plan, or protect rules with Guardian.");
         FeaturePrivateTitle.Text = T("İçerik kaydı yok", "No content capture"); FeaturePrivateText.Text = T("Pencere başlıklarını, yazdıklarını veya ekran görüntülerini hiçbir zaman saklamaz.", "Never stores window titles, what you type, or screenshots.");
         WelcomeBackButton.Content = BackText; WelcomeNextButton.Content = ContinueText;
-        ExistingTitle.Text = T("Bu cihazda Otium ayarları bulundu.", "Otium settings were found on this device.");
-        ExistingDescription.Text = T("Kullanım geçmişin silinmez. Mevcut ayarlarla devam edebilir veya ayarları baştan yapılandırabilirsin.", "Your usage history will not be deleted. Keep your current settings or configure them again.");
-        KeepExistingTitle.Text = T("Mevcut ayarlarla devam et", "Continue with existing settings"); KeepExistingText.Text = T("Kurulumu yenile; modunu, kurallarını ve geçmişini koru.", "Refresh the installation while keeping your mode, rules, and history.");
+        RefreshExistingInstallationText();
         ConfigureNewTitle.Text = T("Ayarları baştan yapılandır", "Configure settings again"); ConfigureNewText.Text = T("Mod ve başlangıç ayarlarını yeniden seç; geçmiş verilerine dokunma.", "Choose mode and essentials again without touching usage history.");
         if (_existingPolicyLocked || _existingSettings?.RequiresGuardian == true)
         {
             ConfigureNewText.Text = T("Guardian koruması nedeniyle mod değişikliği Kontrol Merkezi'nde doğrulama gerektirir.", "Guardian protection requires Control Center verification for mode changes.");
         }
-        ExistingBackButton.Content = BackText;
+        ExistingBackButton.Content = _openedForExistingInstallation ? T("İptal", "Cancel") : BackText;
         ModeTitle.Text = T("Otium'u nasıl kullanacaksın?", "How will you use Otium?"); ModeDescription.Text = T("İhtiyacına en yakın biçimi seç; ayrıntıları daha sonra değiştirebilirsin.", "Choose the closest fit; you can change details later.");
         AwarenessTitle.Text = T("Sadece takip", "Tracking only"); AwarenessText.Text = T("Kısıtlama olmadan hangi uygulamayı ne kadar kullandığını gör.", "See which apps you use and for how long without restrictions.");
         PersonalTitle.Text = T("Kendim için", "For myself"); PersonalText.Text = T("Odaklan ve kendi koyduğun sınırlara seçtiğin güçte bağlı kal.", "Focus and stay with your own limits at the strength you choose.");
@@ -614,6 +655,68 @@ public partial class SetupWindow : Window
         Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion ?? "1.0.0-alpha";
+
+    private static Version GetPackageVersion() =>
+        Assembly.GetExecutingAssembly().GetName().Version is { } version
+            ? new Version(version.Major, version.Minor, Math.Max(0, version.Build))
+            : new Version(1, 0, 0);
+
+    private static Version? ReadInstalledVersion()
+    {
+        return ReadInstallerValue("InstalledVersion") is string value && Version.TryParse(value, out Version? version)
+            ? version
+            : null;
+    }
+
+    private static object? ReadInstallerValue(string name)
+    {
+        try
+        {
+            using RegistryKey? key = Registry.LocalMachine.OpenSubKey(@"Software\Otium");
+            return key?.GetValue(name);
+        }
+        catch { return null; }
+    }
+
+    private void RefreshExistingInstallationText()
+    {
+        InstalledVersionLabel.Text = T("KURULU", "INSTALLED");
+        PackageVersionLabel.Text = T("BU PAKET", "THIS PACKAGE");
+        InstalledVersionValue.Text = _installedReleaseLabel ?? _installedVersion?.ToString(3) ?? T("Ayarlar bulundu", "Settings found");
+        PackageVersionValue.Text = GetDisplayVersion();
+        ExistingVersionCard.Visibility = _openedForExistingInstallation ? Visibility.Visible : Visibility.Collapsed;
+
+        switch (_packageAction)
+        {
+            case SetupPackageAction.Update:
+                ExistingTitle.Text = T("Otium güncellemeye hazır.", "Otium is ready to update.");
+                ExistingDescription.Text = T("Modun, kuralların, PIN'in ve kullanım geçmişin korunacak. Yalnız uygulama dosyaları güncellenecek.", "Your mode, rules, PIN, and usage history will be kept. Only application files will be updated.");
+                KeepExistingTitle.Text = T("Otium'u güncelle", "Update Otium");
+                KeepExistingText.Text = T("Windows yönetici izninden sonra güncelleme doğrudan başlayacak.", "The update starts immediately after Windows administrator approval.");
+                break;
+            case SetupPackageAction.Repair:
+                ExistingTitle.Text = T("Otium zaten bu bilgisayarda kurulu.", "Otium is already installed on this computer.");
+                ExistingDescription.Text = T("Aynı alpha sürümünün daha yeni test paketini kurabilir veya uygulama dosyalarını onarabilirsin. Ayarların ve kullanım geçmişin korunur.", "Install a newer test build of the same alpha version or repair application files. Your settings and usage history are preserved.");
+                KeepExistingTitle.Text = T("Güncelle / Onar", "Update / Repair");
+                KeepExistingText.Text = T("Uygulama dosyalarını bu paketteki kopyalarla güvenli biçimde yenile.", "Safely refresh application files with the copies in this package.");
+                break;
+            case SetupPackageAction.DowngradeBlocked:
+                ExistingTitle.Text = T("Daha yeni bir Otium sürümü zaten kurulu.", "A newer version of Otium is already installed.");
+                ExistingDescription.Text = T("Bu eski paket mevcut kurulumu değiştiremez. Güncel veya daha yeni bir kurulum paketi kullan.", "This older package cannot change the current installation. Use a current or newer setup package.");
+                KeepExistingTitle.Text = T("Eski sürüm engellendi", "Older version blocked");
+                KeepExistingText.Text = T("Ayarların ve uygulama dosyaların değiştirilmedi.", "Your settings and application files were not changed.");
+                break;
+            default:
+                ExistingTitle.Text = T("Bu cihazda Otium ayarları bulundu.", "Otium settings were found on this device.");
+                ExistingDescription.Text = T("Kullanım geçmişin silinmez. Mevcut ayarlarla devam edebilir veya ayarları baştan yapılandırabilirsin.", "Your usage history will not be deleted. Keep your current settings or configure them again.");
+                KeepExistingTitle.Text = T("Mevcut ayarlarla devam et", "Continue with existing settings");
+                KeepExistingText.Text = T("Kurulumu yenile; modunu, kurallarını ve geçmişini koru.", "Refresh the installation while keeping your mode, rules, and history.");
+                break;
+        }
+
+        KeepExistingButton.IsEnabled = _packageAction != SetupPackageAction.DowngradeBlocked;
+        ConfigureNewButton.IsEnabled = _packageAction != SetupPackageAction.DowngradeBlocked;
+    }
 
     private static void TryDeleteDirectory(string directory)
     {

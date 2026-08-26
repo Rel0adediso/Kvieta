@@ -12,7 +12,18 @@ Assert(BuildInfo.IsDevelopmentBuild && BuildInfo.Flavor == "development", "Debug
 #else
 Assert(!BuildInfo.IsDevelopmentBuild && BuildInfo.Flavor == "public", "Release paketi Public olarak işaretlenmedi.");
 #endif
+Assert(!string.IsNullOrWhiteSpace(BuildInfo.RepositoryCommit) &&
+       !string.IsNullOrWhiteSpace(BuildInfo.InformationalVersion) &&
+       (BuildInfo.RepositoryCommit == "unknown" ||
+        BuildInfo.RepositoryCommit.Length == 40 && BuildInfo.RepositoryCommit.All(Uri.IsHexDigit)) &&
+       BuildInfo.DisplayRevision.EndsWith("-dirty", StringComparison.Ordinal) == BuildInfo.IsRepositoryDirty,
+    "Build commit veya çalışma ağacı kimliği assembly metadata'sına doğru gömülmedi.");
 Assert(settings.DeviceName == "Bu Bilgisayar", "Yeni kurulumun varsayılan cihaz adı yanlış.");
+Assert(SetupPlan.DeterminePackageAction(null, new Version(1, 0, 0)) == SetupPackageAction.FreshInstall &&
+       SetupPlan.DeterminePackageAction(new Version(0, 19, 0), new Version(1, 0, 0)) == SetupPackageAction.Update &&
+       SetupPlan.DeterminePackageAction(new Version(1, 0, 0), new Version(1, 0, 0)) == SetupPackageAction.Repair &&
+       SetupPlan.DeterminePackageAction(new Version(1, 1, 0), new Version(1, 0, 0)) == SetupPackageAction.DowngradeBlocked,
+    "Kurucu yüklü sürüm için güncelleme, onarım veya downgrade kararını doğru vermedi.");
 Assert(WindowsAdministratorVerificationService.IsAllowedAuditEvent("recovery.code.consume") &&
     !WindowsAdministratorVerificationService.IsAllowedAuditEvent("arbitrary.command"),
     "Windows yönetici doğrulama yardımcısı audit olaylarını allowlist ile sınırlamıyor.");
@@ -422,6 +433,38 @@ await Task.WhenAll(Enumerable.Range(0, 20).Select(index =>
     new SecurityAuditLog(concurrentAuditPath).AppendAsync("audit.concurrent", $"entry-{index}")));
 Assert((await File.ReadAllLinesAsync(concurrentAuditPath)).Length == 20,
     "Süreçler arası audit kilidi eşzamanlı güvenlik olaylarını kaybetti.");
+
+string retentionAuditPath = Path.Combine(testDirectory, "retention-security-audit.jsonl");
+JsonSerializerOptions auditJsonOptions = new(JsonSerializerDefaults.Web);
+List<string> seededAuditLines =
+[
+    JsonSerializer.Serialize(new SecurityAuditEntry(DateTimeOffset.UtcNow.AddDays(-31), "audit.expired", "ignored"), auditJsonOptions),
+    "{ malformed",
+    .. Enumerable.Range(0, 520).Select(index => JsonSerializer.Serialize(
+        new SecurityAuditEntry(DateTimeOffset.UtcNow.AddMinutes(-1), "audit.seeded", $"entry-{index}"),
+        auditJsonOptions))
+];
+await File.WriteAllLinesAsync(retentionAuditPath, seededAuditLines);
+SecurityAuditLog retentionAudit = new(retentionAuditPath);
+await retentionAudit.AppendAsync("audit.current", "accepted");
+string[] retainedAuditLines = await File.ReadAllLinesAsync(retentionAuditPath);
+IReadOnlyList<SecurityAuditEntry> recentAuditEntries = await retentionAudit.ReadRecentAsync(10);
+Assert(retainedAuditLines.Length == 500 &&
+       retainedAuditLines.All(line => !line.Contains("expired", StringComparison.Ordinal) &&
+                                      !line.Contains("malformed", StringComparison.Ordinal)) &&
+       recentAuditEntries.Count == 10 && recentAuditEntries[^1].Event == "audit.current" &&
+       new FileInfo(retentionAuditPath).Length <= 256 * 1024,
+    "Güvenlik audit saklama süresi, olay sayısı veya dosya boyutu sınırı uygulanmadı.");
+bool oversizedAuditTokenRejected = false;
+try
+{
+    await retentionAudit.AppendAsync("audit.oversized", new string('a', 97));
+}
+catch (ArgumentException)
+{
+    oversizedAuditTokenRejected = true;
+}
+Assert(oversizedAuditTokenRejected, "Aşırı uzun audit alanı dosya büyüme sınırını aşabildi.");
 
 string pinResetPath = Path.Combine(testDirectory, "recovery-pin-reset-settings.json");
 string pinResetAuditPath = Path.Combine(testDirectory, "recovery-pin-reset-audit.jsonl");

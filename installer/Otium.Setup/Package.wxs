@@ -116,6 +116,12 @@
       <RegistryValue
         Root="HKLM"
         Key="Software\Otium"
+        Name="InstalledReleaseLabel"
+        Type="string"
+        Value="$(var.OtiumReleaseLabel)" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Otium"
         Name="SignerThumbprint"
         Type="string"
         Value="$(var.OtiumSignerThumbprint)" />

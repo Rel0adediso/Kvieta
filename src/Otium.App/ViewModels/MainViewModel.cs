@@ -203,7 +203,7 @@ public sealed class MainViewModel : ObservableObject
         ? $"{ModeDisplayName(SelectedControlMode)} · {PersonalLevelDisplayName(PersonalProtectionLevel)}"
         : ModeDisplayName(SelectedControlMode);
     public string BuildInformationText =>
-        $"Otium {BuildInfo.Version} · {LocalizationService.Get(BuildInfo.IsDevelopmentBuild ? "DevelopmentTestBuild" : "PublicReleaseBuild")}";
+        $"Otium {BuildInfo.Version} · {LocalizationService.Get(BuildInfo.IsDevelopmentBuild ? "DevelopmentTestBuild" : "PublicReleaseBuild")} · {BuildInfo.DisplayRevision}";
     public bool IsPersonalMode => SelectedControlMode == ControlMode.Personal;
     public bool IsProtectedMode => SelectedControlMode == ControlMode.Protected;
     public bool IsAwarenessMode => SelectedControlMode == ControlMode.Awareness;
@@ -673,18 +673,7 @@ public sealed class MainViewModel : ObservableObject
         List<SecurityAuditEntry> auditEntries = [];
         try
         {
-            string auditPath = new SecurityAuditLog().FilePath;
-            if (File.Exists(auditPath))
-            {
-                JsonSerializerOptions auditOptions = new(JsonSerializerDefaults.Web);
-                foreach (string line in (await File.ReadAllLinesAsync(auditPath)).TakeLast(100))
-                {
-                    if (JsonSerializer.Deserialize<SecurityAuditEntry>(line, auditOptions) is { } entry)
-                    {
-                        auditEntries.Add(entry);
-                    }
-                }
-            }
+            auditEntries.AddRange(await new SecurityAuditLog().ReadRecentAsync());
         }
         catch
         {
@@ -697,7 +686,10 @@ public sealed class MainViewModel : ObservableObject
             Application = new
             {
                 Version = BuildInfo.Version,
+                BuildInfo.InformationalVersion,
                 BuildInfo.Flavor,
+                BuildInfo.RepositoryCommit,
+                BuildInfo.IsRepositoryDirty,
                 OperatingSystem = RuntimeInformation.OSDescription,
                 ProcessArchitecture = RuntimeInformation.ProcessArchitecture.ToString()
             },

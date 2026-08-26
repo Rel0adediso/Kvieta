@@ -15,8 +15,27 @@ public enum SetupChoice
     ConfigureNew
 }
 
+public enum SetupPackageAction
+{
+    FreshInstall,
+    Update,
+    Repair,
+    DowngradeBlocked
+}
+
 public sealed class SetupPlan
 {
+    public static SetupPackageAction DeterminePackageAction(Version? installedVersion, Version packageVersion)
+    {
+        if (installedVersion is null) return SetupPackageAction.FreshInstall;
+        int comparison = packageVersion.CompareTo(installedVersion);
+        return comparison > 0
+            ? SetupPackageAction.Update
+            : comparison == 0
+                ? SetupPackageAction.Repair
+                : SetupPackageAction.DowngradeBlocked;
+    }
+
     public SetupLanguage Language { get; set; } = SetupLanguage.Turkish;
     public SetupChoice ExistingChoice { get; set; } = SetupChoice.ConfigureNew;
     public ControlMode Mode { get; set; } = ControlMode.Personal;

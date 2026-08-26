@@ -39,11 +39,16 @@ New-Item -ItemType Directory -Path $publishDirectory -Force | Out-Null
 New-Item -ItemType Directory -Path $publishedArtifactDirectory -Force | Out-Null
 New-Item -ItemType Directory -Path $installerOutputDirectory -Force | Out-Null
 
+$sourceCommit = ((& git -C $repositoryRoot rev-parse HEAD) | Select-Object -First 1).Trim()
+$repositoryDirty = @(& git -C $repositoryRoot status --porcelain --untracked-files=normal).Count -gt 0
+
 & $dotnet publish $applicationProject `
     -c Debug `
     -r win-x64 `
     --self-contained true `
     -p:Version=$Version `
+    -p:RepositoryCommit=$sourceCommit `
+    -p:RepositoryDirty=$repositoryDirty `
     -p:PublishSingleFile=true `
     -p:PublishDir="$publishDirectory\"
 if ($LASTEXITCODE -ne 0) {
@@ -55,6 +60,7 @@ Copy-Item -LiteralPath (Join-Path $publishDirectory 'Otium.exe') `
 & $dotnet build $installerProject `
     -c Release `
     -p:OtiumVersion=$Version `
+    -p:OtiumReleaseLabel=$ReleaseLabel `
     -p:OtiumPublishDir="$publishDirectory" `
     -p:OtiumSignerThumbprint=UNSIGNED-DEVELOPMENT-BUILD `
     -p:OtiumAllowSameVersionUpgrades=yes `

@@ -4,10 +4,11 @@
     <Platform>x64</Platform>
     <InstallerPlatform>x64</InstallerPlatform>
     <OtiumVersion Condition="'$(OtiumVersion)' == ''">1.0.0</OtiumVersion>
+    <OtiumReleaseLabel Condition="'$(OtiumReleaseLabel)' == ''">$(OtiumVersion)</OtiumReleaseLabel>
     <OtiumPublishDir Condition="'$(OtiumPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\win-x64</OtiumPublishDir>
     <OtiumSignerThumbprint Condition="'$(OtiumSignerThumbprint)' == ''">UNSIGNED-DEVELOPMENT-BUILD</OtiumSignerThumbprint>
     <OtiumAllowSameVersionUpgrades Condition="'$(OtiumAllowSameVersionUpgrades)' == ''">no</OtiumAllowSameVersionUpgrades>
-    <DefineConstants>OtiumVersion=$(OtiumVersion);OtiumPublishDir=$(OtiumPublishDir);OtiumSignerThumbprint=$(OtiumSignerThumbprint);OtiumAllowSameVersionUpgrades=$(OtiumAllowSameVersionUpgrades)</DefineConstants>
+    <DefineConstants>OtiumVersion=$(OtiumVersion);OtiumReleaseLabel=$(OtiumReleaseLabel);OtiumPublishDir=$(OtiumPublishDir);OtiumSignerThumbprint=$(OtiumSignerThumbprint);OtiumAllowSameVersionUpgrades=$(OtiumAllowSameVersionUpgrades)</DefineConstants>
     <OutputName>Otium-$(OtiumVersion)-win-x64</OutputName>
   </PropertyGroup>
   <ItemGroup>

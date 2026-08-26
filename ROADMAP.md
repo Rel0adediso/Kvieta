@@ -164,6 +164,11 @@ PIN'i alınır. Özet onayından sonra yönetici izni yalnız MSI işlemi için 
 ayarlar yalnız başarılı kurulumdan sonra atomik olarak kaydedilir ve Otium seçilen
 modun doğru başlangıç yüzeyiyle açılır.
 
+Kurucu artık Windows Installer tarafından kaydedilmiş mevcut sürümü başlangıçta
+algılar. Kurulu cihazda dil ve tanıtım adımlarını tekrar göstermez; doğrudan sürüm
+karşılaştırmalı Güncelle/Onar ekranını açar, kullanıcı verilerini korur ve eski
+paketin daha yeni kurulumu düşürmesini engeller.
+
 Yapılacaklar:
 
 - Temiz kurulum ve 1.0.0 → 1.0.1 upgrade akışını gerçek kurucu üzerinden doğrulama.
@@ -274,10 +279,12 @@ tamamlanmış görünüyor.
 
 #### Gözlemlenebilirlik ve desteklenebilirlik
 
-- Build SHA'sı, paket türü ve uygulama/Guardian/installer sürümünü birlikte gösterme.
+- Uygulama sürümü, paket türü, kaynak commit'i ve kirli çalışma ağacı durumu
+  assembly metadata'sına gömülüyor; Ayarlar ve tanılama raporunda gösteriliyor.
 - Gizlilik güvenli tanılama paketine ilgili yaşam döngüsü olaylarını ekleme.
 - PIN, recovery code, pencere başlığı, belge, site veya yazılan içerik kaydetmeme.
-- Log saklama süresi ve maksimum boyut sınırı belirleme.
+- Güvenlik audit kaydı 30 gün, 500 olay ve 256 KB ile sınırlandı; bozuk veya
+  geçersiz olaylar tanılama dışa aktarımında güvenli biçimde atlanıyor.
 - Kullanıcıya tanılama raporunu kolayca dışa aktarma yolu sunma.
 
 ## `v1.0.0` çıkış tanımı
