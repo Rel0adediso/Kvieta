@@ -4,7 +4,7 @@
 
 **Mevcut sürüm:** `v1.0.0-alpha`
 
-**Aktif hedef:** Güvenilir, imzalı ve tekrar üretilebilir `v1.0.0` Windows sürümü
+**Aktif hedef:** Güvenilir, açık kaynak ve tekrar üretilebilir `v1.0.0` Windows sürümü
 
 Bu belge Otium'un bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
@@ -139,7 +139,7 @@ Yapılacaklar:
 
 - İmzasız geliştirme MSI'sında temiz kurulum, açılış, Guardian ve kaldırma akışını doğrulama.
 - Build süresini release raporuna ekleme; EXE/MSI boyutları artık manifestte kayıtlı.
-- Windows SDK signing tools içinden `signtool.exe` kurma.
+- Public community paketinin bütünlük doğrulama aracını üretim hattına bağlama.
 - Temiz kurulum, upgrade, repair, uninstall, rollback ve downgrade engelini tekrar çalıştırma.
 - MSI hatasında kullanıcı verisi ile korunan policy alanlarının bozulmadığını doğrulama.
 
@@ -181,27 +181,44 @@ Kabul kriteri:
 - İlk kullanıcı Guardian, kullanım biçimi ve veri sonuçlarını anlayarak seçim yapabiliyor.
 - Sessiz kurulum ve kurumsal `msiexec` özellikleri korunuyor.
 
-#### 5. Kod imzalama ve public paket
+#### 5. Public paket güveni
 
-**Durum:** Engelli; bu bilgisayarda `signtool.exe` ve code-signing sertifikası yok.
+**Durum:** Devam ediyor; ticari sertifika satın alınmayacak, güvenli imzasız community dağıtım modeli açık.
+
+Proje kişisel ve ticari olmayan bir açık kaynak çalışma olarak yayımlanacak. Bu
+nedenle V1 için ücretli code-signing sertifikası zorunlu tutulmayacak. Bu karar,
+Development test geçitlerinin public pakete taşınmasına veya bütünlük kontrolünün
+kaldırılmasına izin vermez. Windows SmartScreen uyarısı ve doğrulanmış yayıncı
+kimliğinin bulunmaması kullanıcıya açıkça anlatılacaktır.
 
 Yapılacaklar:
 
-- Güvenilir code-signing sertifikası edinme ve private key saklama yöntemini belirleme.
-- Windows SDK signing tools kurma.
-- EXE, MSI, verifier ve updater'ı aynı yayıncı kimliğiyle imzalama.
-- Güvenilir zaman damgası ve sertifika zinciri doğrulamasını çalıştırma.
-- Guardian'ın Program Files konumu ile installer tarafından pinlenen imzayı doğrulamasını test etme.
-- İmza bilgisini veya private key'i Git deposuna koymama.
+- İmzasız community paketini test/development paketinden teknik ve görsel olarak ayırma.
+- EXE, MSI, manifest, SHA-256 ve kaynak commit'inin aynı build'e ait olduğunu doğrulama.
+- Guardian'ın Development bypass kullanmadan yalnız installer'ın kurduğu beklenen istemciyi kabul edeceği bütünlük modelini tamamlama.
+- Değiştirilmiş veya farklı kaynaktan gelen istemcinin Guardian tarafından reddedildiğini test etme.
+- SmartScreen uyarısını ve SHA-256 doğrulamasını Türkçe/İngilizce belgeleme.
+- İleride ücretsiz veya uygun bir güvenilir imzalama yolu oluşursa Authenticode'u ek sertleştirme olarak yeniden değerlendirme.
 
 Kabul kriteri:
 
-- Bütün dağıtım dosyaları geçerli ve aynı yayıncı kimliğiyle imzalıdır.
-- Değiştirilmiş, imzasız veya yanlış yayıncıya ait paketler reddedilir.
+- Public paket development/test unlock geçidi içermez.
+- Manifest, SHA-256, kaynak commit'i ve paket metadata'sı birbiriyle eşleşir.
+- Guardian değiştirilmiş veya installer dışı istemciyi reddeder; community build için belgelenen kimlik modeli gerçek Windows testinden geçer.
+- Kullanıcı imzasız dağıtımın SmartScreen ve yayıncı kimliği sonuçlarını kurmadan önce görebilir.
 
 #### 6. Gerçek Windows yaşam döngüsü matrisi
 
 **Durum:** Kısmen tamamlandı; final matris açık.
+
+`Win+L`, oturum açma, uyku ve uyanma event'leri sıralı ve test edilebilir bir
+yaşam döngüsü policy'sine bağlandı. Uyku öncesi aktif sayaç atomik kaydedilerek
+duraklatılır; yalnız kilit ekranına girilmemiş normal uyanmada devam eder. Kilit
+sonrası kullanıcı kontrollü Mola korunur ve yüzey/kalkan topolojisi yenilenir.
+Olay sonuçları içerik toplamadan güvenlik audit kaydına eklenir.
+
+Gerçek `Win+L` ve uyku/uyanma testi kullanıcı isteğiyle sonraki doğrulama turuna
+ertelendi; final v1 matrisi tamamlanmadan bu madde kapatılmayacak.
 
 Zorunlu senaryolar:
 
@@ -257,25 +274,24 @@ edilerek gereksiz kaynak tüketimi önlenir.
 
 #### Açık kaynak ve proje yönetişimi
 
-**Mevcut eksik:** Depoda `LICENSE` dosyası yok.
+**Durum:** Temel yönetişim tamamlandı; özel güvenlik kanalı daha sonra eklenecek.
 
-- Ürün hedeflerine uygun lisansı seçip `LICENSE` ekleme.
-- README ve contribution belgelerinde lisans, destek ve güvenlik yollarını belirtme.
-- Özel güvenlik bildirimi için kanal belirleme.
+- MIT lisansı `LICENSE` dosyasıyla eklendi.
+- README, contribution ve destek belgelerinde lisans, destek ve güvenlik yolları belirtildi.
 - İki dilli issue şablonları ve güvenlik/kalite kontrol listeli pull request şablonu eklendi.
-- Katkıların test, güvenlik ve gizlilik gereksinimlerini netleştirme.
+- Katkıların test, güvenlik, gizlilik ve iki dilli belge eşliği gereksinimleri netleştirildi.
+- Özel güvenlik bildirim kanalı bulunana kadar hassas ayrıntı içermeyen ilk temas yolu belgelendi.
 
 #### Dokümantasyon tutarlılığı
 
-**Mevcut eksik:** README bazı yerlerde iki kullanım biçiminden söz ediyor; ürün artık üç
-biçime sahip. Application Identity bazı metinlerde planlanmış, bazı metinlerde
-tamamlanmış görünüyor.
+**Durum:** Ana kullanıcı belgeleri eşitlendi; desteklenen Windows sürüm matrisi final testini bekliyor.
 
-- Türkçe ve İngilizce README'leri güncel ürünle eşitleme.
-- Kurulum, ilk kullanım, recovery, update ve uninstall rehberlerini final sihirbazla eşleştirme.
-- Güvenlik sınırlarını test edilmiş davranışlardan ayırarak yazma.
-- Bilinen sorunları ve desteklenen Windows sürümlerini belirtme.
-- Release notes, tag ve GitHub Release metinlerini tutarlı tutma.
+- Türkçe ve İngilizce README üç kullanım biçimi, alpha durumu ve tamamlanan Application Identity davranışıyla eşitlendi.
+- İki dilli kurulum, ilk kullanım, recovery, update ve uninstall rehberleri eklendi.
+- Alpha sınırları, destek yolu, MIT lisansı ve güvenlik bildirim sınırı belgelendi.
+- Eski iki-mod/RC iddialarını ve eksik iki dilli rehberleri yakalayan dokümantasyon kalite kapısı CI'a eklendi.
+- Desteklenen Windows sürümleri, gerçek cihaz matrisi tamamlandığında kanıtla belirtilecek.
+- Release notes, tag ve GitHub Release metinleri her yayın öncesinde ayrıca eşitlenecek.
 
 #### Gözlemlenebilirlik ve desteklenebilirlik
 
@@ -296,10 +312,10 @@ Final sürüm ancak aşağıdaki koşulların tamamı sağlandığında yayınla
 - Balanced ve Protected kaçış matrisi geçer.
 - Çoklu monitör/DPI ve Windows yaşam döngüsü matrisi tamamlanır.
 - Installer kurulum, upgrade, repair, uninstall ve rollback testlerini geçer.
-- EXE, MSI, verifier ve updater geçerli Authenticode imzasına sahiptir.
+- Public community paketinin manifest, SHA-256, commit ve Guardian istemci kimliği doğrulaması geçer.
 - Public build development/test unlock geçidi içermez.
 - Lisans, güvenlik, kurulum, kullanım ve recovery belgeleri hazırdır.
-- GitHub Release doğru notları, SHA-256, manifest ve imzalı MSI'yı içerir.
+- GitHub Release doğru notları, SHA-256, manifest, installer ve imzasız dağıtım uyarısını içerir.
 - `v1.0.0` etiketi test edilen release commit'ine atanır.
 
 ## Önerilen uygulama sırası
@@ -311,8 +327,8 @@ Final sürüm ancak aşağıdaki koşulların tamamı sağlandığında yayınla
 5. CI kalite kapıları ve ayrıştırılmış test altyapısını kur.
 6. Gerçek Windows yaşam döngüsü matrisini çalıştır ve hataları düzelt.
 7. Lisans, README, güvenlik ve kullanıcı belgelerini tamamla.
-8. Signing tools ve code-signing sertifikasını hazırla.
-9. İmzalı yeni release candidate üret ve temiz makinede doğrula.
+8. İmzasız community paketinin Guardian bütünlük modelini tamamla.
+9. Yeni release candidate üret ve temiz makinede SmartScreen dâhil doğrula.
 10. Bütün kanıtlar tamamlandıktan sonra `v1.0.0` yayınla.
 
 ## v1 sonrası plan

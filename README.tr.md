@@ -12,7 +12,7 @@ Yerel, sakin ve hesap gerektirmeyen Windows ekran süresi yönetimi.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/veri-bu%20cihazda-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/sürüm-v1.0.0%20RC-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/sürüm-v1.0.0--alpha-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/geliştirme-AI%20destekli-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
@@ -21,13 +21,13 @@ Yerel, sakin ve hesap gerektirmeyen Windows ekran süresi yönetimi.
 
 ## Neden Otium?
 
-Otium aynı çekirdeği iki farklı kullanım biçiminde sunar:
+Otium aynı yerel temeli üç kullanım biçiminde sunar:
 
-| Kendim için | Yönettiğim biri için |
-|---|---|
-| Ani kararlarla kuralları gevşetmeye karşı gecikme uygular. | Yönetici PIN'i ve Guardian servisiyle kuralları korur. |
-| PIN gerektirmeden kişinin kendi düzenini kurmasına yardım eder. | Standart Windows kullanıcısının basit kaçışlarına direnç gösterir. |
-| Bilgisayar kullanılırken sayaç arka planda devam eder. | Zorla kapatılan oturum yüzünü yeniden ayağa kaldırabilir. |
+| Biçim | Kime uygun? | Ne yapar? |
+|---|---|---|
+| **Sadece takip** | Bilgisayar alışkanlıklarını anlamak isteyenlere | Yapılandırılan uygulamaların kullanımını yalnızca cihazda ölçer; kısıtlama uygulamaz. |
+| **Kendim için** | Kendi düzenini kurmak isteyenlere | Plan, limit, mola ve isteğe bağlı Balanced oturum yüzeyi sunar; yönetici PIN'i gerektirmez. |
+| **Yönettiğim biri için** | Ayrı bir yöneticinin yönettiği standart Windows hesabına | Kuralları yönetici PIN'i ve Guardian ile korur; yaygın sonlandırma girişimlerinden sonra korunan oturumu geri getirir. |
 
 ## Öne çıkanlar
 
@@ -45,14 +45,14 @@ Otium aynı çekirdeği iki farklı kullanım biçiminde sunar:
 - Haftalık toplam, günlük ortalama ve en çok kullanılan uygulama
 - Mola, limit dolması, ek süre ve kural değişikliği hareketleri
 - 90 günlük, yalnızca cihazda saklanan geçmiş
-- Gelecek sürümlerde kişisel gelişim, geri kazanılan zaman ve aktif uygulama farkındalığı
+- Kişisel gelişim, geri kazanılan zaman ve isteğe bağlı aktif uygulama farkındalığı
 
 ### Uygulama kuralları
 
 - Engelli, süreli ve serbest uygulamalar
 - Süreli uygulamalarda günlük sayaç ve limitte sonlandırma
 - Sınırsız uygulamalarda farkındalık amaçlı kullanım kaydı
-- Gelecek sürümlerde publisher, original filename, hash ve launcher/child-process tanıma
+- Publisher, original filename, isteğe bağlı hash, package family ve launcher/child-process tanıma
 
 ### Güvenlik ve veri sağlamlığı
 
@@ -90,7 +90,7 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 
 ## Güncel durum
 
-**v1.0.0 yerel sürüm adayı (RC)**
+**v1.0.0-alpha — aktif geliştirme**
 
 - Release build: `0` uyarı, `0` hata
 - Tek dosyalık, self-contained Windows paketi
@@ -105,7 +105,7 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 - Uygulama Kimliği 2.0 yol, güvenilir publisher, original filename, ürün bilgisi, isteğe bağlı SHA-256, package family, launcher ve alt süreç ilişkilerini birleştiriyor
 - Guardian sağlık kontrolü, güvenli onarım ve özel veri içermeyen tanılama dışa aktarımı tamamlandı
 - Gerçek Windows testinde Guardian, sonlandırılan korumalı oturumu ve çöken servisi otomatik olarak yeniden ayağa kaldırdı
-- Son public MSI için kod imzalama; reboot, uyku/hibernation ve çoklu monitör matrisi için son doğrulama bekleniyor
+- Public dağıtım güveni, installer yaşam döngüsü, reboot, uyku/hibernation ve çoklu monitör doğrulaması bekleniyor
 
 Kalan v1.0 doğrulamaları ve sonraki hedefler için [güncel yol haritasına](ROADMAP.md), sürümler arasındaki farklar için [sürüm notlarına](RELEASE_NOTES.md) bakın.
 
@@ -136,7 +136,7 @@ Otium'un korumalı modu esas olarak ayrı bir yönetici hesabı tarafından yön
 
 Development paketlerindeki test geçitleri public sürümde derlenmez. Ayrıntılar için [güvenlik sınırları belgesine](docs/SECURITY.tr.md) bakın.
 
-Kurulum, ilk kullanım ve kurtarma adımları için [kullanım rehberine](docs/KULLANIM.tr.md) bakın.
+Kurulum, ilk kullanım, güncelleme, kurtarma ve kaldırma adımları için [Türkçe kullanım rehberine](docs/KULLANIM.tr.md) bakın. Yardım veya hata bildirimi için [Destek](SUPPORT.md) belgesini kullanın.
 
 ## Geliştirme yaklaşımı
 
@@ -145,6 +145,10 @@ Kurulum, ilk kullanım ve kurtarma adımları için [kullanım rehberine](docs/K
 Ürün fikri, yönü, UX kararları ve gerçek kullanım testleri **Rel0adediso** tarafından yürütülür. Mimari, uygulama ve test geliştirme süreci **OpenAI Codex ile iş birliği içinde** ilerler.
 
 Bu nedenle projeyi “%100 AI made” diye tanımlamak yerine, insan tarafından yönlendirilen ve AI destekli geliştirilen bir ürün olarak açıkça belgeliyoruz.
+
+## Lisans
+
+Otium, [MIT Lisansı](LICENSE) altında yayımlanan açık kaynak bir yazılımdır. Güvenlik sınırları ve platform kısıtları geçerliliğini korur; lisans, Protected modun hiçbir koşulda aşılamayacağı anlamına gelmez.
 
 ---
 

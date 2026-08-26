@@ -11,7 +11,7 @@ Guardian servisinin veya korunan oturumun Görev Yöneticisi benzeri yollarla so
 - Windows yönetici yetkisi, fiziksel disk erişimi veya çevrimdışı işletim sistemi müdahalesi olan saldırgana karşı mutlak koruma yoktur.
 - Güvenli Mod, başka bir işletim sistemiyle açılış, firmware/boot değişiklikleri ve çekirdek düzeyi araçlar kapsam dışıdır.
 - Otium ebeveyn denetimi veya kurumsal EDR/AppLocker/WDAC yerine geçmez.
-- İmzasız Development çıktısı yayın paketi değildir. Public Guardian, Program Files altındaki ve installer tarafından sabitlenen geçerli Authenticode imzasına sahip istemciyi bekler.
+- İmzasız Development çıktısı yayın paketi değildir. Mevcut Public Guardian yolu, Program Files altındaki ve installer tarafından sabitlenen Authenticode imzasına sahip istemciyi bekler. Ayrı imzasız community kimlik modeli açık bir V1 işidir ve Development bypass'ını kullanmayacaktır.
 
 ## Saklanan veriler
 

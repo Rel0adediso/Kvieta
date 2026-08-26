@@ -204,6 +204,33 @@ public sealed class MainViewModel : ObservableObject
         : ModeDisplayName(SelectedControlMode);
     public string BuildInformationText =>
         $"Otium {BuildInfo.Version} · {LocalizationService.Get(BuildInfo.IsDevelopmentBuild ? "DevelopmentTestBuild" : "PublicReleaseBuild")} · {BuildInfo.DisplayRevision}";
+    public string InstallationInformationText
+    {
+        get
+        {
+            ProtectionInstallationIdentity identity = ProtectionServiceManager.GetInstallationIdentity();
+            if (!identity.InstallerManaged)
+            {
+                return L("Windows Installer kaydı yok", "No Windows Installer registration");
+            }
+
+            string release = identity.ReleaseLabel ?? identity.RegisteredVersion?.ToString(3) ?? "unknown";
+            string guardian = identity.InstalledBinaryVersion?.ToString(3) ?? "unknown";
+            string compatibility = identity.Compatibility switch
+            {
+                ProtectionVersionCompatibility.Compatible => L("eşleşiyor", "matched"),
+                ProtectionVersionCompatibility.Mismatch => L("sürüm uyuşmazlığı", "version mismatch"),
+                _ => L("doğrulanamadı", "unverified")
+            };
+            return $"Installer {release} · Guardian {guardian} · {compatibility}";
+        }
+    }
+    public string LocalDataHealthText =>
+        _settingsStore.LastLoadRecoveredFromBackup || _usageStore.LastLoadRecoveredFromBackup
+            ? L("Yedekten kurtarıldı", "Recovered from backup")
+            : _settingsStore.LastLoadMigrated || _usageStore.LastLoadMigrated
+                ? L("Taşındı ve doğrulandı", "Migrated and verified")
+                : L("Doğrulandı", "Verified");
     public bool IsPersonalMode => SelectedControlMode == ControlMode.Personal;
     public bool IsProtectedMode => SelectedControlMode == ControlMode.Protected;
     public bool IsAwarenessMode => SelectedControlMode == ControlMode.Awareness;
@@ -670,10 +697,20 @@ public sealed class MainViewModel : ObservableObject
     {
         UsageLedger ledger = await _usageStore.LoadAsync();
         ProtectionHealthReport health = ProtectionServiceManager.GetHealthReport();
+        ProtectionInstallationIdentity installation = ProtectionServiceManager.GetInstallationIdentity();
         List<SecurityAuditEntry> auditEntries = [];
         try
         {
             auditEntries.AddRange(await new SecurityAuditLog().ReadRecentAsync());
+            string lifecycleAuditPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Otium",
+                "lifecycle-audit.jsonl");
+            auditEntries.AddRange(await new SecurityAuditLog(lifecycleAuditPath).ReadRecentAsync());
+            auditEntries = auditEntries
+                .OrderBy(entry => entry.OccurredAtUtc)
+                .TakeLast(100)
+                .ToList();
         }
         catch
         {
@@ -722,8 +759,11 @@ public sealed class MainViewModel : ObservableObject
                 ServiceState = health.ServiceState.ToString(),
                 health.IsHealthy,
                 Issues = health.Issues.Select(issue => issue.ToString()).ToList(),
-                VersionCompatibility = ProtectionServiceManager.GetVersionCompatibility().ToString(),
-                ProtectionServiceManager.IsInstallerManaged
+                VersionCompatibility = installation.Compatibility.ToString(),
+                installation.InstallerManaged,
+                installation.ReleaseLabel,
+                RegisteredInstallerVersion = installation.RegisteredVersion?.ToString(),
+                InstalledBinaryVersion = installation.InstalledBinaryVersion?.ToString()
             },
             RecentSecurityEvents = auditEntries
         };
@@ -1317,6 +1357,7 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(AdminPinActionText));
         OnPropertyChanged(nameof(ControlModeText));
         OnPropertyChanged(nameof(BuildInformationText));
+        OnPropertyChanged(nameof(InstallationInformationText));
         OnPropertyChanged(nameof(TodayDescriptionText));
         OnPropertyChanged(nameof(RhythmPlanMetricLabel));
         NotifyPendingChange();

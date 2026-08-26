@@ -96,6 +96,23 @@ Assert(SessionSurfaceRecoveryPolicy.ShouldRecover(
         isModalDialogOpen: false,
         isTransitionInProgress: false),
     "Zorunlu tam ekran oturum yüzeyi kaçış sonrasında geri getirilmiyor.");
+SystemInterruptionState lifecycleState = new();
+SystemInterruptionDecision suspended = SystemInterruptionPolicy.Evaluate(
+    lifecycleState, SystemInterruptionKind.PowerSuspend, sessionIsActive: true);
+SystemInterruptionDecision resumed = SystemInterruptionPolicy.Evaluate(
+    suspended.State, SystemInterruptionKind.PowerResume, sessionIsActive: false);
+Assert(suspended.ShouldPause && suspended.State.ResumeAfterPower &&
+       resumed.ShouldResume && !resumed.State.PowerSuspended && !resumed.State.ResumeAfterPower,
+    "Uyku öncesi aktif oturum güvenli duraklatılıp uyanınca devam ettirilmedi.");
+SystemInterruptionDecision lockedDuringSleep = SystemInterruptionPolicy.Evaluate(
+    suspended.State, SystemInterruptionKind.SessionLock, sessionIsActive: false);
+SystemInterruptionDecision powerReturnedLocked = SystemInterruptionPolicy.Evaluate(
+    lockedDuringSleep.State, SystemInterruptionKind.PowerResume, sessionIsActive: false);
+SystemInterruptionDecision unlocked = SystemInterruptionPolicy.Evaluate(
+    powerReturnedLocked.State, SystemInterruptionKind.SessionUnlock, sessionIsActive: false);
+Assert(!powerReturnedLocked.ShouldResume && !unlocked.ShouldResume && unlocked.ShouldRefreshSurfaces &&
+       !unlocked.State.ResumeAfterPower,
+    "Win+L ile kilitlenen oturum kullanıcı onayı olmadan otomatik devam etti.");
 Assert(!SessionSurfaceRecoveryPolicy.ShouldRecover(
         shouldShowSessionSurfaces: true,
         isSurfaceVisible: true,

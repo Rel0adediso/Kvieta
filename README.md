@@ -12,7 +12,7 @@ Calm, local-first screen-time management for Windows — no account required.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/version-v1.0.0%20RC-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/version-v1.0.0--alpha-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
@@ -21,13 +21,13 @@ Calm, local-first screen-time management for Windows — no account required.
 
 ## Why Otium?
 
-Otium offers two ways to use the same policy and session engine:
+Otium offers three ways to use the same local-first foundation:
 
-| For myself | For someone I manage |
-|---|---|
-| Delays impulsive attempts to relax self-imposed rules. | Protects rules with an administrator PIN and Guardian service. |
-| Helps people build their own routine without requiring a PIN. | Resists common bypasses by a standard Windows user. |
-| Keeps counting while the Control Center is open or minimized. | Can restore the session surface after it is forcibly terminated. |
+| Mode | Best for | What it does |
+|---|---|---|
+| **Tracking only** | Understanding computer habits | Measures configured app usage locally without applying restrictions. |
+| **For myself** | Building a personal routine | Adds schedules, limits, breaks, and an optional Balanced session surface without requiring an administrator PIN. |
+| **For someone I manage** | A standard Windows account managed by another administrator | Protects policy with an administrator PIN and Guardian, and restores the protected session after common termination attempts. |
 
 ## Highlights
 
@@ -45,14 +45,14 @@ Otium offers two ways to use the same policy and session engine:
 - Weekly total, daily average, and most-used configured application
 - Break, limit, extra-time, and policy-change activity
 - Ninety days of on-device history
-- Planned personal progress, reclaimed-time, and foreground-app insights
+- Personal progress, reclaimed-time, and opt-in foreground-app insights
 
 ### Application rules
 
 - Blocked, limited, and unlimited application policies
 - Per-application daily counters and termination at the configured limit
 - Awareness tracking for configured unlimited applications
-- Planned publisher, original filename, hash, and launcher/child-process identification
+- Publisher, original filename, optional hash, package family, and launcher/child-process identification
 
 ### Security and data resilience
 
@@ -90,7 +90,7 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 
 ## Current status
 
-**v1.0.0 local release candidate (RC)**
+**v1.0.0-alpha — active development**
 
 - Release build: `0` warnings, `0` errors
 - Single-file, self-contained Windows package
@@ -106,7 +106,7 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 - Application Identity 2.0 combines path, trusted publisher, original filename, product metadata, optional SHA-256, package family, launcher, and child-process relationships
 - Guardian health checks, safe repair, and privacy-safe diagnostic export are complete
 - Real Windows tests confirmed automatic recovery after terminating the protected session and crashing the Guardian service
-- Code signing for the final public MSI and the reboot, sleep/hibernate, and multi-monitor validation matrix remain open
+- Public distribution trust, installer lifecycle, reboot, sleep/hibernate, and multi-monitor validation remain open
 
 See the [current roadmap](ROADMAP.md) for the remaining v1.0 validation and post-release goals, and the [release notes](RELEASE_NOTES.md) for changes between versions.
 
@@ -137,7 +137,7 @@ Protected mode is primarily designed for a **standard Windows account** managed 
 
 Development-only test gates are not compiled into Public builds. See the [security boundaries](docs/SECURITY.md) for details.
 
-See the [Turkish user guide](docs/KULLANIM.tr.md) for installation, first-use, and recovery steps.
+See the [English user guide](docs/USAGE.md) or [Turkish user guide](docs/KULLANIM.tr.md) for installation, first-use, update, recovery, and removal steps. For help or a bug report, see [Support](SUPPORT.md).
 
 ## Development approach
 
@@ -146,6 +146,10 @@ See the [Turkish user guide](docs/KULLANIM.tr.md) for installation, first-use, a
 Product vision, direction, UX decisions, and hands-on testing are led by **Rel0adediso**. Architecture, implementation, and test development are carried out collaboratively with **OpenAI Codex**.
 
 Rather than claiming “100% AI made,” Otium is documented accurately as a human-directed, AI-assisted product.
+
+## License
+
+Otium is open-source software released under the [MIT License](LICENSE). Security boundaries and platform limitations still apply; the license is not a promise that Protected mode is impossible to bypass.
 
 ---
 

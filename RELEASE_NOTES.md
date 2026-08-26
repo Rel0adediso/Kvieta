@@ -1,10 +1,10 @@
 # Otium release notes
 
-## v1.0.0-rc.1 — Usage modes and Guardian release candidate
+## v1.0.0-alpha — Active V1 development
 
-`v1.0.0-rc.1` is a public release candidate, not the final v1.0 release. It consolidates the installer, recovery, diagnostics, usage-mode, personal-protection, and Guardian work completed after v0.16.1.
+`v1.0.0-alpha` is a local development and validation line, not a public release candidate or the final V1 release. It consolidates installer, recovery, diagnostics, usage-mode, personal-protection, and Guardian work completed after v0.16.1.
 
-The final `v1.0.0` tag will only be created after the remaining Windows escape-path regression, signed installer, and lifecycle test requirements have been completed.
+The final `v1.0.0` tag will only be created after the remaining Windows escape-path, public community package integrity, installer lifecycle, and real-device test requirements have been completed.
 
 ### Highlights
 
@@ -62,6 +62,22 @@ The final `v1.0.0` tag will only be created after the remaining Windows escape-p
 - Added last-known-good settings recovery and installer repair flows.
 - Added delayed policy-change details and recovery audit events.
 - Kept all usage data local to the device.
+- Expanded the Recovery Center into a System Health view with separate application, installer, Guardian, and local-data status.
+- Added one-click privacy-safe diagnostic export from the health surface.
+
+### Windows lifecycle
+
+- Added a serialized lock, unlock, suspend, and resume state policy.
+- Atomically pauses active timing before suspend and resumes only when the system was not locked.
+- Preserves the user-controlled Break state after Win+L and rebuilds the protected display topology after resume.
+- Records bounded, content-free lifecycle audit events for diagnostics.
+
+### Open-source project foundation
+
+- Added the MIT License, a support policy, and matching English/Turkish usage guides.
+- Corrected stale RC, two-mode, and planned Application Identity claims in both READMEs.
+- Documented the deliberate unsigned community-release direction without treating Development bypasses as release security.
+- Added a CI documentation gate for bilingual status, modes, install/update, uninstall, support, and license coverage.
 
 ### Removed or deferred
 
@@ -71,9 +87,9 @@ The final `v1.0.0` tag will only be created after the remaining Windows escape-p
 
 ### Known release blockers
 
-- In Balanced mode, the session surface displayed after closing Otium can currently be minimized or sent behind other windows, allowing access to the desktop. It must be fixed and tested against the taskbar, `Alt+Tab`, `Win+D`, minimization, and related desktop-switching paths.
-- The explanatory installer wizard and signed public MSI are incomplete.
-- Clean install, upgrade, repair, uninstall, and rollback must be rerun with the final signed package.
+- Balanced session-surface recovery has been hardened and passed the initial single-monitor manual test; Explorer restart, virtual desktops, and the wider repeatable Windows matrix remain open.
+- The unsigned public community package and Guardian client-integrity model are incomplete.
+- Clean install, upgrade, repair, uninstall, and rollback must be rerun with the final candidate package.
 - Reboot, Win+L, sleep, hibernation, Explorer restart, user switching, Remote Desktop, multiple monitors, and standard-user scenarios remain in the final Windows matrix.
 
 ### Validation completed

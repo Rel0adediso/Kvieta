@@ -11,7 +11,7 @@ Windows service recovery and Guardian supervision handle Task Manager-like termi
 - There is no absolute protection against someone with Windows administrator rights, physical disk access, or offline operating-system access.
 - Safe Mode, alternate boot media, firmware/boot changes, and kernel-level tooling are out of scope.
 - Otium is not a replacement for enterprise EDR, AppLocker, or WDAC.
-- Unsigned Development output is not a release package. Public Guardian expects an installed client under Program Files with the valid Authenticode signer pinned by the installer.
+- Unsigned Development output is not a release package. The current Public Guardian path expects an installed client under Program Files with an Authenticode signer pinned by the installer. A separate unsigned community identity model is open V1 work and will not reuse the Development bypass.
 
 ## Stored data
 

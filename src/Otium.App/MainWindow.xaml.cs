@@ -742,7 +742,22 @@ public partial class MainWindow : Window
         RecoveryCenterWindow window;
         try
         {
-            window = new RecoveryCenterWindow { Owner = this };
+            ProtectionInstallationIdentity identity = ProtectionServiceManager.GetInstallationIdentity();
+            ProtectionHealthReport health = ProtectionServiceManager.GetHealthReport();
+            bool english = LocalizationService.CurrentLanguage == LanguagePreference.English;
+            string release = identity.ReleaseLabel ?? identity.RegisteredVersion?.ToString(3) ?? "—";
+            window = new RecoveryCenterWindow(new SystemHealthSnapshot(
+                $"{BuildInfo.Version} · {BuildInfo.DisplayRevision}",
+                BuildInfo.IsDevelopmentBuild ? (english ? "Development/Test" : "Geliştirme/Test") : (english ? "Public release" : "Public sürüm"),
+                release,
+                identity.Compatibility == ProtectionVersionCompatibility.Compatible ? (english ? "Versions matched" : "Sürümler eşleşiyor") : (english ? "Needs attention" : "Kontrol gerekli"),
+                identity.InstalledBinaryVersion?.ToString(3) ?? "—",
+                health.IsHealthy ? (english ? "Healthy" : "Sağlıklı") : $"{health.Issues.Count} {(english ? "issue(s)" : "sorun")}",
+                english ? "Settings + usage" : "Ayarlar + kullanım",
+                _viewModel.LocalDataHealthText))
+            {
+                Owner = this
+            };
         }
         catch (Exception exception)
         {
@@ -757,6 +772,9 @@ public partial class MainWindow : Window
 
         switch (window.SelectedAction.Value)
         {
+            case RecoveryCenterAction.ExportDiagnostics:
+                ExportDiagnostics_Click(sender, e);
+                break;
             case RecoveryCenterAction.TrustCurrentClock:
                 ResetClockProtection_Click(sender, e);
                 break;

@@ -39,6 +39,10 @@ jobs:
         shell: pwsh
         run: dotnet format Otium.slnx --verify-no-changes --no-restore
 
+      - name: Verify documentation consistency
+        shell: pwsh
+        run: ./scripts/verify-documentation.ps1
+
       - name: Build Debug
         shell: pwsh
         run: dotnet build Otium.slnx -c Debug --no-restore

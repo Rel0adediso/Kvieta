@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -20,9 +21,8 @@ public partial class CafeWindow : Window
     private bool _allowClose;
     private bool _tickInProgress;
     private bool _modalDialogOpen;
-    private bool _sessionLocked;
-    private bool _powerSuspended;
-    private bool _resumeAfterSystemInterruption;
+    private readonly SemaphoreSlim _systemInterruptionGate = new(1, 1);
+    private SystemInterruptionState _systemInterruptionState = new();
     private readonly bool _requirePinToExit;
     private readonly AdminCredential? _exitCredentialOverride;
     private readonly bool _isDirectSession;
@@ -537,69 +537,88 @@ public partial class CafeWindow : Window
 
     private void SystemEvents_SessionSwitch(object sender, SessionSwitchEventArgs e)
     {
-        Dispatcher.InvokeAsync(async () =>
+        SystemInterruptionKind? kind = e.Reason switch
         {
-            if (e.Reason == SessionSwitchReason.SessionLock)
-            {
-                _sessionLocked = true;
-                _resumeAfterSystemInterruption = false;
-                bool paused = _viewModel.PauseForSystemInterruption();
-                if (paused)
-                {
-                    await _viewModel.SaveAsync();
-                }
-            }
-            else if (e.Reason == SessionSwitchReason.SessionUnlock)
-            {
-                _sessionLocked = false;
-                EnsureCorrectSurface();
-            }
-        });
+            SessionSwitchReason.SessionLock => SystemInterruptionKind.SessionLock,
+            SessionSwitchReason.SessionUnlock => SystemInterruptionKind.SessionUnlock,
+            _ => null
+        };
+        if (kind is not null)
+        {
+            Dispatcher.InvokeAsync(() => HandleSystemInterruptionAsync(kind.Value));
+        }
     }
 
     private void SystemEvents_PowerModeChanged(object sender, PowerModeChangedEventArgs e)
     {
-        if (e.Mode == PowerModes.Suspend)
+        SystemInterruptionKind? kind = e.Mode switch
         {
-            void SuspendImmediately()
-            {
-                _powerSuspended = true;
-                _resumeAfterSystemInterruption |= _viewModel.PauseForSystemInterruption();
-                _ = _viewModel.SaveAsync();
-            }
-
-            if (Dispatcher.CheckAccess())
-            {
-                SuspendImmediately();
-            }
-            else
-            {
-                Dispatcher.Invoke(SuspendImmediately);
-            }
-
-            return;
+            PowerModes.Suspend => SystemInterruptionKind.PowerSuspend,
+            PowerModes.Resume => SystemInterruptionKind.PowerResume,
+            _ => null
+        };
+        if (kind is not null)
+        {
+            Dispatcher.InvokeAsync(() => HandleSystemInterruptionAsync(kind.Value));
         }
-
-        Dispatcher.InvokeAsync(async () =>
-        {
-            if (e.Mode == PowerModes.Resume)
-            {
-                _powerSuspended = false;
-                await ResumeAfterSystemInterruptionAsync();
-            }
-        });
     }
 
-    private async Task ResumeAfterSystemInterruptionAsync()
+    private async Task HandleSystemInterruptionAsync(SystemInterruptionKind kind)
     {
-        if (!_resumeAfterSystemInterruption || _sessionLocked || _powerSuspended)
+        await _systemInterruptionGate.WaitAsync();
+        try
         {
-            return;
-        }
+            SystemInterruptionDecision decision = SystemInterruptionPolicy.Evaluate(
+                _systemInterruptionState,
+                kind,
+                _viewModel.IsActive);
+            _systemInterruptionState = decision.State;
 
-        _resumeAfterSystemInterruption = false;
-        await _viewModel.StartOrResumeAsync();
-        EnsureCorrectSurface();
+            bool paused = decision.ShouldPause && _viewModel.PauseForSystemInterruption();
+            if (paused)
+            {
+                await _viewModel.SaveAsync();
+            }
+
+            bool resumed = decision.ShouldResume && !_controlCenterOpen &&
+                await _viewModel.StartOrResumeAsync();
+            if (decision.ShouldRefreshSurfaces || resumed)
+            {
+                EnsureCorrectSurface();
+                _displayShieldManager.Refresh();
+            }
+
+            string auditEvent = kind switch
+            {
+                SystemInterruptionKind.SessionLock => "lifecycle.session.lock",
+                SystemInterruptionKind.SessionUnlock => "lifecycle.session.unlock",
+                SystemInterruptionKind.PowerSuspend => "lifecycle.power.suspend",
+                _ => "lifecycle.power.resume"
+            };
+            await AppendLifecycleAuditAsync(
+                auditEvent,
+                resumed ? "resumed" : paused ? "paused" : "observed");
+        }
+        finally
+        {
+            _systemInterruptionGate.Release();
+        }
+    }
+
+    private static async Task AppendLifecycleAuditAsync(string auditEvent, string outcome)
+    {
+        try
+        {
+            string auditPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Otium",
+                "lifecycle-audit.jsonl");
+            await new SecurityAuditLog(auditPath).AppendAsync(auditEvent, outcome);
+        }
+        catch
+        {
+            // Lifecycle recovery must never depend on optional diagnostic logging.
+        }
     }
 
     private async void ExitPrototype_Click(object sender, RoutedEventArgs e)

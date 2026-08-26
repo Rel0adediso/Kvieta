@@ -45,6 +45,14 @@ public sealed record ProtectionHealthReport(
     public bool IsHealthy => ServiceState == ProtectionServiceState.Running && Issues.Count == 0;
 }
 
+public sealed record ProtectionInstallationIdentity(
+    bool InstallerManaged,
+    string? ReleaseLabel,
+    Version? RegisteredVersion,
+    Version? InstalledBinaryVersion,
+    ProtectionServiceState GuardianState,
+    ProtectionVersionCompatibility Compatibility);
+
 public static class ProtectionServiceManager
 {
     public const string ServiceName = "OtiumGuardian";
@@ -77,6 +85,14 @@ public static class ProtectionServiceManager
 
     public static string? RegisteredSignerThumbprint =>
         ReadInstallerValue("SignerThumbprint") as string;
+
+    public static ProtectionInstallationIdentity GetInstallationIdentity() => new(
+        IsInstallerManaged,
+        ReadInstallerValue("InstalledReleaseLabel") as string,
+        ReadRegisteredVersion(),
+        ReadProductVersion(InstalledExecutablePath),
+        GetState(),
+        GetVersionCompatibility());
 
     public static ProtectionVersionCompatibility GetVersionCompatibility()
     {

@@ -33,7 +33,8 @@ yüzeyinde Debug kısayoluna güvenilmez.
 | LIFE-02 | Kontrol Merkezi isteği | Tek yönetim penceresi öne gelir | |
 | LIFE-03 | Otium sürecini kapatma | Guardian gerekli modda yüzeyi geri getirir | |
 | LIFE-04 | Explorer restart | Korumasız boşluk kalmaz | |
-| LIFE-05 | `Win+L`, uyku ve yeniden başlatma | Sayaç ve yüzey doğru geri gelir | |
+| LIFE-05 | `Win+L`, uyku ve yeniden başlatma | Sayaç ve yüzey doğru geri gelir | Fiziksel test kullanıcı isteğiyle sonraki doğrulama turuna ertelendi; sıralı lifecycle policy ve otomatik regresyonları hazır. |
+| SUPPORT-01 | Sistem Sağlığı ve Tanılama Merkezi | Uygulama, installer, Guardian ve yerel veri durumları doğru gösterilir; rapor dışa aktarılır | Kullanıcı isteğiyle final doğrulama turuna ertelendi. |
 | LIFE-06 | Saat ileri/geri alma | Güvenli saat koruması uygulanır | |
 
 ## Ekran ve erişilebilirlik
@@ -55,4 +56,3 @@ yüzeyinde Debug kısayoluna güvenilmez.
 | INST-05 | Uygulama içinden kaldırma | Doğrulama sonrası Windows kaldırıcı açılır | |
 
 Kalan her vaka için GitHub hata şablonuyla issue açılır ve bağlantısı buraya yazılır.
-
