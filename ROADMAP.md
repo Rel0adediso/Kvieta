@@ -215,10 +215,16 @@ P0 işleriyle paralel ilerleyebilir; final public release öncesinde tamamlanmas
 
 #### CI ve otomatik kalite kapıları
 
-**Mevcut eksik:** GitHub Actions veya eşdeğer CI bulunmuyor.
+**Durum:** İlk GitHub Actions kalite hattı hazır; GitHub üzerindeki ilk gerçek koşu bekleniyor.
 
-- Her push/PR için restore, format, Debug/Release build ve smoke test çalıştırma.
-- Public build'de development unlock kodunun bulunmadığını otomatik doğrulama.
+Her `main` push'u, pull request ve elle başlatılan koşu Windows üzerinde restore ve
+NuGet audit, format doğrulaması, Debug/Release build, iki yapı türünde smoke test,
+test installer üretimi ve gömülü MSI doğrulaması çalıştırır. Başarılı test paketi
+yedi gün saklanan CI artifact'i olarak yüklenir; aynı branch'teki eski koşular iptal
+edilerek gereksiz kaynak tüketimi önlenir.
+
+- GitHub üzerindeki ilk koşuyu doğrulayıp gerekirse runner farklarını düzeltme.
+- Public build'de development unlock kodunun bulunmadığını smoke test dışında ayrıca ikili çıktı üzerinden doğrulama.
 - NuGet zafiyet taraması ve dependency güncelleme bildirimi ekleme.
 - Self-contained publish çıktısını doğrulama.
 - İmzalama sırlarını yalnız korumalı release ortamında kullanma.

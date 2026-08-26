@@ -1,0 +1,96 @@
+name: Quality gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Build and test
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+
+      - name: Restore and audit dependencies
+        shell: pwsh
+        run: dotnet restore Otium.slnx -p:NuGetAudit=true -p:NuGetAuditMode=all
+
+      - name: Verify formatting
+        shell: pwsh
+        run: dotnet format Otium.slnx --verify-no-changes --no-restore
+
+      - name: Build Debug
+        shell: pwsh
+        run: dotnet build Otium.slnx -c Debug --no-restore
+
+      - name: Run development smoke tests
+        shell: pwsh
+        run: dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Debug --no-build
+
+      - name: Build public Release
+        shell: pwsh
+        run: dotnet build Otium.slnx -c Release --no-restore
+
+      - name: Run public-build smoke tests
+        shell: pwsh
+        run: dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Release --no-build
+
+  package:
+    name: Package alpha installer
+    runs-on: windows-latest
+    needs: validate
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+
+      - name: Build test installer
+        shell: pwsh
+        run: ./scripts/build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel 1.0.0-alpha
+
+      - name: Verify embedded MSI
+        shell: pwsh
+        run: |
+          $setup = Resolve-Path './artifacts/installer-test/1.0.0/Otium-Setup-1.0.0-alpha.exe'
+          $process = Start-Process -FilePath $setup -ArgumentList '--verify-package' -PassThru -Wait
+          if ($process.ExitCode -ne 0) {
+            throw "Embedded MSI verification failed with exit code $($process.ExitCode)."
+          }
+
+      - name: Upload test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Otium-1.0.0-alpha-test
+          path: artifacts/installer-test/1.0.0/
+          if-no-files-found: error
+          retention-days: 7
+
