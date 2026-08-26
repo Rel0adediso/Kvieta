@@ -26,7 +26,7 @@ public static class AwarenessUsageCounter
 
         ledger.AwarenessUsedSeconds += seconds;
         ledger.ForegroundAppUsedSeconds[safeId] = ledger.ForegroundAppUsedSeconds.GetValueOrDefault(safeId) + seconds;
-        int localHour = (observedAt ?? DateTimeOffset.Now).LocalDateTime.Hour;
+        int localHour = (observedAt ?? DateTimeOffset.Now).Hour;
         ledger.AwarenessHourlyUsedSeconds[localHour] = ledger.AwarenessHourlyUsedSeconds.GetValueOrDefault(localHour) + seconds;
         return true;
     }

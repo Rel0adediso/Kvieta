@@ -567,7 +567,7 @@ foreach (DaySchedule day in settings.Schedule)
     day.DailyLimitMinutes = 60;
 }
 
-UsageLedger ledger = new() { LocalDay = DateOnly.FromDateTime(allowedTime.LocalDateTime) };
+UsageLedger ledger = new() { LocalDay = DateOnly.FromDateTime(allowedTime.DateTime) };
 SessionEngine engine = new(settings, ledger, allowedTime);
 Assert(engine.StartOrResume(allowedTime), "Oturum başlatılamadı.");
 engine.Accrue(TimeSpan.FromMinutes(20), allowedTime.AddMinutes(20));
@@ -581,7 +581,7 @@ Assert(engine.GetSnapshot(allowedTime.AddMinutes(75)).State == SessionState.Time
 
 UsageLedger rollbackLedger = new()
 {
-    LocalDay = DateOnly.FromDateTime(allowedTime.LocalDateTime),
+    LocalDay = DateOnly.FromDateTime(allowedTime.DateTime),
     LastUpdatedUtc = allowedTime.ToUniversalTime()
 };
 SessionEngine rollbackEngine = new(settings, rollbackLedger, allowedTime.AddHours(-1));
@@ -601,7 +601,7 @@ foreach (DaySchedule day in expandedLimitSettings.Schedule)
 
 UsageLedger expiredLedger = new()
 {
-    LocalDay = DateOnly.FromDateTime(allowedTime.LocalDateTime),
+    LocalDay = DateOnly.FromDateTime(allowedTime.DateTime),
     UsedSeconds = 60 * 60,
     State = SessionState.TimeExpired
 };
@@ -615,7 +615,7 @@ Assert(engine.GetSnapshot(allowedTime.AddMinutes(75)).State == SessionState.Read
 
 UsageLedger testUnlockLedger = new()
 {
-    LocalDay = DateOnly.FromDateTime(allowedTime.LocalDateTime),
+    LocalDay = DateOnly.FromDateTime(allowedTime.DateTime),
     UsedSeconds = 60 * 60,
     State = SessionState.TimeExpired
 };
@@ -728,7 +728,7 @@ ControlSettings loadedAwarenessSettings = await awarenessSettingsStore.LoadAsync
 Assert(loadedAwarenessSettings.AwarenessTrackingEnabled, "Farkındalık modu yerel ölçümü zorunlu olarak açmadı.");
 UsageLedger awarenessModeLedger = new()
 {
-    LocalDay = DateOnly.FromDateTime(blockedTime.LocalDateTime),
+    LocalDay = DateOnly.FromDateTime(blockedTime.DateTime),
     UsedSeconds = 24 * 60 * 60,
     State = SessionState.TimeExpired
 };

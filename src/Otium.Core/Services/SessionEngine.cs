@@ -199,7 +199,7 @@ public sealed class SessionEngine
         }
 
         Ledger.ClockRollbackUntilUtc = null;
-        DateOnly today = DateOnly.FromDateTime(now.LocalDateTime);
+        DateOnly today = DateOnly.FromDateTime(now.DateTime);
         if (Ledger.LocalDay != today)
         {
             ArchiveCurrentDay(today);

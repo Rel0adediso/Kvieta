@@ -26,7 +26,7 @@ public static class ScheduleEvaluator
                 null);
         }
 
-        DateOnly today = DateOnly.FromDateTime(now.LocalDateTime);
+        DateOnly today = DateOnly.FromDateTime(now.DateTime);
         DateOnly yesterday = today.AddDays(-1);
         DaySchedule? todaysSchedule = settings.Schedule.FirstOrDefault(item => item.Day == now.DayOfWeek);
         DaySchedule? yesterdaysSchedule = settings.Schedule.FirstOrDefault(item => item.Day == now.AddDays(-1).DayOfWeek);
@@ -115,7 +115,7 @@ public static class ScheduleEvaluator
             end = end.AddDays(1);
         }
 
-        return now.LocalDateTime >= start && now.LocalDateTime < end;
+        return now.DateTime >= start && now.DateTime < end;
     }
 
     private static DateTimeOffset BuildAllowedUntil(
