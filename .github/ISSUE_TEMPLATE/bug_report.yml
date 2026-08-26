@@ -1,0 +1,53 @@
+name: Hata bildirimi / Bug report
+description: Otium'da tekrarlanabilir bir sorun bildir.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lütfen PIN, kurtarma kodu veya özel içerik paylaşma.
+        Please do not share PINs, recovery codes, or private content.
+  - type: input
+    id: version
+    attributes:
+      label: Otium sürümü / version
+      placeholder: 1.0.0-alpha
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Kullanım biçimi / usage mode
+      options:
+        - Sadece takip / Awareness
+        - Kendim için / Personal
+        - Yönettiğim biri için / Protected
+        - Kurulum / Installer
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Tekrarlama adımları / reproduction steps
+      description: Soruna ulaşmak için yaptıklarını sırayla yaz.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Beklenen sonuç / expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Gerçek sonuç / actual result
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows sürümü ve ekran düzeni
+      placeholder: Windows 11 24H2, tek ekran, %125 DPI
+

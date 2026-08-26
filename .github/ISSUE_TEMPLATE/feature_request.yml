@@ -1,0 +1,39 @@
+name: Özellik önerisi / Feature request
+description: Otium için yeni bir kullanım veya geliştirme öner.
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Çözülmesini istediğin ihtiyaç / problem
+      description: Özellikten önce yaşadığın ihtiyacı anlat.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Önerdiğin çözüm / proposed solution
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: İlgili alan / area
+      options:
+        - Kontrol Merkezi / Control Center
+        - Oturum ekranı / Session surface
+        - Guardian ve güvenlik / Guardian and security
+        - Kurulum ve güncelleme / Setup and updates
+        - Gizlilik ve ölçüm / Privacy and tracking
+        - Diğer / Other
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Gizlilik veya güvenlik etkisi / privacy or security impact
+      description: Yoksa “Yok / None” yazabilirsin.
+    validations:
+      required: true
+

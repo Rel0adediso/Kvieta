@@ -254,7 +254,7 @@ edilerek gereksiz kaynak tüketimi önlenir.
 - Ürün hedeflerine uygun lisansı seçip `LICENSE` ekleme.
 - README ve contribution belgelerinde lisans, destek ve güvenlik yollarını belirtme.
 - Özel güvenlik bildirimi için kanal belirleme.
-- Issue ve pull request şablonlarını ekleme.
+- İki dilli, gizli bilgi paylaşımını önleyen hata bildirimi ve özellik önerisi şablonları eklendi; pull request şablonu bekliyor.
 - Katkıların test, güvenlik ve gizlilik gereksinimlerini netleştirme.
 
 #### Dokümantasyon tutarlılığı
