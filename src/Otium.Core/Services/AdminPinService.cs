@@ -44,9 +44,21 @@ public static class AdminPinService
         HashBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(HashSize))
     };
 
+    public static AdminCredential CreatePublicMarker(AdminCredential credential)
+    {
+        if (!credential.IsConfigured) throw new ArgumentException("Credential is not configured.", nameof(credential));
+        return new AdminCredential
+        {
+            Version = AdminCredential.PublicMarkerVersion,
+            Iterations = credential.Iterations,
+            SaltBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(SaltSize)),
+            HashBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(HashSize))
+        };
+    }
+
     public static bool Verify(string pin, AdminCredential? credential)
     {
-        if (!IsValidFormat(pin) || credential is null || !credential.IsConfigured)
+        if (!IsValidFormat(pin) || credential is null || !credential.IsConfigured || credential.IsPublicMarker)
         {
             return false;
         }

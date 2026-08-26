@@ -318,7 +318,7 @@
                         </TabItem>
 
                         <TabItem>
-                            <ScrollViewer x:Name="SettingsScrollViewer" services:MotionAssist.SmoothScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ScrollViewer x:Name="SettingsScrollViewer" services:MotionAssist.SmoothScroll="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                                 <Grid Margin="24,20" MaxWidth="980"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                     <StackPanel><TextBlock Text="{DynamicResource Settings}" Style="{StaticResource PageTitleStyle}" /><TextBlock Text="{DynamicResource SettingsDescription}" Style="{StaticResource PageDescriptionStyle}" /></StackPanel>
                                     <Border Grid.Row="1" Style="{StaticResource PanelStyle}" Margin="0,18,0,0" ClipToBounds="True"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>

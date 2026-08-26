@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Threading;
 using Otium.Core.Models;
 using Microsoft.Win32;
 
@@ -8,7 +7,6 @@ namespace Otium.App.Services;
 public sealed class SystemThemeService : IDisposable
 {
     private const string PersonalizeKey = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
-    private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(2) };
     private System.Windows.Application? _application;
     private ResourceDictionary? _activeDictionary;
     private bool? _isLight;
@@ -29,15 +27,13 @@ public sealed class SystemThemeService : IDisposable
 
         if (!_isForced)
         {
-            _timer.Tick += Timer_Tick;
-            _timer.Start();
+            SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
         }
     }
 
     public void Dispose()
     {
-        _timer.Stop();
-        _timer.Tick -= Timer_Tick;
+        SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
     }
 
     public void SetPreference(ThemePreference preference)
@@ -56,18 +52,19 @@ public sealed class SystemThemeService : IDisposable
         });
     }
 
-    private void Timer_Tick(object? sender, EventArgs e)
+    private void SystemEvents_UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
     {
-        if (_preference != ThemePreference.System)
+        if (_preference != ThemePreference.System || _application is null ||
+            e.Category is not (UserPreferenceCategory.Color or UserPreferenceCategory.General or UserPreferenceCategory.VisualStyle))
         {
             return;
         }
 
-        bool isLight = ReadWindowsLightTheme();
-        if (_isLight != isLight)
+        _application.Dispatcher.BeginInvoke(() =>
         {
-            Apply(isLight);
-        }
+            bool isLight = ReadWindowsLightTheme();
+            if (_isLight != isLight) Apply(isLight);
+        });
     }
 
     private void Apply(bool isLight)

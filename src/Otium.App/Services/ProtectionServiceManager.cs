@@ -360,6 +360,30 @@ public static class ProtectionServiceManager
         }
     }
 
+    public static void MigrateCredentialStorage()
+    {
+        GuardianEnrollment? enrollment = LoadEnrollment();
+        if (enrollment is null || string.IsNullOrWhiteSpace(enrollment.UserSid)) return;
+
+        HardenProtectionDataAcl(enrollment.UserSid);
+        if (File.Exists(ProtectedSettingsPath))
+        {
+            ControlSettings settings = Task.Run(
+                    () => new JsonSettingsStore(ProtectedSettingsPath, readOnly: true).LoadAsync())
+                .GetAwaiter()
+                .GetResult();
+            File.WriteAllBytes(ProtectedSettingsPath, ProtectionPolicyChannel.CreateProtectedPolicyBytes(settings));
+            HardenProtectedPolicyAcl(enrollment.UserSid);
+            if (!string.IsNullOrWhiteSpace(enrollment.SettingsPath))
+            {
+                File.Copy(ProtectedSettingsPath, enrollment.SettingsPath, overwrite: true);
+            }
+        }
+        HardenSensitiveFileAcl(EnrollmentPath);
+        string throttlePath = Path.Combine(ProtectionDataDirectory, "guardian-auth-throttle.json");
+        if (File.Exists(throttlePath)) HardenSensitiveFileAcl(throttlePath);
+    }
+
     public static void DeactivateGuardianPolicy()
     {
         StopTrackedGuardianSessionIfPresent();
@@ -406,7 +430,10 @@ public static class ProtectionServiceManager
             TraceInstallStep("acl.ready");
             File.WriteAllText(EnrollmentPath, JsonSerializer.Serialize(
                 new GuardianEnrollment(request.UserSid, request.SettingsPath, settings.AdminPin)));
-            File.Copy(request.SettingsPath, ProtectedSettingsPath, overwrite: true);
+            HardenSensitiveFileAcl(EnrollmentPath);
+            File.WriteAllBytes(ProtectedSettingsPath, ProtectionPolicyChannel.CreateProtectedPolicyBytes(settings));
+            HardenProtectedPolicyAcl(request.UserSid);
+            File.Copy(ProtectedSettingsPath, request.SettingsPath, overwrite: true);
             TraceInstallStep("policy.ready");
 
             string source = Environment.ProcessPath
@@ -602,7 +629,7 @@ public static class ProtectionServiceManager
         startInfo.ArgumentList.Add("/grant:r");
         startInfo.ArgumentList.Add("*S-1-5-18:(OI)(CI)F");
         startInfo.ArgumentList.Add("*S-1-5-32-544:(OI)(CI)F");
-        startInfo.ArgumentList.Add($"*{userSid}:(OI)(CI)R");
+        startInfo.ArgumentList.Add($"*{userSid}:(RX)");
 
         using Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("Protection folder permissions could not be configured.");
@@ -610,6 +637,40 @@ public static class ProtectionServiceManager
         if (process.ExitCode != 0)
         {
             throw new InvalidOperationException("Protection folder permissions could not be configured.");
+        }
+    }
+
+    public static void HardenSensitiveFileAcl(string path) => RunIcacls(
+        path,
+        "/inheritance:r",
+        "/grant:r",
+        "*S-1-5-18:F",
+        "*S-1-5-32-544:F");
+
+    public static void HardenProtectedPolicyAcl(string userSid) => RunIcacls(
+        ProtectedSettingsPath,
+        "/inheritance:r",
+        "/grant:r",
+        "*S-1-5-18:F",
+        "*S-1-5-32-544:F",
+        $"*{userSid}:R");
+
+    private static void RunIcacls(string path, params string[] arguments)
+    {
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = Path.Combine(Environment.SystemDirectory, "icacls.exe"),
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add(path);
+        foreach (string argument in arguments) startInfo.ArgumentList.Add(argument);
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Sensitive file permissions could not be configured.");
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException("Sensitive file permissions could not be configured.");
         }
     }
 

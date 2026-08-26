@@ -6,7 +6,7 @@ using Otium.App.Services;
 
 namespace Otium.App.ViewModels;
 
-public sealed class CafeViewModel : ObservableObject
+public sealed class CafeViewModel : ObservableObject, IDisposable
 {
     private JsonSettingsStore _settingsStore;
     private readonly JsonUsageStore _usageStore;
@@ -30,6 +30,8 @@ public sealed class CafeViewModel : ObservableObject
         _settingsStore = settingsStore ?? new JsonSettingsStore();
         _usageStore = usageStore ?? new JsonUsageStore();
     }
+
+    public void Dispose() => _applicationRuleEnforcer.Dispose();
 
     public event EventHandler? SessionStateChanged;
 

@@ -115,8 +115,7 @@ public partial class App : System.Windows.Application
 
         if (guardianSession)
         {
-            GuardianEnrollment? enrollment = ProtectionServiceManager.LoadEnrollment();
-            if (enrollment is null || !enrollment.AdminPin.IsConfigured)
+            if (!settings.AdminPin.IsConfigured)
             {
                 Shutdown();
                 return;
@@ -127,7 +126,6 @@ public partial class App : System.Windows.Application
                 Shutdown();
                 return;
             }
-            settings.AdminPin = settings.AdminPin.IsConfigured ? settings.AdminPin : enrollment.AdminPin;
             settings.SetupCompleted = true;
             _guardianCredential = settings.AdminPin;
         }
@@ -231,7 +229,7 @@ public partial class App : System.Windows.Application
         if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                pin => AdminPinService.Verify(pin, settings.AdminPin),
+                pin => VerifyAdminPinAsync(pin, settings),
                 owner => RunRecoveryPinResetAsync(owner, settingsStore, settings, protectedPolicyAvailable));
             verification.ShowInTaskbar = true;
             verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -317,14 +315,14 @@ public partial class App : System.Windows.Application
             string? managementPin = null;
             if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
             {
-                if (!string.IsNullOrWhiteSpace(verifiedPin) && AdminPinService.Verify(verifiedPin, settings.AdminPin))
+                if (!string.IsNullOrWhiteSpace(verifiedPin) && await VerifyAdminPinAsync(verifiedPin, settings))
                 {
                     managementPin = verifiedPin;
                 }
                 else
                 {
                     AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                        pin => AdminPinService.Verify(pin, settings.AdminPin),
+                        pin => VerifyAdminPinAsync(pin, settings),
                         owner => RunRecoveryPinResetAsync(
                             owner,
                             File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
@@ -479,7 +477,7 @@ public partial class App : System.Windows.Application
         if (ProtectionServiceManager.RequiresPinForUninstall(settings))
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                pin => AdminPinService.Verify(pin, settings.AdminPin));
+                pin => VerifyAdminPinAsync(pin, settings));
             verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             verification.ShowInTaskbar = true;
             if (verification.ShowDialog() != true)
@@ -506,6 +504,12 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Error);
         }
     }
+
+    private static Task<bool> VerifyAdminPinAsync(string pin, ControlSettings settings) =>
+        settings.Mode == ControlMode.Protected &&
+        ProtectionServiceManager.GetState() == ProtectionServiceState.Running
+            ? ProtectionPolicyChannel.VerifyPinAsync(pin)
+            : Task.FromResult(AdminPinService.Verify(pin, settings.AdminPin));
 
     private async Task HandleWindowsAdministratorVerificationAsync(IReadOnlyList<string> arguments)
     {

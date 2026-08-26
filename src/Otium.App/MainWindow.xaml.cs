@@ -577,7 +577,7 @@ public partial class MainWindow : Window
         string? authorizationPin = _managementPin;
         if (_viewModel.HasAdminPin)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true)
             {
@@ -639,7 +639,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
+        AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
         verification.Owner = this;
         if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin))
         {
@@ -670,7 +670,7 @@ public partial class MainWindow : Window
         string? authorizationPin = _managementPin;
         if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin)) return;
             authorizationPin = verification.ResultPin;
@@ -791,7 +791,7 @@ public partial class MainWindow : Window
     {
         if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true) return;
         }
@@ -850,7 +850,7 @@ public partial class MainWindow : Window
 
         if (string.IsNullOrWhiteSpace(_managementPin))
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin))
             {
@@ -912,7 +912,7 @@ public partial class MainWindow : Window
 
         if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPin);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true)
             {

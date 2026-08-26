@@ -8,13 +8,14 @@ namespace Otium.App;
 public partial class AdminPinWindow : Window
 {
     private readonly bool _isSetup;
-    private readonly Func<string, bool>? _verifier;
+    private readonly Func<string, Task<bool>>? _verifier;
     private readonly Func<Window, Task<string?>>? _recoveryAction;
     private int _failedAttempts;
+    private bool _verificationInProgress;
 
     private AdminPinWindow(
         bool isSetup,
-        Func<string, bool>? verifier,
+        Func<string, Task<bool>>? verifier,
         Func<Window, Task<string?>>? recoveryAction = null)
     {
         InitializeComponent();
@@ -46,6 +47,14 @@ public partial class AdminPinWindow : Window
 
     public static AdminPinWindow CreateVerification(
         Func<string, bool> verifier,
+        Func<Window, Task<string?>>? recoveryAction = null)
+    {
+        ArgumentNullException.ThrowIfNull(verifier);
+        return new AdminPinWindow(false, pin => Task.FromResult(verifier(pin)), recoveryAction);
+    }
+
+    public static AdminPinWindow CreateVerification(
+        Func<string, Task<bool>> verifier,
         Func<Window, Task<string?>>? recoveryAction = null)
     {
         ArgumentNullException.ThrowIfNull(verifier);
@@ -81,45 +90,54 @@ public partial class AdminPinWindow : Window
 
     private async void Confirm_Click(object sender, RoutedEventArgs e)
     {
+        if (_verificationInProgress || !ConfirmButton.IsEnabled) return;
+        _verificationInProgress = true;
         string pin = PinBox.Password;
-        if (!AdminPinService.IsValidFormat(pin))
+        try
         {
-            ShowError(LocalizationService.Get("PinFormatError"));
-            return;
-        }
-
-        if (_isSetup)
-        {
-            if (!string.Equals(pin, ConfirmPinBox.Password, StringComparison.Ordinal))
+            if (!AdminPinService.IsValidFormat(pin))
             {
-                ShowError(LocalizationService.Get("PinMismatch"));
-                ConfirmPinBox.Clear();
-                ConfirmPinBox.Focus();
+                ShowError(LocalizationService.Get("PinFormatError"));
                 return;
             }
 
-            ResultPin = pin;
-            DialogResult = true;
-            return;
-        }
+            if (_isSetup)
+            {
+                if (!string.Equals(pin, ConfirmPinBox.Password, StringComparison.Ordinal))
+                {
+                    ShowError(LocalizationService.Get("PinMismatch"));
+                    ConfirmPinBox.Clear();
+                    ConfirmPinBox.Focus();
+                    return;
+                }
 
-        if (_verifier?.Invoke(pin) == true)
-        {
-            ResultPin = pin;
-            DialogResult = true;
-            return;
-        }
+                ResultPin = pin;
+                DialogResult = true;
+                return;
+            }
 
-        _failedAttempts++;
-        ShowError(LocalizationService.Get("WrongPin"));
-        PinBox.Clear();
-        PinBox.Focus();
-
-        if (_failedAttempts >= 3)
-        {
             ConfirmButton.IsEnabled = false;
-            await Task.Delay(TimeSpan.FromSeconds(Math.Min(5, _failedAttempts)));
+            if (_verifier is not null && await _verifier(pin))
+            {
+                ResultPin = pin;
+                DialogResult = true;
+                return;
+            }
+
+            _failedAttempts++;
+            ShowError(LocalizationService.Get("WrongPin"));
+            PinBox.Clear();
+            PinBox.Focus();
+
+            if (_failedAttempts >= 3)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(Math.Min(5, _failedAttempts)));
+            }
+        }
+        finally
+        {
             ConfirmButton.IsEnabled = true;
+            _verificationInProgress = false;
         }
     }
 
@@ -127,8 +145,9 @@ public partial class AdminPinWindow : Window
 
     private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
-        if (e.Key == Key.Enter)
+        if (e.Key == Key.Enter && ConfirmButton.IsEnabled && !_verificationInProgress)
         {
+            e.Handled = true;
             Confirm_Click(ConfirmButton, new RoutedEventArgs());
         }
         else if (e.Key == Key.Escape)

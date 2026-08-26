@@ -4,7 +4,7 @@ namespace Otium.SetupApp;
 
 public partial class App : System.Windows.Application
 {
-    protected override void OnStartup(System.Windows.StartupEventArgs e)
+    protected override async void OnStartup(System.Windows.StartupEventArgs e)
     {
         base.OnStartup(e);
         if (e.Args.Any(argument => string.Equals(argument, "--verify-package", StringComparison.OrdinalIgnoreCase)))
@@ -13,6 +13,21 @@ public partial class App : System.Windows.Application
                 .GetManifestResourceNames()
                 .Contains("Otium.Payload.msi", StringComparer.Ordinal);
             Shutdown(payloadExists ? 0 : 2);
+            return;
+        }
+
+        if (e.Args.Any(argument => string.Equals(argument, "--elevated-install", StringComparison.OrdinalIgnoreCase)))
+        {
+            bool desktopShortcut = e.Args.Any(argument =>
+                string.Equals(argument, "--desktop-shortcut", StringComparison.OrdinalIgnoreCase));
+            try
+            {
+                Shutdown(await ElevatedPackageInstaller.RunAsync(desktopShortcut));
+            }
+            catch
+            {
+                Shutdown(1603);
+            }
             return;
         }
 

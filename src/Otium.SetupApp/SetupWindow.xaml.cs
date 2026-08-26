@@ -15,7 +15,6 @@ namespace Otium.SetupApp;
 
 public partial class SetupWindow : Window
 {
-    private static readonly string[] EmbeddedMsiNames = ["Otium.Payload.msi"];
     private readonly JsonSettingsStore _settingsStore = new();
     private readonly SetupPlan _plan = new();
     private ControlSettings? _existingSettings;
@@ -293,22 +292,17 @@ public partial class SetupWindow : Window
         _installationInProgress = true;
         CloseButton.IsEnabled = false;
         ShowPage(WizardPage.Installing);
-        string? stagingDirectory = null;
-
         try
         {
             ReadPreferences();
             ControlSettings settings = _plan.ComposeSettings(_existingSettings);
             CloseVisibleOtiumWindow();
-            (string msiPath, string directory) = await ExtractInstallerAsync();
-            stagingDirectory = directory;
-            string logPath = Path.Combine(directory, "Otium-setup.log");
-            int exitCode = await RunMsiAsync(msiPath, logPath);
+            int exitCode = await RunElevatedInstallerAsync();
             if (exitCode is not (0 or 1641 or 3010))
             {
                 throw new InvalidOperationException(
-                    T($"Windows Installer {exitCode} koduyla durdu. Tanılama: {logPath}",
-                      $"Windows Installer stopped with code {exitCode}. Diagnostics: {logPath}"));
+                    T($"Windows Installer {exitCode} koduyla durdu. Tanılama günlükleri ProgramData\\Otium\\SetupLogs klasöründe.",
+                      $"Windows Installer stopped with code {exitCode}. Diagnostics are in ProgramData\\Otium\\SetupLogs."));
             }
 
             await _settingsStore.SaveAsync(settings);
@@ -330,63 +324,22 @@ public partial class SetupWindow : Window
         {
             _installationInProgress = false;
             CloseButton.IsEnabled = true;
-            if (stagingDirectory is not null && Directory.Exists(stagingDirectory) && _page != WizardPage.Error)
-            {
-                TryDeleteDirectory(stagingDirectory);
-            }
         }
     }
 
-    private async Task<(string MsiPath, string Directory)> ExtractInstallerAsync()
+    private async Task<int> RunElevatedInstallerAsync()
     {
-        string stagingDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments),
-            "OtiumSetupTemp",
-            Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(stagingDirectory);
-        string msiPath = Path.Combine(stagingDirectory, "Otium.msi");
-
-        Assembly assembly = Assembly.GetExecutingAssembly();
-        Stream? payload = EmbeddedMsiNames
-            .Select(assembly.GetManifestResourceStream)
-            .FirstOrDefault(stream => stream is not null);
-        if (payload is not null)
-        {
-            await using (payload)
-            await using (FileStream output = File.Create(msiPath))
-            {
-                await payload.CopyToAsync(output);
-            }
-            return (msiPath, stagingDirectory);
-        }
-
-        string? adjacentMsi = Directory.GetFiles(AppContext.BaseDirectory, "Otium-*-win-x64.msi")
-            .OrderByDescending(File.GetLastWriteTimeUtc)
-            .FirstOrDefault();
-        if (adjacentMsi is null)
-        {
-            throw new FileNotFoundException(T(
-                "Kurulum paketi bu geliştirme önizlemesine gömülmemiş.",
-                "The installer package is not embedded in this development preview."));
-        }
-
-        File.Copy(adjacentMsi, msiPath, overwrite: true);
-        return (msiPath, stagingDirectory);
-    }
-
-    private async Task<int> RunMsiAsync(string msiPath, string logPath)
-    {
-        string features = _plan.DesktopShortcut
-            ? "MainFeature,DesktopShortcutFeature"
-            : "MainFeature";
+        string executable = Environment.ProcessPath
+            ?? throw new InvalidOperationException(T("Kurulum yolu bulunamadı.", "The setup path could not be resolved."));
         ProcessStartInfo startInfo = new()
         {
-            FileName = Path.Combine(Environment.SystemDirectory, "msiexec.exe"),
-            Arguments = $"/i \"{msiPath}\" /qn /norestart ADDLOCAL={features} /L*v \"{logPath}\"",
+            FileName = executable,
             UseShellExecute = true,
             Verb = "runas",
             WindowStyle = ProcessWindowStyle.Hidden
         };
+        startInfo.ArgumentList.Add("--elevated-install");
+        if (_plan.DesktopShortcut) startInfo.ArgumentList.Add("--desktop-shortcut");
         using Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException(T("Windows Installer başlatılamadı.", "Windows Installer could not be started."));
         await process.WaitForExitAsync();
@@ -716,11 +669,6 @@ public partial class SetupWindow : Window
 
         KeepExistingButton.IsEnabled = _packageAction != SetupPackageAction.DowngradeBlocked;
         ConfigureNewButton.IsEnabled = _packageAction != SetupPackageAction.DowngradeBlocked;
-    }
-
-    private static void TryDeleteDirectory(string directory)
-    {
-        try { Directory.Delete(directory, recursive: true); } catch { }
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

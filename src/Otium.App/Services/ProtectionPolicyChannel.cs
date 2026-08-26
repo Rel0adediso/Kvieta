@@ -31,112 +31,83 @@ public static class ProtectionPolicyChannel
         Converters = { new JsonStringEnumConverter() }
     };
 
-    public static async Task<bool> SyncAsync(string settingsJson, string pin, CancellationToken cancellationToken = default)
+    public static Task<bool> SyncAsync(string settingsJson, string pin, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(settingsJson) || string.IsNullOrWhiteSpace(pin))
         {
-            return false;
+            return Task.FromResult(false);
         }
 
-        try
-        {
-            using NamedPipeClientStream client = new(".", PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-            using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(TimeSpan.FromSeconds(12));
-            await client.ConnectAsync(timeout.Token);
-            if (!IsLocalSystemServer(client))
-            {
-                return false;
-            }
-
-            using StreamWriter writer = new(client, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
-            using StreamReader reader = new(client, Encoding.UTF8, leaveOpen: true);
-            PolicyChallenge? challenge = await ReadChallengeAsync(reader, timeout.Token);
-            if (challenge is null) return false;
-            byte[] key = AdminPinService.DeriveHash(pin, challenge.SaltBase64, challenge.Iterations);
-            string settingsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(settingsJson));
-            PolicyRequest payload = new("sync", pin, settingsBase64, null, null);
-            string request = CreateAuthenticatedRequest(payload, challenge.NonceBase64, key);
-            await writer.WriteLineAsync(request.AsMemory(), timeout.Token);
-            string? response = await reader.ReadLineAsync(timeout.Token);
-            return string.Equals(response, "OK", StringComparison.Ordinal);
-        }
-        catch
-        {
-            return false;
-        }
+        string settingsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(settingsJson));
+        return SendAuthenticatedRequestAsync(
+            new PolicyRequest("sync", pin, settingsBase64, null, null),
+            challenge => AdminPinService.DeriveHash(pin, challenge.SaltBase64, challenge.Iterations),
+            cancellationToken);
     }
 
-    public static async Task<bool> SyncGuardedPersonalAsync(
+    public static Task<bool> VerifyPinAsync(string pin, CancellationToken cancellationToken = default)
+    {
+        return !AdminPinService.IsValidFormat(pin)
+            ? Task.FromResult(false)
+            : SendAuthenticatedRequestAsync(
+                new PolicyRequest("verify-pin", pin, null, null, null),
+                challenge => AdminPinService.DeriveHash(pin, challenge.SaltBase64, challenge.Iterations),
+                cancellationToken);
+    }
+
+    public static Task<bool> SyncGuardedPersonalAsync(
         string settingsJson,
         AdminCredential credential,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(settingsJson) || !credential.IsConfigured)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
-        try
-        {
-            using NamedPipeClientStream client = new(".", PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
-            using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(TimeSpan.FromSeconds(12));
-            await client.ConnectAsync(timeout.Token);
-            if (!IsLocalSystemServer(client))
-            {
-                return false;
-            }
-
-            using StreamWriter writer = new(client, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
-            using StreamReader reader = new(client, Encoding.UTF8, leaveOpen: true);
-            PolicyChallenge? challenge = await ReadChallengeAsync(reader, timeout.Token);
-            if (challenge is null) return false;
-            byte[] key = Convert.FromBase64String(credential.HashBase64);
-            string settingsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(settingsJson));
-            PolicyRequest payload = new("sync-guarded", null, settingsBase64, null, null);
-            string request = CreateAuthenticatedRequest(payload, challenge.NonceBase64, key);
-            await writer.WriteLineAsync(request.AsMemory(), timeout.Token);
-            string? response = await reader.ReadLineAsync(timeout.Token);
-            return string.Equals(response, "OK", StringComparison.Ordinal);
-        }
-        catch
-        {
-            return false;
-        }
+        string settingsBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(settingsJson));
+        return SendAuthenticatedRequestAsync(
+            new PolicyRequest("sync-guarded", null, settingsBase64, null, null),
+            _ => Convert.FromBase64String(credential.HashBase64),
+            cancellationToken);
     }
 
-    public static async Task<bool> ResetPinWithRecoveryCodeAsync(
+    public static Task<bool> ResetPinWithRecoveryCodeAsync(
         string recoveryCode,
         AdminCredential newCredential,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(recoveryCode) || !newCredential.IsConfigured)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
+        return SendAuthenticatedRequestAsync(
+            new PolicyRequest("recovery-pin-reset", null, null, recoveryCode, newCredential),
+            _ => SHA256.HashData(Encoding.UTF8.GetBytes(NormalizeRecoveryCode(recoveryCode))),
+            cancellationToken);
+    }
+
+    private static async Task<bool> SendAuthenticatedRequestAsync(
+        PolicyRequest payload,
+        Func<PolicyChallenge, byte[]> keyFactory,
+        CancellationToken cancellationToken)
+    {
         try
         {
             using NamedPipeClientStream client = new(".", PipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
             using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromSeconds(12));
             await client.ConnectAsync(timeout.Token);
-            if (!IsLocalSystemServer(client))
-            {
-                return false;
-            }
+            if (!IsLocalSystemServer(client)) return false;
 
             using StreamWriter writer = new(client, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
             using StreamReader reader = new(client, Encoding.UTF8, leaveOpen: true);
             PolicyChallenge? challenge = await ReadChallengeAsync(reader, timeout.Token);
             if (challenge is null) return false;
-            byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes(NormalizeRecoveryCode(recoveryCode)));
-            PolicyRequest payload = new("recovery-pin-reset", null, null, recoveryCode, newCredential);
-            string request = CreateAuthenticatedRequest(payload, challenge.NonceBase64, key);
+            string request = CreateAuthenticatedRequest(payload, challenge.NonceBase64, keyFactory(challenge));
             await writer.WriteLineAsync(request.AsMemory(), timeout.Token);
-            string? response = await reader.ReadLineAsync(timeout.Token);
-            return string.Equals(response, "OK", StringComparison.Ordinal);
+            return string.Equals(await reader.ReadLineAsync(timeout.Token), "OK", StringComparison.Ordinal);
         }
         catch
         {
@@ -262,6 +233,27 @@ public static class ProtectionPolicyChannel
             return;
         }
 
+        if (string.Equals(request.Operation, "verify-pin", StringComparison.Ordinal))
+        {
+            bool verified = !string.IsNullOrWhiteSpace(request.Pin) &&
+                (AdminPinService.Verify(request.Pin, enrollment.AdminPin) ||
+                 enrollment.PreviousAdminPin is { IsConfigured: true } previousVerificationPin &&
+                 AdminPinService.Verify(request.Pin, previousVerificationPin));
+            if (verified)
+            {
+                ResetAuthenticationThrottle();
+                await AuditAsync("guardian.ipc.pin", "accepted", requestTimeout.Token);
+                await writer.WriteLineAsync("OK".AsMemory(), requestTimeout.Token);
+            }
+            else
+            {
+                RegisterAuthenticationFailure(throttle);
+                await AuditAsync("guardian.ipc.pin", "rejected", requestTimeout.Token);
+                await writer.WriteLineAsync("ERR".AsMemory(), requestTimeout.Token);
+            }
+            return;
+        }
+
         bool pinSync = string.Equals(request.Operation, "sync", StringComparison.Ordinal);
         bool guardedSync = string.Equals(request.Operation, "sync-guarded", StringComparison.Ordinal);
         if ((!pinSync && !guardedSync) ||
@@ -316,6 +308,11 @@ public static class ProtectionPolicyChannel
             return;
         }
 
+        if (candidate.AdminPin.IsPublicMarker)
+        {
+            candidate.AdminPin = enrollment.AdminPin;
+        }
+
         bool pinChanged = !CredentialsEqual(enrollment.AdminPin, candidate.AdminPin);
         if (pinChanged)
         {
@@ -327,10 +324,16 @@ public static class ProtectionPolicyChannel
             await WriteEnrollmentAtomicallyAsync(transition, requestTimeout.Token);
         }
 
+        byte[] protectedSettingsBytes = CreateProtectedPolicyBytes(candidate);
         await WriteBytesAtomicallyAsync(
             ProtectionServiceManager.ProtectedSettingsPath,
-            settingsBytes,
+            protectedSettingsBytes,
             requestTimeout.Token);
+        ProtectionServiceManager.HardenProtectedPolicyAcl(enrollment.UserSid);
+        if (!string.IsNullOrWhiteSpace(enrollment.SettingsPath))
+        {
+            await WriteBytesAtomicallyAsync(enrollment.SettingsPath, protectedSettingsBytes, requestTimeout.Token);
+        }
 
         GuardianEnrollment updatedEnrollment = enrollment with
         {
@@ -377,7 +380,7 @@ public static class ProtectionPolicyChannel
         }
 
         settings.AdminPin = request.NewCredential;
-        byte[] updatedSettings = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(settings, JsonOptions));
+        byte[] updatedSettings = CreateProtectedPolicyBytes(settings);
         GuardianEnrollment transition = enrollment with
         {
             AdminPin = request.NewCredential,
@@ -388,6 +391,11 @@ public static class ProtectionPolicyChannel
             ProtectionServiceManager.ProtectedSettingsPath,
             updatedSettings,
             cancellationToken);
+        ProtectionServiceManager.HardenProtectedPolicyAcl(enrollment.UserSid);
+        if (!string.IsNullOrWhiteSpace(enrollment.SettingsPath))
+        {
+            await WriteBytesAtomicallyAsync(enrollment.SettingsPath, updatedSettings, cancellationToken);
+        }
         await WriteEnrollmentAtomicallyAsync(transition with { PreviousAdminPin = null }, cancellationToken);
         ResetAuthenticationThrottle();
         await auditLog.AppendAsync("recovery.pin-reset", "accepted", cancellationToken);
@@ -522,7 +530,7 @@ public static class ProtectionPolicyChannel
         byte[] key;
         try
         {
-            key = request.Operation is "sync" or "sync-guarded"
+            key = request.Operation is "sync" or "sync-guarded" or "verify-pin"
                 ? Convert.FromBase64String(enrollment.AdminPin.HashBase64)
                 : string.Equals(request.Operation, "recovery-pin-reset", StringComparison.Ordinal) &&
                     !string.IsNullOrWhiteSpace(request.RecoveryCode)
@@ -581,6 +589,35 @@ public static class ProtectionPolicyChannel
         {
             return false;
         }
+    }
+
+    public static byte[] CreateProtectedPolicyBytes(ControlSettings settings)
+    {
+        ControlSettings copy = CreatePublicPolicy(settings);
+        return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(copy, JsonOptions));
+    }
+
+    public static ControlSettings CreatePublicPolicy(ControlSettings settings)
+    {
+        if (!ContainsUnredactedProtectedCredential(settings)) return settings;
+        string json = JsonSerializer.Serialize(settings, JsonOptions);
+        ControlSettings copy = JsonSerializer.Deserialize<ControlSettings>(json, JsonOptions)
+            ?? throw new InvalidOperationException("Policy could not be cloned.");
+        RedactProtectedCredential(copy);
+        return copy;
+    }
+
+    private static bool ContainsUnredactedProtectedCredential(ControlSettings settings) =>
+        settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured && !settings.AdminPin.IsPublicMarker ||
+        settings.PendingChange?.TargetSettings is { } target && ContainsUnredactedProtectedCredential(target);
+
+    private static void RedactProtectedCredential(ControlSettings settings)
+    {
+        if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured && !settings.AdminPin.IsPublicMarker)
+        {
+            settings.AdminPin = AdminPinService.CreatePublicMarker(settings.AdminPin);
+        }
+        if (settings.PendingChange?.TargetSettings is { } target) RedactProtectedCredential(target);
     }
 
     private static bool IsAuthorizedClient(NamedPipeServerStream server)
@@ -659,6 +696,7 @@ public static class ProtectionPolicyChannel
         {
             File.WriteAllText(temporary, JsonSerializer.Serialize(state));
             File.Move(temporary, ThrottleStatePath, overwrite: true);
+            ProtectionServiceManager.HardenSensitiveFileAcl(ThrottleStatePath);
         }
         finally
         {
@@ -687,13 +725,16 @@ public static class ProtectionPolicyChannel
         string.Equals(left.SaltBase64, right.SaltBase64, StringComparison.Ordinal) &&
         string.Equals(left.HashBase64, right.HashBase64, StringComparison.Ordinal);
 
-    private static Task WriteEnrollmentAtomicallyAsync(
+    private static async Task WriteEnrollmentAtomicallyAsync(
         GuardianEnrollment enrollment,
-        CancellationToken cancellationToken) =>
-        WriteBytesAtomicallyAsync(
+        CancellationToken cancellationToken)
+    {
+        await WriteBytesAtomicallyAsync(
             ProtectionServiceManager.EnrollmentPath,
             Encoding.UTF8.GetBytes(JsonSerializer.Serialize(enrollment)),
             cancellationToken);
+        ProtectionServiceManager.HardenSensitiveFileAcl(ProtectionServiceManager.EnrollmentPath);
+    }
 
     private static async Task WriteBytesAtomicallyAsync(
         string path,

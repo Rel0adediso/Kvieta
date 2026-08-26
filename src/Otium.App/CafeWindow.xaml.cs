@@ -187,7 +187,7 @@ public partial class CafeWindow : Window
             ?? (await new JsonSettingsStore().LoadAsync()).AdminPin;
         if (credential.IsConfigured)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(pin => AdminPinService.Verify(pin, credential));
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(pin => VerifyExitPinAsync(pin, credential));
             verification.Owner = this;
             _modalDialogOpen = true;
             try
@@ -643,7 +643,7 @@ public partial class CafeWindow : Window
             if (credential.IsConfigured)
             {
                 AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                    pin => AdminPinService.Verify(pin, credential));
+                    pin => VerifyExitPinAsync(pin, credential));
                 verification.Owner = this;
                 bool verified;
                 _modalDialogOpen = true;
@@ -746,11 +746,17 @@ public partial class CafeWindow : Window
         }
     }
 
+    private Task<bool> VerifyExitPinAsync(string pin, AdminCredential credential) =>
+        _requirePinToExit && ProtectionServiceManager.GetState() == ProtectionServiceState.Running
+            ? ProtectionPolicyChannel.VerifyPinAsync(pin)
+            : Task.FromResult(AdminPinService.Verify(pin, credential));
+
     private void Window_Closed(object? sender, EventArgs e)
     {
         _timer.Stop();
         _shortcutGuard.Dispose();
         _displayShieldManager.Dispose();
+        _viewModel.Dispose();
         _viewModel.SessionStateChanged -= ViewModel_SessionStateChanged;
         SystemEvents.SessionSwitch -= SystemEvents_SessionSwitch;
         SystemEvents.PowerModeChanged -= SystemEvents_PowerModeChanged;

@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>Otium</AssemblyName>
     <Product>Otium</Product>
-    <Description>Yerel ekran süresi ve oturum yönetimi</Description>
+    <Description>Local screen-time and session management for Windows</Description>
     <Version>1.0.0</Version>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="../Otium.Core/Otium.Core.csproj" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+    <PackageReference Include="System.Management" Version="10.0.0" />
     <AssemblyMetadata Include="RepositoryCommit" Value="$(RepositoryCommit)" Condition="'$(RepositoryCommit)' != ''" />
     <AssemblyMetadata Include="RepositoryDirty" Value="$(RepositoryDirty)" Condition="'$(RepositoryDirty)' != ''" />
   </ItemGroup>

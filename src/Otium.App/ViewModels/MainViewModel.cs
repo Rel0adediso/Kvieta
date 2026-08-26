@@ -14,6 +14,16 @@ namespace Otium.App.ViewModels;
 
 public sealed class MainViewModel : ObservableObject
 {
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new()
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+    private static readonly JsonSerializerOptions ComparableJsonOptions = new()
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
+    private static readonly string DefaultSettingsPath = new JsonSettingsStore().FilePath;
     private readonly JsonSettingsStore _settingsStore;
     private readonly JsonUsageStore _usageStore;
     private ControlSettings _settings = new();
@@ -488,7 +498,7 @@ public sealed class MainViewModel : ObservableObject
                     TargetSettings = desired
                 };
                 _settings = immediate;
-                await _settingsStore.SaveAsync(_settings);
+                await SaveUserSettingsAsync(_settings);
                 await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
                 if (policyChanged)
                 {
@@ -521,7 +531,7 @@ public sealed class MainViewModel : ObservableObject
             }
             _settings = desired;
 
-            await _settingsStore.SaveAsync(_settings);
+            await SaveUserSettingsAsync(_settings);
             await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
             if (policyChanged)
             {
@@ -593,19 +603,16 @@ public sealed class MainViewModel : ObservableObject
             "Application rule removed · Press Save to apply the change.");
     }
 
-    public bool VerifyAdminPin(string pin)
+    public Task<bool> VerifyAdminPinAsync(string pin)
     {
-        return AdminPinService.Verify(pin, _settings.AdminPin);
+        return IsProtectedMode && ProtectionServiceManager.GetState() == ProtectionServiceState.Running
+            ? ProtectionPolicyChannel.VerifyPinAsync(pin)
+            : Task.FromResult(AdminPinService.Verify(pin, _settings.AdminPin));
     }
 
     public string ExportSettingsJson()
     {
-        JsonSerializerOptions options = new()
-        {
-            WriteIndented = true,
-            Converters = { new JsonStringEnumConverter() }
-        };
-        return JsonSerializer.Serialize(_settings, options);
+        return JsonSerializer.Serialize(_settings, IndentedJsonOptions);
     }
 
     public ControlSettings CreateSettingsSnapshot() => CloneSettings(_settings);
@@ -613,7 +620,7 @@ public sealed class MainViewModel : ObservableObject
     public async Task RestoreSettingsAsync(ControlSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
-        await _settingsStore.SaveAsync(CloneSettings(settings));
+        await SaveUserSettingsAsync(CloneSettings(settings));
         await InitializeAsync();
     }
 
@@ -635,12 +642,7 @@ public sealed class MainViewModel : ObservableObject
     public async Task<string> ExportUsageJsonAsync()
     {
         UsageLedger ledger = await _usageStore.LoadAsync();
-        JsonSerializerOptions options = new()
-        {
-            WriteIndented = true,
-            Converters = { new JsonStringEnumConverter() }
-        };
-        return JsonSerializer.Serialize(ledger, options);
+        return JsonSerializer.Serialize(ledger, IndentedJsonOptions);
     }
 
     public async Task<string> ExportUsageCsvAsync()
@@ -767,12 +769,7 @@ public sealed class MainViewModel : ObservableObject
             },
             RecentSecurityEvents = auditEntries
         };
-        JsonSerializerOptions options = new()
-        {
-            WriteIndented = true,
-            Converters = { new JsonStringEnumConverter() }
-        };
-        return JsonSerializer.Serialize(report, options);
+        return JsonSerializer.Serialize(report, IndentedJsonOptions);
     }
 
     public async Task ClearUsageHistoryAsync()
@@ -810,7 +807,7 @@ public sealed class MainViewModel : ObservableObject
     public async Task<IReadOnlyList<string>> GenerateRecoveryCodesAsync()
     {
         IReadOnlyList<string> codes = RecoveryCodeService.Generate(_settings);
-        await _settingsStore.SaveAsync(_settings);
+        await SaveUserSettingsAsync(_settings);
         return codes;
     }
 
@@ -860,7 +857,7 @@ public sealed class MainViewModel : ObservableObject
                 ApplyAfterUtc = DateTimeOffset.UtcNow.AddMinutes(_settings.PersonalChangeDelayMinutes),
                 TargetSettings = target
             };
-            await _settingsStore.SaveAsync(_settings);
+            await SaveUserSettingsAsync(_settings);
             NotifyPendingChange();
             RefreshOverview();
             StatusMessage = BuildPendingStatusMessage();
@@ -1201,12 +1198,12 @@ public sealed class MainViewModel : ObservableObject
 
     private static bool SettingsEquivalent(ControlSettings left, ControlSettings right)
     {
-        JsonSerializerOptions options = new() { Converters = { new JsonStringEnumConverter() } };
         ControlSettings leftCopy = CloneSettings(left);
         ControlSettings rightCopy = CloneSettings(right);
         leftCopy.PendingChange = null;
         rightCopy.PendingChange = null;
-        return JsonSerializer.Serialize(leftCopy, options) == JsonSerializer.Serialize(rightCopy, options);
+        return JsonSerializer.Serialize(leftCopy, ComparableJsonOptions) ==
+            JsonSerializer.Serialize(rightCopy, ComparableJsonOptions);
     }
 
     private static void MergeImmediateChangesIntoPendingTarget(
@@ -1296,7 +1293,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         _settings.PendingChange = null;
-        await _settingsStore.SaveAsync(_settings);
+        await SaveUserSettingsAsync(_settings);
         NotifyPendingChange();
         StatusMessage = L("Bekleyen değişiklik iptal edildi", "Pending change canceled");
     }
@@ -1311,7 +1308,7 @@ public sealed class MainViewModel : ObservableObject
         }
 
         _settings.PendingChange.ApplyAfterUtc = DateTimeOffset.UtcNow.AddSeconds(-1);
-        await _settingsStore.SaveAsync(_settings);
+        await SaveUserSettingsAsync(_settings);
         await InitializeAsync();
         StatusMessage = L("Test atlaması · Bekleyen değişiklik hemen uygulandı", "Test bypass · Pending change applied now");
         return true;
@@ -1780,6 +1777,18 @@ public sealed class MainViewModel : ObservableObject
             .Where(item => item.Date == DateOnly.FromDateTime(DateTime.Today))
             .Sum(item => item.BonusMinutes);
         return Math.Clamp(regular + temporary, 0, 1440);
+    }
+
+    private Task SaveUserSettingsAsync(ControlSettings settings)
+    {
+        bool isDefaultUserStore = string.Equals(
+            Path.GetFullPath(_settingsStore.FilePath),
+            Path.GetFullPath(DefaultSettingsPath),
+            StringComparison.OrdinalIgnoreCase);
+        return _settingsStore.SaveAsync(
+            isDefaultUserStore && File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+                ? ProtectionPolicyChannel.CreatePublicPolicy(settings)
+                : settings);
     }
 
     private static string FormatMinutes(int minutes)

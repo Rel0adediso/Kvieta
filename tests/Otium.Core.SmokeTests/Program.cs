@@ -60,6 +60,15 @@ Assert(protectedSetupSettings.AdminPin.IsConfigured &&
        AdminPinService.Verify("2468", protectedSetupSettings.AdminPin) &&
        protectedSetup.LaunchArguments == "--session",
     "Kurucu Korumalı mod PIN'ini veya başlangıç yüzeyini hazırlamadı.");
+string protectedCredentialHash = protectedSetupSettings.AdminPin.HashBase64;
+string protectedCredentialSalt = protectedSetupSettings.AdminPin.SaltBase64;
+ControlSettings publicProtectedPolicy = ProtectionPolicyChannel.CreatePublicPolicy(protectedSetupSettings);
+Assert(publicProtectedPolicy.AdminPin.IsPublicMarker &&
+       publicProtectedPolicy.AdminPin.IsConfigured &&
+       !AdminPinService.Verify("2468", publicProtectedPolicy.AdminPin) &&
+       publicProtectedPolicy.AdminPin.HashBase64 != protectedCredentialHash &&
+       publicProtectedPolicy.AdminPin.SaltBase64 != protectedCredentialSalt,
+    "Kullanıcı tarafından okunabilen korumalı politika çevrimdışı PIN doğrulayıcısını sızdırıyor.");
 ControlSettings existingSetupSettings = new()
 {
     SetupCompleted = true,

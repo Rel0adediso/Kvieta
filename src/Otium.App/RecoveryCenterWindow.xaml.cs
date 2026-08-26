@@ -41,9 +41,20 @@ public partial class RecoveryCenterWindow : Window
         InstallerHealthLabel.Text = "INSTALLER";
         GuardianHealthLabel.Text = "GUARDIAN";
         DataHealthLabel.Text = english ? "LOCAL DATA" : "YEREL VERİ";
+        Loaded += (_, _) => FitToWorkingArea();
     }
 
     public RecoveryCenterAction? SelectedAction { get; private set; }
+
+    private void FitToWorkingArea()
+    {
+        System.Drawing.Rectangle area = System.Windows.Forms.Screen.FromHandle(
+            new System.Windows.Interop.WindowInteropHelper(this).Handle).WorkingArea;
+        MaxWidth = Math.Max(MinWidth, area.Width);
+        MaxHeight = Math.Max(MinHeight, area.Height);
+        Width = Math.Min(Width, MaxWidth);
+        Height = Math.Min(Height, MaxHeight);
+    }
 
     private void TrustClock_Click(object sender, RoutedEventArgs e) => Select(RecoveryCenterAction.TrustCurrentClock);
     private void RestoreSettings_Click(object sender, RoutedEventArgs e) => Select(RecoveryCenterAction.RestoreSettings);

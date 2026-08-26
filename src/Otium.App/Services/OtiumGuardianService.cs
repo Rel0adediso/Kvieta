@@ -32,6 +32,7 @@ public sealed class OtiumGuardianService : ServiceBase
 
     protected override void OnStart(string[] args)
     {
+        ProtectionServiceManager.MigrateCredentialStorage();
         TryAudit("guardian.service", "started");
         _cancellation = new CancellationTokenSource();
         _worker = Task.WhenAll(

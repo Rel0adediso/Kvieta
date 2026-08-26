@@ -1,16 +1,54 @@
 using System.Diagnostics;
+using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
 using Otium.Core.Models;
 
 namespace Otium.App.Services;
 
-public sealed class ApplicationRuleEnforcer
+public sealed class ApplicationRuleEnforcer : IDisposable
 {
     private double _uncommittedSeconds;
+    private readonly object _observationGate = new();
+    private readonly Dictionary<int, ProcessObservation> _observations = [];
+    private IReadOnlyList<AppRule> _activeRules = [];
+    private ControlSettings? _activeSettings;
+    private readonly ManagementEventWatcher? _processStartWatcher;
+
+    public ApplicationRuleEnforcer()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        try
+        {
+            _processStartWatcher = new ManagementEventWatcher(
+                new WqlEventQuery("SELECT ProcessID, ParentProcessID FROM Win32_ProcessStartTrace"));
+            _processStartWatcher.EventArrived += ProcessStarted;
+            _processStartWatcher.Start();
+        }
+        catch
+        {
+            _processStartWatcher?.Dispose();
+            _processStartWatcher = null;
+        }
+    }
 
     public bool Enforce(ControlSettings settings, UsageLedger ledger, TimeSpan elapsed)
     {
+        lock (_observationGate)
+        {
+            bool settingsChanged = !ReferenceEquals(_activeSettings, settings);
+            if (settingsChanged)
+            {
+                _activeSettings = settings;
+                _activeRules = settings.AppRules.ToArray();
+                foreach (int processId in _observations.Keys.ToArray())
+                {
+                    _observations[processId] = _observations[processId] with { RuleId = null };
+                }
+            }
+            if (settingsChanged) ResolveObservedRules(recheckDirectRules: true);
+            PruneObservations();
+        }
         if (settings.Mode == ControlMode.Awareness || settings.AppRules.Count == 0) return false;
 
         _uncommittedSeconds += Math.Max(0, elapsed.TotalSeconds);
@@ -35,7 +73,8 @@ public sealed class ApplicationRuleEnforcer
                         process,
                         path,
                         TryGetParentProcessId(process),
-                        TryGetPackageFamilyName(process)));
+                        TryGetPackageFamilyName(process),
+                        TryGetStartTimeUtcTicks(process)));
                     continue;
                 }
             }
@@ -50,6 +89,19 @@ public sealed class ApplicationRuleEnforcer
             {
                 AppRule? rule = settings.AppRules.LastOrDefault(candidate =>
                     ApplicationIdentityService.MatchesRule(candidate, process.Path, process.PackageFamilyName));
+                if (rule is null)
+                {
+                    lock (_observationGate)
+                    {
+                        if (_observations.TryGetValue(process.Process.Id, out ProcessObservation? observation) &&
+                            process.StartTimeUtcTicks != 0 &&
+                            observation.StartTimeUtcTicks == process.StartTimeUtcTicks &&
+                            observation.RuleId is { } ruleId)
+                        {
+                            rule = settings.AppRules.LastOrDefault(candidate => candidate.Id == ruleId);
+                        }
+                    }
+                }
                 if (rule is not null) matched[process.Process.Id] = rule;
             }
 
@@ -67,6 +119,22 @@ public sealed class ApplicationRuleEnforcer
                     }
                 }
             } while (addedChild);
+
+            lock (_observationGate)
+            {
+                foreach (ProcessSnapshot process in processes)
+                {
+                    Guid? ruleId = matched.TryGetValue(process.Process.Id, out AppRule? rule) ? rule.Id : null;
+                    _observations[process.Process.Id] = new ProcessObservation(
+                        process.Process.Id,
+                        process.ParentProcessId,
+                        process.Path,
+                        process.PackageFamilyName,
+                        process.StartTimeUtcTicks,
+                        DateTimeOffset.UtcNow,
+                        ruleId);
+                }
+            }
 
             HashSet<Guid> runningTrackedRules = [];
             foreach (ProcessSnapshot process in processes)
@@ -92,6 +160,89 @@ public sealed class ApplicationRuleEnforcer
         }
     }
 
+    public void Dispose()
+    {
+        if (_processStartWatcher is null) return;
+        try { _processStartWatcher.Stop(); }
+        catch { }
+        _processStartWatcher.EventArrived -= ProcessStarted;
+        _processStartWatcher.Dispose();
+    }
+
+    private void ProcessStarted(object sender, EventArrivedEventArgs e)
+    {
+        try
+        {
+            int processId = checked((int)(uint)e.NewEvent["ProcessID"]);
+            int parentProcessId = checked((int)(uint)e.NewEvent["ParentProcessID"]);
+            using Process process = Process.GetProcessById(processId);
+            string? path = process.MainModule?.FileName;
+            if (string.IsNullOrWhiteSpace(path)) return;
+            string? packageFamilyName = TryGetPackageFamilyName(process);
+            long startTime = TryGetStartTimeUtcTicks(process);
+            lock (_observationGate)
+            {
+                AppRule? directRule = _activeRules.LastOrDefault(candidate =>
+                    ApplicationIdentityService.MatchesRule(candidate, path, packageFamilyName));
+                _observations[processId] = new ProcessObservation(
+                    processId,
+                    parentProcessId,
+                    path,
+                    packageFamilyName,
+                    startTime,
+                    DateTimeOffset.UtcNow,
+                    directRule?.Id);
+                ResolveObservedRules(recheckDirectRules: false);
+            }
+        }
+        catch
+        {
+            // Snapshot enforcement remains available when a short-lived process cannot be inspected.
+        }
+    }
+
+    private void ResolveObservedRules(bool recheckDirectRules)
+    {
+        if (recheckDirectRules)
+        {
+            foreach (int processId in _observations.Keys.ToArray())
+            {
+                ProcessObservation observation = _observations[processId];
+                AppRule? directRule = _activeRules.LastOrDefault(candidate =>
+                    ApplicationIdentityService.MatchesRule(candidate, observation.Path, observation.PackageFamilyName));
+                if (directRule is not null) _observations[processId] = observation with { RuleId = directRule.Id };
+            }
+        }
+
+        bool changed;
+        do
+        {
+            changed = false;
+            foreach (int processId in _observations.Keys.ToArray())
+            {
+                ProcessObservation child = _observations[processId];
+                if (child.RuleId is not null || child.ParentProcessId is not { } parentId ||
+                    !_observations.TryGetValue(parentId, out ProcessObservation? parent) ||
+                    parent.RuleId is not { } parentRuleId ||
+                    parent.ObservedAtUtc > child.ObservedAtUtc ||
+                    child.ObservedAtUtc - parent.ObservedAtUtc > TimeSpan.FromMinutes(10)) continue;
+                AppRule? rule = _activeRules.LastOrDefault(candidate => candidate.Id == parentRuleId);
+                if (rule?.IncludeChildProcesses != true) continue;
+                _observations[processId] = child with { RuleId = parentRuleId };
+                changed = true;
+            }
+        } while (changed);
+    }
+
+    private void PruneObservations()
+    {
+        DateTimeOffset cutoff = DateTimeOffset.UtcNow.AddMinutes(-10);
+        foreach (int processId in _observations.Where(pair => pair.Value.ObservedAtUtc < cutoff).Select(pair => pair.Key).ToArray())
+        {
+            _observations.Remove(processId);
+        }
+    }
+
     private static int? TryGetParentProcessId(Process process)
     {
         try
@@ -106,6 +257,12 @@ public sealed class ApplicationRuleEnforcer
             return status == 0 ? checked((int)information.InheritedFromUniqueProcessId) : null;
         }
         catch { return null; }
+    }
+
+    private static long TryGetStartTimeUtcTicks(Process process)
+    {
+        try { return process.StartTime.ToUniversalTime().Ticks; }
+        catch { return 0; }
     }
 
     private static string? TryGetPackageFamilyName(Process process)
@@ -156,5 +313,15 @@ public sealed class ApplicationRuleEnforcer
         Process Process,
         string Path,
         int? ParentProcessId,
-        string? PackageFamilyName);
+        string? PackageFamilyName,
+        long StartTimeUtcTicks);
+
+    private sealed record ProcessObservation(
+        int ProcessId,
+        int? ParentProcessId,
+        string Path,
+        string? PackageFamilyName,
+        long StartTimeUtcTicks,
+        DateTimeOffset ObservedAtUtc,
+        Guid? RuleId);
 }
