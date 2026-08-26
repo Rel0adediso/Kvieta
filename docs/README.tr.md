@@ -12,12 +12,31 @@ Yerel, sakin ve hesap gerektirmeyen Windows ekran süresi yönetimi.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/veri-bu%20cihazda-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/sürüm-v1.0.0--alpha-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/sürüm-v1.0.0--alpha.1-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/geliştirme-AI%20destekli-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
 
 > Otium, bilgisayar kullanımını cezalandırmak yerine zamanı görünür ve yönetilebilir hale getirir. Bulut hesabı istemez; planlar, kurallar ve kullanım geçmişi cihazda kalır.
+
+## Alpha.1'i indir
+
+[**Windows x64 için Otium Setup'ı indir**](https://github.com/Rel0adediso/Otium/releases/download/v1.0.0-alpha.1/Otium-Setup-1.0.0-alpha.1.exe)
+
+`v1.0.0-alpha.1`, gerçek cihaz testleri için hazırlanan ilk community
+prerelease'tir. Kurucu self-contained çalışır, Türkçe ve English destekler ve
+.NET SDK gerektirmez. Paket bilerek imzalanmamıştır; bu nedenle Windows
+SmartScreen **Bilinmeyen yayıncı** uyarısı gösterebilir.
+
+Setup EXE'yi çalıştırmadan önce doğrulayın:
+
+```text
+SHA-256: 8736c995fc3e7add6020c30fdc2fbf2d10d1aaaf1786cd64d9b10acfb3d76260
+```
+
+Bağımsız MSI, checksum dosyaları, release manifesti, ayrıntılı notlar ve bilinen
+sınırlar
+[v1.0.0-alpha.1 yayın sayfasında](https://github.com/Rel0adediso/Otium/releases/tag/v1.0.0-alpha.1) bulunur.
 
 ## Neden Otium?
 
@@ -90,22 +109,15 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 
 ## Güncel durum
 
-**v1.0.0-alpha — aktif geliştirme**
+**v1.0.0-alpha.1 — saha testindeki community prerelease**
 
-- Release build: `0` uyarı, `0` hata
-- Tek dosyalık, self-contained Windows paketi
-- Türkçe ve English kaynakları eşleşiyor
-- Veri kurtarma, migration, dosya kilidi ve eşzamanlı yazma smoke testleri mevcut
-- v0.16 Ritim temeli tamamlandı: açık rızalı, yalnız yerel ön plan uygulaması farkındalığı ve ayrı kural sayaçları
-- v0.16.1 kısa, erişilebilir ve işlevsel Otium hareket dili tamamlandı
-- v0.17 isteğe bağlı masaüstü kısayolu, MSI yönetimli Guardian, korumalı kaldırma, doğrulanan güncelleme paketleri, rollback ve downgrade engeliyle tamamlandı
-- v0.18 sertleştirmesi tamamlandı: Public pakette test kilit açma yolu yok; tek kullanımlık kurtarma kodları Windows yönetici onayıyla PIN sıfırlayabiliyor
-- Guardian IPC imzalı kurulu istemciyi doğruluyor; nonce/HMAC/replay koruması, kalıcı bekleme ve yerel güvenlik audit'i kullanıyor
-- Monotonic saat denetimi reboot/saat dilimi değişimini ileri/geri saat manipülasyonundan ayırıyor ve yönetici kurtarma yolu bırakıyor
-- Uygulama Kimliği 2.0 yol, güvenilir publisher, original filename, ürün bilgisi, isteğe bağlı SHA-256, package family, launcher ve alt süreç ilişkilerini birleştiriyor
-- Guardian sağlık kontrolü, güvenli onarım ve özel veri içermeyen tanılama dışa aktarımı tamamlandı
-- Gerçek Windows testinde Guardian, sonlandırılan korumalı oturumu ve çöken servisi otomatik olarak yeniden ayağa kaldırdı
-- Public dağıtım güveni, installer yaşam döngüsü, reboot, uyku/hibernation ve çoklu monitör doğrulaması bekleniyor
+- Release community paketi development/test bypass içermiyor.
+- Yerel kalite kapıları ve eşleşen GitHub Actions build/package işleri geçiyor.
+- Setup EXE, MSI, checksum ve release manifesti `4dd94ca` kaynak commit'ine bağlı.
+- Ayar migration'ı, recovery, Guardian iletişimi, uygulama kuralları ve oturum davranışı otomatik regresyon testlerine sahip.
+- Temel korumalı yüzey davranışı iki fiziksel monitör testini geçti.
+- Temiz kurulum, Guardian enrollment, süre dolması, repair ve uninstall ayrı bir Windows cihazında doğrulanıyor.
+- Geniş Windows yaşam döngüsü, kaçış yolları, DPI ve installer matrisi final `v1.0.0` öncesinde açık.
 
 Kalan v1.0 doğrulamaları ve sonraki hedefler için [güncel yol haritasına](ROADMAP.md), sürümler arasındaki farklar için [sürüm notlarına](RELEASE_NOTES.md) bakın.
 

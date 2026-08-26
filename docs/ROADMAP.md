@@ -65,6 +65,8 @@ bulunmadıkça yeni büyük özellik eklenmez.
   MSI, self-contained publish, manifest ve SHA-256 kontrolleri geçti.
 - Nihai `4dd94ca` release commit'inde aynı iki GitHub Actions işi yeniden geçti;
   bu commit'e bağlı paket `v1.0.0-alpha.1` prerelease olarak yayımlandı.
+- English ve Türkçe README; Alpha.1 indirme bağlantısı, doğrulama hash'i,
+  imzasız paket uyarısı ve saha testi durumuyla güncellendi.
 - Temel iki fiziksel ekran kullanımında oturum yüzeyi ve ekran kalkanları
   başarıyla denendi.
 - Süre dolduğunda Windows oturumunu tekrar tekrar kapatan eylem kaldırıldı;

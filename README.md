@@ -12,12 +12,31 @@ Calm, local-first screen-time management for Windows — no account required.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/version-v1.0.0--alpha-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/version-v1.0.0--alpha.1-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
 
 > Otium makes computer time visible and manageable without turning it into punishment. Plans, rules, and usage history remain on the device; no cloud account is required.
+
+## Download Alpha.1
+
+[**Download Otium Setup for Windows x64**](https://github.com/Rel0adediso/Otium/releases/download/v1.0.0-alpha.1/Otium-Setup-1.0.0-alpha.1.exe)
+
+`v1.0.0-alpha.1` is the first community prerelease for real-device testing. The
+installer is self-contained, supports English and Turkish, and does not require
+the .NET SDK. It is intentionally unsigned, so Windows SmartScreen may show an
+**Unknown publisher** warning.
+
+Verify the Setup EXE before running it:
+
+```text
+SHA-256: 8736c995fc3e7add6020c30fdc2fbf2d10d1aaaf1786cd64d9b10acfb3d76260
+```
+
+The standalone MSI, checksum files, release manifest, full notes, and known
+limitations are available on the
+[v1.0.0-alpha.1 release page](https://github.com/Rel0adediso/Otium/releases/tag/v1.0.0-alpha.1).
 
 ## Why Otium?
 
@@ -90,23 +109,15 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 
 ## Current status
 
-**v1.0.0-alpha — active development**
+**v1.0.0-alpha.1 — community prerelease in field testing**
 
-- Release build: `0` warnings, `0` errors
-- Single-file, self-contained Windows package
-- Matching Turkish and English localization resources
-- Smoke coverage for recovery, migration, locking, concurrent writes, overnight schedules, and pending policy merges
-- Hardened Guardian IPC, protected policy synchronization, ProgramData access, and credential transitions
-- Completed v0.16 rhythm foundation with opt-in, local-only foreground app awareness and separate policy counters
-- Completed v0.16.1 motion language with short, accessible, non-blocking transitions and micro-interactions
-- Completed v0.17 installer lifecycle with an optional desktop shortcut, MSI-managed Guardian, protected uninstall, verified update packages, rollback, and downgrade prevention
-- Completed v0.18 hardening: public builds contain no test unlock path; one-time recovery codes can reset the PIN after Windows administrator approval
-- Guardian IPC verifies the signed installed client and uses nonce/HMAC/replay protection with persistent throttling and local security audit
-- Monotonic clock checks distinguish reboot/time-zone changes from forward/rollback manipulation and retain an administrator recovery path
-- Application Identity 2.0 combines path, trusted publisher, original filename, product metadata, optional SHA-256, package family, launcher, and child-process relationships
-- Guardian health checks, safe repair, and privacy-safe diagnostic export are complete
-- Real Windows tests confirmed automatic recovery after terminating the protected session and crashing the Guardian service
-- Public distribution trust, installer lifecycle, reboot, sleep/hibernate, and multi-monitor validation remain open
+- The Release community package contains no development/test bypass.
+- Local quality gates and the matching GitHub Actions build/package jobs pass.
+- Setup EXE, MSI, checksums, and the release manifest are tied to source commit `4dd94ca`.
+- Settings migration, recovery, Guardian communication, application rules, and session behavior have automated regression coverage.
+- Basic protected-surface behavior passed a physical two-monitor test.
+- Clean install, Guardian enrollment, expiry behavior, repair, and uninstall are now being validated on a separate Windows device.
+- The wider Windows lifecycle, escape-path, DPI, and installer matrix remains open before final `v1.0.0`.
 
 See the [current roadmap](docs/ROADMAP.md) for the remaining v1.0 validation and post-release goals, and the [release notes](docs/RELEASE_NOTES.md) for changes between versions.
 
