@@ -115,8 +115,8 @@ The final `v1.0.0` tag will only be created after the remaining Windows escape-p
 ### Known Alpha.1 limitations and final V1 blockers
 
 - Balanced session-surface recovery has been hardened and passed the initial single-monitor manual test; Explorer restart, virtual desktops, and the wider repeatable Windows matrix remain open.
-- The unsigned community packaging path is ready, but the final Alpha.1 artifact must still be rebuilt from and matched to the release commit before publication.
-- Clean install, Protected Guardian enrollment, repair, and uninstall require the minimum real-package Alpha.1 pass. Upgrade and rollback remain part of the broader final V1 matrix.
+- The unsigned community packaging path is ready, but the published Alpha.1 artifact must be built from and matched to its release commit.
+- Clean install, Protected Guardian enrollment, expiry behavior, repair, and uninstall are the first post-publication Alpha.1 field tests on a separate Windows device. Upgrade and rollback remain part of the broader final V1 matrix.
 - Reboot, Win+L, sleep, hibernation, Explorer restart, user switching, Remote Desktop, multiple monitors, and standard-user scenarios remain in the final Windows matrix.
 
 ### Validation completed
