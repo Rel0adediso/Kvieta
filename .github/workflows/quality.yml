@@ -55,6 +55,26 @@ jobs:
         shell: pwsh
         run: dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Release --no-build
 
+      - name: Verify development bypasses are absent
+        shell: pwsh
+        run: ./scripts/verify-public-build.ps1
+
+      - name: Publish public single-file executable
+        shell: pwsh
+        run: |
+          dotnet publish src/Otium.App/Otium.App.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            --no-restore `
+            -p:Version=1.0.0 `
+            -p:PublishSingleFile=true `
+            -p:PublishDir='${{ runner.temp }}\otium-public\'
+
+      - name: Verify public publish output
+        shell: pwsh
+        run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\otium-public' -ExpectedVersion 1.0.0
+
   package:
     name: Package alpha installer
     runs-on: windows-latest
@@ -77,14 +97,13 @@ jobs:
         shell: pwsh
         run: ./scripts/build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel 1.0.0-alpha
 
-      - name: Verify embedded MSI
+      - name: Verify package manifest
         shell: pwsh
         run: |
-          $setup = Resolve-Path './artifacts/installer-test/1.0.0/Otium-Setup-1.0.0-alpha.exe'
-          $process = Start-Process -FilePath $setup -ArgumentList '--verify-package' -PassThru -Wait
-          if ($process.ExitCode -ne 0) {
-            throw "Embedded MSI verification failed with exit code $($process.ExitCode)."
-          }
+          ./scripts/verify-release-manifest.ps1 `
+            -ManifestPath './artifacts/installer-test/1.0.0/release-manifest.json' `
+            -ExpectedCommit '${{ github.sha }}' `
+            -ExpectedPackageKind test
 
       - name: Upload test package
         uses: actions/upload-artifact@v4
@@ -93,4 +112,3 @@ jobs:
           path: artifacts/installer-test/1.0.0/
           if-no-files-found: error
           retention-days: 7
-

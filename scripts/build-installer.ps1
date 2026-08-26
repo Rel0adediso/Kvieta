@@ -187,21 +187,32 @@ Set-Content -LiteralPath $checksumPath -Value "$($hash.Hash.ToLowerInvariant()) 
 $setupHash = Get-FileHash -LiteralPath $setup -Algorithm SHA256
 Set-Content -LiteralPath "$setup.sha256" -Value "$($setupHash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($setup))" -Encoding ascii
 
-$manifestPath = Join-Path $installerOutputDirectory 'release-manifest.json'
-$manifest = [ordered]@{
-    schemaVersion = 1
-    product = 'Otium'
-    version = $Version
-    architecture = 'win-x64'
-    package = [IO.Path]::GetFileName($installer)
-    setup = [IO.Path]::GetFileName($setup)
-    sizeBytes = (Get-Item -LiteralPath $installer).Length
-    setupSizeBytes = (Get-Item -LiteralPath $setup).Length
-    sha256 = $hash.Hash.ToLowerInvariant()
-    setupSha256 = $setupHash.Hash.ToLowerInvariant()
-    signerThumbprint = $normalizedThumbprint.ToLowerInvariant()
+& (Join-Path $PSScriptRoot 'verify-package-metadata.ps1') `
+    -InstallerPath $installer `
+    -SetupPath $setup `
+    -ExpectedVersion $Version `
+    -ExpectedReleaseLabel $Version `
+    -ExpectedSignerThumbprint $normalizedThumbprint `
+    -RequireSignature
+if ($LASTEXITCODE -ne 0) {
+    throw "Release package metadata verification failed with exit code $LASTEXITCODE."
 }
-$manifest | ConvertTo-Json | Set-Content -LiteralPath $manifestPath -Encoding utf8
+
+$manifestPath = Join-Path $installerOutputDirectory 'release-manifest.json'
+& (Join-Path $PSScriptRoot 'write-release-manifest.ps1') `
+    -OutputPath $manifestPath `
+    -InstallerPath $installer `
+    -SetupPath $setup `
+    -Version $Version `
+    -ReleaseLabel $Version `
+    -PackageKind public `
+    -SignerThumbprint $normalizedThumbprint
+if ($LASTEXITCODE -ne 0) {
+    throw "Release manifest generation failed with exit code $LASTEXITCODE."
+}
+& (Join-Path $PSScriptRoot 'verify-release-manifest.ps1') `
+    -ManifestPath $manifestPath `
+    -ExpectedPackageKind public
 
 Write-Output "Installer: $installer"
 Write-Output "Setup:     $setup"

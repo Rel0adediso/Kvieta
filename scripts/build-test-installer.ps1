@@ -101,8 +101,33 @@ Set-Content -LiteralPath "$setup.sha256" `
     -Value "$($setupHash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($setup))" `
     -Encoding ascii
 
+& (Join-Path $PSScriptRoot 'verify-package-metadata.ps1') `
+    -InstallerPath $installer `
+    -SetupPath $setup `
+    -ExpectedVersion $Version `
+    -ExpectedReleaseLabel $ReleaseLabel
+if ($LASTEXITCODE -ne 0) {
+    throw "Test package metadata verification failed with exit code $LASTEXITCODE."
+}
+
+$manifestPath = Join-Path $installerOutputDirectory 'release-manifest.json'
+& (Join-Path $PSScriptRoot 'write-release-manifest.ps1') `
+    -OutputPath $manifestPath `
+    -InstallerPath $installer `
+    -SetupPath $setup `
+    -Version $Version `
+    -ReleaseLabel $ReleaseLabel `
+    -PackageKind test
+if ($LASTEXITCODE -ne 0) {
+    throw "Test release manifest generation failed with exit code $LASTEXITCODE."
+}
+& (Join-Path $PSScriptRoot 'verify-release-manifest.ps1') `
+    -ManifestPath $manifestPath `
+    -ExpectedPackageKind test
+
 Write-Warning 'This package is unsigned and must only be used for local development testing.'
 Write-Output "Test setup:     $setup"
 Write-Output "Setup SHA-256:  $($setupHash.Hash.ToLowerInvariant())"
 Write-Output "Test installer: $installer"
 Write-Output "SHA-256:      $($hash.Hash.ToLowerInvariant())"
+Write-Output "Manifest:      $manifestPath"

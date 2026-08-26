@@ -130,10 +130,15 @@ Ardından son kullanıcı için MSI'yı içinde taşıyan self-contained
 `Otium-Setup-<version>.exe` üretimi eklendi; bağımsız MSI sessiz ve yönetilen
 dağıtımlar için korunmaya devam ediyor.
 
+Paket kalite kapısı MSI veritabanından ürün/sürüm/upgrade kimliğini, gömülü CAB'ı,
+Guardian servis kaydını ve uygulama içi kaldırma girişini doğrular. Setup dosya
+metadata'sı ile gömülü MSI ayrıca sınanır. Şema v2 release manifesti kaynak commit'i,
+paket türünü, dosya boyutlarını ve iki artifact'in SHA-256 değerini birbirine bağlar.
+
 Yapılacaklar:
 
 - İmzasız geliştirme MSI'sında temiz kurulum, açılış, Guardian ve kaldırma akışını doğrulama.
-- EXE/MSI boyutu, sıkıştırma seviyesi ve build süresini release raporuna ekleme.
+- Build süresini release raporuna ekleme; EXE/MSI boyutları artık manifestte kayıtlı.
 - Windows SDK signing tools içinden `signtool.exe` kurma.
 - Temiz kurulum, upgrade, repair, uninstall, rollback ve downgrade engelini tekrar çalıştırma.
 - MSI hatasında kullanıcı verisi ile korunan policy alanlarının bozulmadığını doğrulama.
@@ -215,18 +220,19 @@ P0 işleriyle paralel ilerleyebilir; final public release öncesinde tamamlanmas
 
 #### CI ve otomatik kalite kapıları
 
-**Durum:** İlk GitHub Actions kalite hattı hazır; GitHub üzerindeki ilk gerçek koşu bekleniyor.
+**Durum:** GitHub Actions kalite hattı gerçek Windows runner üzerinde başarıyla doğrulandı ve genişletiliyor.
 
 Her `main` push'u, pull request ve elle başlatılan koşu Windows üzerinde restore ve
 NuGet audit, format doğrulaması, Debug/Release build, iki yapı türünde smoke test,
-test installer üretimi ve gömülü MSI doğrulaması çalıştırır. Başarılı test paketi
+public single-file publish doğrulaması, test installer üretimi, MSI metadata ve
+release manifesti doğrulaması çalıştırır. Başarılı test paketi
 yedi gün saklanan CI artifact'i olarak yüklenir; aynı branch'teki eski koşular iptal
 edilerek gereksiz kaynak tüketimi önlenir.
 
-- GitHub üzerindeki ilk koşuyu doğrulayıp gerekirse runner farklarını düzeltme.
-- Public build'de development unlock kodunun bulunmadığını smoke test dışında ayrıca ikili çıktı üzerinden doğrulama.
-- NuGet zafiyet taraması ve dependency güncelleme bildirimi ekleme.
-- Self-contained publish çıktısını doğrulama.
+- İlk runner koşusunda bulunan saat dilimi bağımlılığı giderildi; takip eden koşu tamamen geçti.
+- Public assembly'de development unlock metodu, sembolü veya kullanıcı metni bulunmadığını ikili çıktı üzerinden doğrulama tamamlandı; bu kontrol CI kalite kapısına bağlandı.
+- NuGet zafiyet taraması ve haftalık NuGet/GitHub Actions Dependabot bildirimi eklendi.
+- Self-contained public publish çıktısının tek EXE, PE kimliği, boyut ve sürüm doğrulaması eklendi.
 - İmzalama sırlarını yalnız korumalı release ortamında kullanma.
 - Başarısız kalite kapısıyla release oluşturulmasını engelleme.
 

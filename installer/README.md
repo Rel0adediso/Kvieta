@@ -57,7 +57,21 @@ Build an unsigned development installer for local testing (never for distributio
 
 Test installers are written to `artifacts\installer-test\<version>`. They contain
 the development build (including its explicit test bypass) and are intentionally
-separate from signed release artifacts.
+separate from signed release artifacts. Both test and public pipelines inspect the
+generated MSI database for product identity, version, upgrade code, embedded CAB,
+Guardian service registration, and the in-app uninstall entry point. The setup EXE
+is also checked for matching file metadata and a valid embedded MSI before output
+is accepted.
+
+Every output directory contains a schema-v2 `release-manifest.json` that binds the
+release label and source commit to the exact file size and SHA-256 of both Setup EXE
+and MSI. Validate it without installing anything:
+
+```powershell
+.\scripts\verify-release-manifest.ps1 `
+  -ManifestPath .\artifacts\installer-test\1.0.0\release-manifest.json `
+  -ExpectedPackageKind test
+```
 
 The user-facing `Otium-Setup-<release-label>.exe` is a self-contained, bilingual WPF
 setup experience with the MSI embedded inside it. It follows the Windows app
