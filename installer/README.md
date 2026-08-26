@@ -52,12 +52,22 @@ cannot reliably process a Windows user profile path containing Turkish character
 Build an unsigned development installer for local testing (never for distribution):
 
 ```powershell
-.\scripts\build-test-installer.ps1 -Version 1.0.0
+.\scripts\build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel 1.0.0-alpha
 ```
 
 Test installers are written to `artifacts\installer-test\<version>`. They contain
 the development build (including its explicit test bypass) and are intentionally
 separate from signed release artifacts.
+
+The user-facing `Otium-Setup-<release-label>.exe` is a self-contained, bilingual WPF
+setup experience with the MSI embedded inside it. It follows the Windows app
+theme, explains Otium, detects existing settings, collects mode-specific first-run
+choices, requests elevation only for the MSI transaction, saves settings only
+after a successful install, and launches the correct Otium surface. The standalone
+MSI remains beside it for managed and unattended deployment.
+Development packages explicitly allow reinstalling another build with the same
+numeric MSI version, so alpha iterations do not pretend to be patch releases.
+Signed public builds keep same-version upgrades disabled.
 
 On an interactive first install, the completion page offers a checked-by-default
 option to launch Otium. The launch action runs as the installing user and is not

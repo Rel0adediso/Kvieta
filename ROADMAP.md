@@ -2,7 +2,7 @@
 
 **Son güncelleme:** 26 Ağustos 2026
 
-**Mevcut sürüm:** `v1.0.0-rc.1`
+**Mevcut sürüm:** `v1.0.0-alpha`
 
 **Aktif hedef:** Güvenilir, imzalı ve tekrar üretilebilir `v1.0.0` Windows sürümü
 
@@ -118,7 +118,7 @@ Kabul kriteri:
 
 #### 3. Installer üretim hattı
 
-**Durum:** Devam ediyor; tekrar üretilebilir test MSI'sı hazır, gerçek kurulum yaşam döngüsü testi bekliyor.
+**Durum:** Devam ediyor; MSI gömülü tek dosyalık test kurucusu hazır, gerçek kurulum yaşam döngüsü testi bekliyor.
 
 26 Ağustos 2026'da `smartcab` sorunu Windows'un yerel CAB araçlarının Türkçe
 karakter içeren kullanıcı geçici yolunu güvenilir işleyememesine kadar indirildi.
@@ -126,6 +126,9 @@ Build kapsamındaki `TEMP`/`TMP`, WiX girdi, ara ve çıktı yolları ASCII stag
 dizinine alınarak paketleme yaklaşık dokuz saniyede tamamlandı. Dağıtıma kapalı,
 Debug geçitli imzasız MSI için ayrı `build-test-installer.ps1` komutu eklendi;
 üretilen paket ve SHA-256 çıktısı release artifact'lerinden ayrıldı.
+Ardından son kullanıcı için MSI'yı içinde taşıyan self-contained
+`Otium-Setup-<version>.exe` üretimi eklendi; bağımsız MSI sessiz ve yönetilen
+dağıtımlar için korunmaya devam ediyor.
 
 Yapılacaklar:
 
@@ -143,18 +146,25 @@ Kabul kriteri:
 
 #### 4. Açıklamalı kurulum sihirbazı
 
-**Durum:** Devam ediyor; kurulum sonrası uygulamayı başlatma eklendi, açıklamalı ilk ayar akışı açık.
+**Durum:** Devam ediyor; tam sihirbaz uygulandı, gerçek temiz kurulum/upgrade doğrulaması bekliyor.
+
+26 Ağustos 2026'da Windows açık/koyu uygulama temasını canlı izleyen, ilk adımda
+Türkçe/English seçtiren ve bütün sonraki metinleri seçilen dilde gösteren markalı
+WPF kurucu tamamlandı. Kurucu Otium'u ve yerel veri sınırını açıklar; mevcut ayarı
+algılar; korumasız kullanıcıya mevcut ayarları koruma veya yeniden yapılandırma
+seçeneği sunar; Guardian politikasının kurucu üzerinden gevşetilmesini engeller.
+Yeni yapılandırmada üç kullanım biçimi, kişisel koruma seviyesi, cihaz adı, günlük
+süre, yerel ölçüm, Windows başlangıcı, masaüstü kısayolu ve gerektiğinde yönetici
+PIN'i alınır. Özet onayından sonra yönetici izni yalnız MSI işlemi için istenir,
+ayarlar yalnız başarılı kurulumdan sonra atomik olarak kaydedilir ve Otium seçilen
+modun doğru başlangıç yüzeyiyle açılır.
 
 Yapılacaklar:
 
-- Otium ve Guardian'ın ne kurduğunu, yönetici izninin neden gerektiğini açıklama.
-- Üç kullanım biçimini sonuçlarıyla gösterme.
-- Önerilen kurulum ile gelişmiş seçenekleri ayırma.
-- Windows ile başlatma ve kısayol seçeneklerini açıkça seçtirme.
-- Kurulum öncesi özet ve kurulum sonrası başlangıç yönlendirmesi sunma.
-- İlk kurulum sonunda varsayılan seçili seçenekle Otium'u normal kullanıcı olarak başlatma.
+- Temiz kurulum ve 1.0.0 → 1.0.1 upgrade akışını gerçek kurucu üzerinden doğrulama.
+- Korumalı/Gözetimli seçimde MSI sonrası Guardian enrollment ve oturum açılışını doğrulama.
+- Kurulum iptali/hatasında ayarların değişmediğini ve tanılama logunun kaldığını doğrulama.
 - Upgrade, repair ve uninstall öncesinde kullanıcı verisine ne olacağını açıklama.
-- Türkçe ve İngilizce metinleri aynı kapsamda sunma.
 
 Kabul kriteri:
 
@@ -384,7 +394,7 @@ uygulama geliştirmesi başlatılmaz.
 - Gizlilik güvenli tanılama dışa aktarma.
 - Installer repair, policy recovery ve Guardian kill/crash iyileştirmeleri.
 
-### v1.0.0-rc.1 — Kullanım biçimleri ve release candidate
+### v1.0.0-alpha — Kullanım biçimleri ve alpha hazırlığı
 
 - Üç kullanıcı odaklı kullanım biçimi.
 - Flexible, Balanced ve Guardian destekli Guarded kişisel koruma.

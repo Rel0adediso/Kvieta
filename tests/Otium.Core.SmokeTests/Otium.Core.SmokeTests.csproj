@@ -10,5 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Otium.Core/Otium.Core.csproj" />
     <ProjectReference Include="../../src/Otium.App/Otium.App.csproj" />
+    <ProjectReference Include="../../src/Otium.SetupApp/Otium.SetupApp.csproj" />
   </ItemGroup>
 </Project>

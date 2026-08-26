@@ -7,5 +7,16 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>Otium.Setup</AssemblyName>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <InformationalVersion Condition="'$(InformationalVersion)' == ''">1.0.0-alpha</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Otium.Core/Otium.Core.csproj" />
+    <EmbeddedResource Include="$(OtiumInstallerPath)"
+                      LogicalName="Otium.Payload.msi"
+                      Condition="'$(OtiumInstallerPath)' != '' and Exists('$(OtiumInstallerPath)')" />
+  </ItemGroup>
 </Project>

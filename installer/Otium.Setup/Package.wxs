@@ -12,6 +12,7 @@
 
     <SummaryInformation Description="Otium local screen-time awareness and control" />
     <MajorUpgrade
+      AllowSameVersionUpgrades="$(var.OtiumAllowSameVersionUpgrades)"
       DowngradeErrorMessage="A newer version of Otium is already installed." />
     <!-- Otium.exe is already a compressed single-file bundle. MSZIP keeps the MSI
          self-contained without applying the much slower default LZX recompression. -->

@@ -34,6 +34,8 @@
     <sys:String x:Key="NoHistoryApplications">No application usage data yet.</sys:String>
     <sys:String x:Key="NoHistoryEvents">No activity has been recorded yet.</sys:String>
     <sys:String x:Key="UninstallTitle">Uninstall Otium</sys:String>
+    <sys:String x:Key="UninstallSettingsDescription">Starts the Windows uninstall flow. Protected usage requires the administrator PIN; local usage history is preserved.</sys:String>
+    <sys:String x:Key="UninstallAction">Uninstall application</sys:String>
     <sys:String x:Key="UninstallConfirmation">Uninstall Otium from this computer? Your local usage data will be preserved.</sys:String>
     <sys:String x:Key="UninstallLaunchFailed">Uninstall could not be started. Check the Windows administrator permission.</sys:String>
     <sys:String x:Key="UninstallNotAvailableDescription">This copy of Otium was not installed by Windows Installer.</sys:String>

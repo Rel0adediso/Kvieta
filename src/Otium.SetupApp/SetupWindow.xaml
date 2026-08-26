@@ -1,34 +1,203 @@
 <Window x:Class="Otium.SetupApp.SetupWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Width="960" Height="600" MinWidth="820" MinHeight="520"
+        Width="1020" Height="660" MinWidth="880" MinHeight="570"
         WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize"
-        Background="Transparent" AllowsTransparency="True" Title="Otium Setup">
-    <Border Background="{StaticResource BackgroundBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="16">
+        Background="Transparent" AllowsTransparency="True" Title="Otium Setup"
+        Loaded="Window_Loaded" Closed="Window_Closed" Closing="Window_Closing">
+    <Border Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1" CornerRadius="16">
         <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="48" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                <Grid Margin="18,0,10,0"><StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Border Width="24" Height="24" Background="{StaticResource PrimaryBrush}" CornerRadius="8"><TextBlock Text="O" Foreground="#171A12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><TextBlock Text="Otium" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" /></StackPanel><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="—" Width="36" Background="Transparent" Foreground="{StaticResource MutedTextBrush}" BorderThickness="0" Click="Minimize_Click" /><Button Content="×" Width="36" Background="Transparent" Foreground="{StaticResource MutedTextBrush}" BorderThickness="0" FontSize="18" Click="Close_Click" /></StackPanel></Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="18,0,10,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="24" Height="24" Background="{DynamicResource PrimaryBrush}" CornerRadius="8">
+                            <TextBlock Text="O" Foreground="#171A12" FontWeight="Bold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Otium Setup" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="—" Width="36" Background="Transparent" Foreground="{DynamicResource MutedTextBrush}"
+                                BorderThickness="0" Click="Minimize_Click" />
+                        <Button x:Name="CloseButton" Content="×" Width="36" Background="Transparent"
+                                Foreground="{DynamicResource MutedTextBrush}" BorderThickness="0" FontSize="18"
+                                Click="Close_Click" />
+                    </StackPanel>
+                </Grid>
             </Border>
 
             <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="310" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <Border Background="#171A13" CornerRadius="0,0,0,15" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-                    <Grid Margin="38"><Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><StackPanel VerticalAlignment="Center"><Border Width="62" Height="62" Background="{StaticResource PrimaryBrush}" CornerRadius="20" HorizontalAlignment="Left"><TextBlock Text="O" Foreground="#171A12" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><TextBlock Text="Otium" FontSize="31" FontWeight="SemiBold" Margin="0,22,0,0" /><TextBlock Text="Zamanın üzerinde yeniden söz sahibi ol." Foreground="{StaticResource MutedTextBrush}" FontSize="14" TextWrapping="Wrap" LineHeight="22" Margin="0,10,0,0" /><Border Background="{StaticResource PrimarySoftBrush}" CornerRadius="9" Padding="13,10" Margin="0,34,0,0"><StackPanel Orientation="Horizontal"><Ellipse Width="7" Height="7" Fill="{StaticResource PrimaryBrush}" Margin="0,0,9,0" /><TextBlock Text="Verilerin yalnızca bu cihazda" FontSize="11" Foreground="{StaticResource MutedTextBrush}" /></StackPanel></Border></StackPanel><TextBlock Grid.Row="1" Text="Otium · v1.0" Foreground="#747A69" FontSize="10" /></Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="300" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Background="{DynamicResource SidebarBrush}" CornerRadius="0,0,0,15"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+                    <Grid Margin="36">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <StackPanel>
+                            <Border Width="58" Height="58" Background="{DynamicResource PrimaryBrush}"
+                                    CornerRadius="19" HorizontalAlignment="Left">
+                                <TextBlock Text="O" Foreground="#171A12" FontSize="28" FontWeight="Bold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="Otium" FontSize="30" FontWeight="SemiBold" Margin="0,20,0,0" />
+                            <TextBlock x:Name="SidebarTagline" Text="Her şeyin bir zamanı var."
+                                       Foreground="{DynamicResource MutedTextBrush}" FontSize="13"
+                                       TextWrapping="Wrap" LineHeight="21" Margin="0,8,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                            <TextBlock x:Name="StepLabel" Text="ADIM 1 / 7" Foreground="{DynamicResource PrimaryBrush}"
+                                       FontSize="10" FontWeight="SemiBold" />
+                            <ProgressBar x:Name="StepProgress" Minimum="1" Maximum="7" Value="1" Height="4"
+                                         Margin="0,10,0,18" Foreground="{DynamicResource PrimaryBrush}"
+                                         Background="{DynamicResource PrimarySoftBrush}" />
+                            <TextBlock x:Name="StepTitle" Text="Dil seçimi" FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock x:Name="StepDescription" Text="Kurulum ve Otium aynı dilde devam eder."
+                                       Foreground="{DynamicResource MutedTextBrush}" FontSize="11"
+                                       TextWrapping="Wrap" LineHeight="18" Margin="0,6,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="2">
+                            <Border Background="{DynamicResource PrimarySoftBrush}" CornerRadius="9" Padding="12,9">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="7" Height="7" Fill="{DynamicResource PrimaryBrush}" Margin="0,0,9,0" />
+                                    <TextBlock x:Name="LocalDataText" Text="Veriler yalnızca bu cihazda"
+                                               FontSize="10.5" Foreground="{DynamicResource MutedTextBrush}" />
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="VersionText" Text="Otium · 1.0.0-alpha" Foreground="{DynamicResource FaintTextBrush}"
+                                       FontSize="10" Margin="0,14,0,0" />
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
-                <Grid x:Name="LanguagePanel" Grid.Column="1" Margin="54,42,54,38">
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <TextBlock Text="Dilini seç · Choose your language" FontSize="27" FontWeight="SemiBold" />
-                    <TextBlock Grid.Row="1" Text="Kurulum ve ilk ayarlar seçtiğin dilde devam edecek." Foreground="{StaticResource MutedTextBrush}" FontSize="13" Margin="0,10,0,0" />
-                    <StackPanel Grid.Row="2" VerticalAlignment="Center">
-                        <Button x:Name="TurkishButton" Style="{StaticResource LanguageCard}" Click="Turkish_Click" Margin="0,0,0,14"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="44" /><ColumnDefinition Width="*" /><ColumnDefinition Width="28" /></Grid.ColumnDefinitions><Border Width="34" Height="34" Background="#8E332C" CornerRadius="17"><TextBlock Text="TR" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" Margin="14,0"><TextBlock Text="Türkçe" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="Kuruluma Türkçe devam et" Foreground="{StaticResource MutedTextBrush}" FontSize="11" Margin="0,4,0,0" /></StackPanel><TextBlock x:Name="TurkishCheck" Grid.Column="2" Text="✓" Foreground="{StaticResource PrimaryBrush}" FontSize="18" Visibility="Collapsed" VerticalAlignment="Center" /></Grid></Button>
-                        <Button x:Name="EnglishButton" Style="{StaticResource LanguageCard}" Click="English_Click"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="44" /><ColumnDefinition Width="*" /><ColumnDefinition Width="28" /></Grid.ColumnDefinitions><Border Width="34" Height="34" Background="#334966" CornerRadius="17"><TextBlock Text="EN" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" Margin="14,0"><TextBlock Text="English" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="Continue setup in English" Foreground="{StaticResource MutedTextBrush}" FontSize="11" Margin="0,4,0,0" /></StackPanel><TextBlock x:Name="EnglishCheck" Grid.Column="2" Text="✓" Foreground="{StaticResource PrimaryBrush}" FontSize="18" Visibility="Collapsed" VerticalAlignment="Center" /></Grid></Button>
-                    </StackPanel>
-                    <Grid Grid.Row="3"><TextBlock x:Name="PrivacyText" Text="Dil seçimini daha sonra Ayarlar'dan değiştirebilirsin." Foreground="{StaticResource MutedTextBrush}" FontSize="11" VerticalAlignment="Center" /><Button x:Name="ContinueButton" Content="Devam et" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" IsEnabled="False" Click="Continue_Click" /></Grid>
-                </Grid>
+                <Grid Grid.Column="1" Margin="52,38,52,34">
+                    <Grid x:Name="LanguagePanel">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" /><RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="LanguageTitle" Text="Dilini seç · Choose your language" FontSize="27" FontWeight="SemiBold" />
+                        <TextBlock x:Name="LanguageDescription" Grid.Row="1" Text="Kurulum ve ilk ayarlar seçtiğin dilde devam edecek."
+                                   Foreground="{DynamicResource MutedTextBrush}" FontSize="13" Margin="0,9,0,0" />
+                        <StackPanel Grid.Row="2" VerticalAlignment="Center">
+                            <Button x:Name="TurkishButton" Style="{StaticResource LanguageCard}"
+                                    Click="Turkish_Click" Margin="0,0,0,14">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="46" /><ColumnDefinition Width="*" /><ColumnDefinition Width="28" /></Grid.ColumnDefinitions>
+                                    <Border Width="36" Height="36" Background="#8E332C" CornerRadius="18"><TextBlock Text="TR" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                                    <StackPanel Grid.Column="1" Margin="14,0"><TextBlock Text="Türkçe" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="Kuruluma Türkçe devam et" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,4,0,0" /></StackPanel>
+                                    <TextBlock x:Name="TurkishCheck" Grid.Column="2" Text="✓" Foreground="{DynamicResource PrimaryBrush}" FontSize="18" Visibility="Collapsed" VerticalAlignment="Center" />
+                                </Grid>
+                            </Button>
+                            <Button x:Name="EnglishButton" Style="{StaticResource LanguageCard}" Click="English_Click">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="46" /><ColumnDefinition Width="*" /><ColumnDefinition Width="28" /></Grid.ColumnDefinitions>
+                                    <Border Width="36" Height="36" Background="#334966" CornerRadius="18"><TextBlock Text="EN" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                                    <StackPanel Grid.Column="1" Margin="14,0"><TextBlock Text="English" FontSize="16" FontWeight="SemiBold" /><TextBlock Text="Continue setup in English" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,4,0,0" /></StackPanel>
+                                    <TextBlock x:Name="EnglishCheck" Grid.Column="2" Text="✓" Foreground="{DynamicResource PrimaryBrush}" FontSize="18" Visibility="Collapsed" VerticalAlignment="Center" />
+                                </Grid>
+                            </Button>
+                        </StackPanel>
+                        <Button x:Name="LanguageNextButton" Grid.Row="3" Content="Devam et"
+                                Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right"
+                                IsEnabled="False" Click="LanguageNext_Click" />
+                    </Grid>
 
-                <Grid x:Name="WelcomePanel" Grid.Column="1" Margin="54,42,54,38" Visibility="Collapsed"><StackPanel VerticalAlignment="Center"><TextBlock x:Name="WelcomeEyebrow" Text="KURULUMA HAZIR" Foreground="{StaticResource PrimaryBrush}" FontSize="11" FontWeight="SemiBold" /><TextBlock x:Name="WelcomeTitle" Text="Otium'a hoş geldin." FontSize="32" FontWeight="SemiBold" Margin="0,12,0,0" /><TextBlock x:Name="WelcomeDescription" Text="Sonraki ekranda kullanım biçimini ve başlangıç ayarlarını birlikte seçeceğiz." Foreground="{StaticResource MutedTextBrush}" FontSize="14" TextWrapping="Wrap" LineHeight="23" Margin="0,12,0,30" /><Button x:Name="BackButton" Content="Dili değiştir" Style="{StaticResource LanguageCard}" HorizontalAlignment="Left" Padding="18,10" Click="Back_Click" /></StackPanel></Grid>
+                    <Grid x:Name="WelcomePanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="WelcomeEyebrow" Text="SAKİN · YEREL · SENİN KONTROLÜNDE"
+                                       Foreground="{DynamicResource PrimaryBrush}" FontSize="10.5" FontWeight="SemiBold" />
+                            <TextBlock x:Name="WelcomeTitle" Text="Otium'a hoş geldin." FontSize="32" FontWeight="SemiBold" Margin="0,12,0,0" />
+                            <TextBlock x:Name="WelcomeDescription" Text="Otium ekran süreni cihazında ölçer; istersen yalnızca gösterir, istersen verdiğin kararlara sadık kalmana yardım eder."
+                                       Foreground="{DynamicResource MutedTextBrush}" FontSize="14" TextWrapping="Wrap" LineHeight="23" Margin="0,12,0,24" />
+                            <UniformGrid Columns="3">
+                                <Border Style="{StaticResource FeatureBox}" Margin="0,0,8,0"><StackPanel><TextBlock Text="◷" FontSize="21" Foreground="{DynamicResource PrimaryBrush}" /><TextBlock x:Name="FeatureLocalTitle" Text="Yerel ölçüm" FontWeight="SemiBold" Margin="0,10,0,0" /><TextBlock x:Name="FeatureLocalText" Text="Uygulama adı ve kullanım süresi cihazında ölçülür. Hesap veya bulut gerekmez." Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" FontSize="11" LineHeight="17" Margin="0,5,0,0" /></StackPanel></Border>
+                                <Border Style="{StaticResource FeatureBox}" Margin="4,0"><StackPanel><TextBlock Text="◎" FontSize="21" Foreground="{DynamicResource PrimaryBrush}" /><TextBlock x:Name="FeatureChoiceTitle" Text="Üç kullanım biçimi" FontWeight="SemiBold" Margin="0,10,0,0" /><TextBlock x:Name="FeatureChoiceText" Text="Yalnız takip et, kendi planına destek al veya kuralları Guardian ile koru." Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" FontSize="11" LineHeight="17" Margin="0,5,0,0" /></StackPanel></Border>
+                                <Border Style="{StaticResource FeatureBox}" Margin="8,0,0,0"><StackPanel><TextBlock Text="◇" FontSize="21" Foreground="{DynamicResource PrimaryBrush}" /><TextBlock x:Name="FeaturePrivateTitle" Text="İçerik kaydı yok" FontWeight="SemiBold" Margin="0,10,0,0" /><TextBlock x:Name="FeaturePrivateText" Text="Pencere başlıklarını, yazdıklarını veya ekran görüntülerini hiçbir zaman saklamaz." Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" FontSize="11" LineHeight="17" Margin="0,5,0,0" /></StackPanel></Border>
+                            </UniformGrid>
+                        </StackPanel>
+                        <Grid Grid.Row="1"><Button x:Name="WelcomeBackButton" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="WelcomeBack_Click" /><Button x:Name="WelcomeNextButton" Content="Devam et" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="WelcomeNext_Click" /></Grid>
+                    </Grid>
+
+                    <Grid x:Name="ExistingPanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBlock x:Name="ExistingTitle" Text="Bu cihazda Otium ayarları bulundu." FontSize="27" FontWeight="SemiBold" />
+                        <TextBlock x:Name="ExistingDescription" Grid.Row="1" Text="Kullanım geçmişin silinmez. Mevcut ayarlarla devam edebilir veya ayarları baştan yapılandırabilirsin." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,9,0,0" />
+                        <StackPanel Grid.Row="2" VerticalAlignment="Center">
+                            <Button x:Name="KeepExistingButton" Style="{StaticResource LanguageCard}" Click="KeepExisting_Click" Margin="0,0,0,14"><StackPanel><TextBlock x:Name="KeepExistingTitle" Text="Mevcut ayarlarla devam et" FontSize="16" FontWeight="SemiBold" /><TextBlock x:Name="KeepExistingText" Text="Kurulumu yenile; modunu, kurallarını ve geçmişini koru." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
+                            <Button x:Name="ConfigureNewButton" Style="{StaticResource LanguageCard}" Click="ConfigureNew_Click"><StackPanel><TextBlock x:Name="ConfigureNewTitle" Text="Ayarları baştan yapılandır" FontSize="16" FontWeight="SemiBold" /><TextBlock x:Name="ConfigureNewText" Text="Mod ve başlangıç ayarlarını yeniden seç; geçmiş verilerine dokunma." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
+                            <TextBlock x:Name="ExistingSecurityNotice" Foreground="#D89A64" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0" />
+                        </StackPanel>
+                        <Button x:Name="ExistingBackButton" Grid.Row="3" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="ExistingBack_Click" />
+                    </Grid>
+
+                    <Grid x:Name="ModePanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBlock x:Name="ModeTitle" Text="Otium'u nasıl kullanacaksın?" FontSize="27" FontWeight="SemiBold" />
+                        <TextBlock x:Name="ModeDescription" Grid.Row="1" Text="İhtiyacına en yakın biçimi seç; ayrıntıları daha sonra değiştirebilirsin." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" Margin="0,9,0,0" />
+                        <UniformGrid Grid.Row="2" Columns="3" Margin="0,26,0,20">
+                            <Button x:Name="AwarenessButton" Style="{StaticResource ModeCard}" Margin="0,0,8,0" Click="Awareness_Click"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><TextBlock Text="◉" FontSize="23" Foreground="{DynamicResource PrimaryBrush}" /><TextBlock x:Name="AwarenessTitle" Grid.Row="1" Text="Sadece takip" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" /><TextBlock x:Name="AwarenessText" Grid.Row="2" Text="Kısıtlama olmadan hangi uygulamayı ne kadar kullandığını gör." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="18" Margin="0,8,0,0" /><TextBlock x:Name="AwarenessDetails" Grid.Row="3" Text="• Engel veya zorunlu mola yok&#10;• Başlangıç ritmi ve haftalık eğilim&#10;• Tüm veriler yalnız bu cihazda" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" LineHeight="20" Margin="0,18,0,0"/><TextBlock x:Name="AwarenessBestFor" Grid.Row="4" Text="En hafif başlangıç" Foreground="{DynamicResource PrimaryBrush}" FontSize="10.5" FontWeight="SemiBold" Margin="0,14,0,0"/></Grid></Button>
+                            <Button x:Name="PersonalButton" Style="{StaticResource ModeCard}" Margin="4,0" Click="Personal_Click"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><TextBlock Text="◇" FontSize="23" Foreground="{DynamicResource PrimaryBrush}" /><TextBlock x:Name="PersonalTitle" Grid.Row="1" Text="Kendim için" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" /><TextBlock x:Name="PersonalText" Grid.Row="2" Text="Odaklan ve kendi koyduğun sınırlara seçtiğin güçte bağlı kal." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="18" Margin="0,8,0,0" /><TextBlock x:Name="PersonalDetails" Grid.Row="3" Text="• Günlük plan, limit ve uygulama kuralları&#10;• Esnek, Dengeli veya Gözetimli düzey&#10;• Gevşetmeler seçtiğin süre kadar bekler" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" LineHeight="20" Margin="0,18,0,0"/><TextBlock x:Name="PersonalBestFor" Grid.Row="4" Text="Kendi kararlarına destek" Foreground="{DynamicResource PrimaryBrush}" FontSize="10.5" FontWeight="SemiBold" Margin="0,14,0,0"/></Grid></Button>
+                            <Button x:Name="ProtectedButton" Style="{StaticResource ModeCard}" Margin="8,0,0,0" Click="Protected_Click"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions><TextBlock Text="◆" FontSize="23" Foreground="{DynamicResource PrimaryBrush}" /><TextBlock x:Name="ProtectedTitle" Grid.Row="1" Text="Yönettiğim biri için" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" /><TextBlock x:Name="ProtectedText" Grid.Row="2" Text="Kuralları yönetici PIN'i ve Guardian ile koru." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="18" Margin="0,8,0,0" /><TextBlock x:Name="ProtectedDetails" Grid.Row="3" Text="• Ayarlar ve çıkış yönetici PIN'iyle korunur&#10;• Guardian kapatılan oturumu yeniden açar&#10;• Yönetici onayı olmadan gevşetilemez" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" LineHeight="20" Margin="0,18,0,0"/><TextBlock x:Name="ProtectedBestFor" Grid.Row="4" Text="Yönetilen Windows hesabı" Foreground="{DynamicResource PrimaryBrush}" FontSize="10.5" FontWeight="SemiBold" Margin="0,14,0,0"/></Grid></Button>
+                        </UniformGrid>
+                        <Grid Grid.Row="3"><Button x:Name="ModeBackButton" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="ModeBack_Click" /><Button x:Name="ModeNextButton" Content="Devam et" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" IsEnabled="False" Click="ModeNext_Click" /></Grid>
+                    </Grid>
+
+                    <Grid x:Name="PersonalPanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBlock x:Name="PersonalLevelTitle" Text="Ne kadar destek istersin?" FontSize="27" FontWeight="SemiBold" />
+                        <TextBlock x:Name="PersonalLevelDescription" Grid.Row="1" Text="Kendim için modunun davranışını seç." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" Margin="0,9,0,0" />
+                        <StackPanel Grid.Row="2" VerticalAlignment="Center">
+                            <Button x:Name="FlexibleButton" Style="{StaticResource LanguageCard}" Click="Flexible_Click" Margin="0,0,0,10"><StackPanel><TextBlock x:Name="FlexibleTitle" Text="Esnek" FontSize="15" FontWeight="SemiBold" /><TextBlock x:Name="FlexibleText" Text="Manuel odak oturumlarını istediğin zaman başlat, duraklat ve bitir." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
+                            <Button x:Name="BalancedButton" Style="{StaticResource LanguageCard}" Click="Balanced_Click" Margin="0,0,0,10"><StackPanel><TextBlock x:Name="BalancedTitle" Text="Dengeli · Önerilen" FontSize="15" FontWeight="SemiBold" /><TextBlock x:Name="BalancedText" Text="Planını uygular; kural gevşetmelerinde bekleme süresi kullanır." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
+                            <Button x:Name="GuardedButton" Style="{StaticResource LanguageCard}" Click="Guarded_Click"><StackPanel><TextBlock x:Name="GuardedTitle" Text="Gözetimli" FontSize="15" FontWeight="SemiBold" /><TextBlock x:Name="GuardedText" Text="Dengeli davranışa Windows Guardian süreç korumasını ekler." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
+                        </StackPanel>
+                        <Grid Grid.Row="3"><Button x:Name="PersonalBackButton" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="PersonalBack_Click" /><Button x:Name="PersonalNextButton" Content="Devam et" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="PersonalNext_Click" /></Grid>
+                    </Grid>
+
+                    <Grid x:Name="PreferencesPanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBlock x:Name="PreferencesTitle" Text="Başlangıç ayarları" FontSize="27" FontWeight="SemiBold" />
+                        <TextBlock x:Name="PreferencesDescription" Grid.Row="1" Text="İlk kullanım için temel tercihleri belirle." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" Margin="0,9,0,0" />
+                        <Grid Grid.Row="2" Margin="0,24,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="18" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock x:Name="DeviceNameLabel" Text="Cihaz adı" FontWeight="SemiBold" FontSize="12" /><TextBox x:Name="DeviceNameBox" Margin="0,7,0,18" /><TextBlock x:Name="DailyLimitLabel" Text="Günlük süre" FontWeight="SemiBold" FontSize="12" /><ComboBox x:Name="DailyLimitBox" SelectedIndex="2" Margin="0,7,0,0"><ComboBoxItem Tag="60">1 saat / 1 hour</ComboBoxItem><ComboBoxItem Tag="120">2 saat / 2 hours</ComboBoxItem><ComboBoxItem Tag="180">3 saat / 3 hours</ComboBoxItem><ComboBoxItem Tag="240">4 saat / 4 hours</ComboBoxItem><ComboBoxItem Tag="300">5 saat / 5 hours</ComboBoxItem></ComboBox></StackPanel>
+                            <StackPanel Grid.Column="2"><Border Style="{StaticResource FeatureBox}"><StackPanel><CheckBox x:Name="StartWithWindowsBox" Content="Windows ile başlat" IsChecked="True" /><TextBlock x:Name="StartWithWindowsHint" Text="Oturum açınca Otium arka planda hazır olur." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border><Border Style="{StaticResource FeatureBox}" Margin="0,10,0,0"><StackPanel><CheckBox x:Name="DesktopShortcutBox" Content="Masaüstü kısayolu oluştur" IsChecked="True" /><TextBlock x:Name="DesktopShortcutHint" Text="Otium'a masaüstünden hızlı erişim ekler." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border><Border Style="{StaticResource FeatureBox}" Margin="0,10,0,0"><StackPanel><CheckBox x:Name="TrackingBox" Content="Yerel uygulama ölçümünü etkinleştir" IsChecked="True" /><TextBlock x:Name="TrackingHint" Text="Yalnız uygulama adı ve süre; pencere başlığı veya içerik yok." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border></StackPanel>
+                        </Grid>
+                        <Grid Grid.Row="3"><Button x:Name="PreferencesBackButton" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="PreferencesBack_Click" /><Button x:Name="PreferencesNextButton" Content="Devam et" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="PreferencesNext_Click" /></Grid>
+                    </Grid>
+
+                    <Grid x:Name="PinPanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBlock x:Name="PinTitle" Text="Yönetici PIN'i oluştur" FontSize="27" FontWeight="SemiBold" />
+                        <TextBlock x:Name="PinDescription" Grid.Row="1" Text="Korumalı ayarları ve yönetici çıkışını güvenceye almak için 4–8 rakam belirle." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,9,0,0" />
+                        <StackPanel Grid.Row="2" Width="360" VerticalAlignment="Center" HorizontalAlignment="Center"><TextBlock x:Name="PinLabel" Text="PIN" FontWeight="SemiBold" FontSize="12" /><PasswordBox x:Name="PinBox" MaxLength="8" Margin="0,7,0,16" PasswordChanged="Pin_Changed" /><TextBlock x:Name="PinRepeatLabel" Text="PIN'i tekrar gir" FontWeight="SemiBold" FontSize="12" /><PasswordBox x:Name="PinRepeatBox" MaxLength="8" Margin="0,7,0,0" PasswordChanged="Pin_Changed" /><TextBlock x:Name="PinErrorText" Foreground="#D86B64" FontSize="11" Margin="0,9,0,0" /></StackPanel>
+                        <Grid Grid.Row="3"><Button x:Name="PinBackButton" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="PinBack_Click" /><Button x:Name="PinNextButton" Content="Devam et" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" IsEnabled="False" Click="PinNext_Click" /></Grid>
+                    </Grid>
+
+                    <Grid x:Name="SummaryPanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBlock x:Name="SummaryTitle" Text="Kuruluma hazır" FontSize="27" FontWeight="SemiBold" />
+                        <TextBlock x:Name="SummaryDescription" Grid.Row="1" Text="Seçimlerini kontrol et. Kur düğmesi yönetici izni isteyecek." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" Margin="0,9,0,0" />
+                        <Border Grid.Row="2" Style="{StaticResource SummaryBox}" Margin="0,24,0,18"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><StackPanel><TextBlock x:Name="SummaryModeLabel" Text="Kullanım biçimi" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" /><TextBlock x:Name="SummaryDeviceLabel" Text="Cihaz" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,18,0,0" /><TextBlock x:Name="SummaryLimitLabel" Text="Günlük süre" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,18,0,0" /><TextBlock x:Name="SummaryOptionsLabel" Text="Seçenekler" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,18,0,0" /></StackPanel><StackPanel Grid.Column="1"><TextBlock x:Name="SummaryModeValue" FontWeight="SemiBold" /><TextBlock x:Name="SummaryDeviceValue" FontWeight="SemiBold" Margin="0,18,0,0" /><TextBlock x:Name="SummaryLimitValue" FontWeight="SemiBold" Margin="0,18,0,0" /><TextBlock x:Name="SummaryOptionsValue" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,18,0,0" /></StackPanel></Grid></Border>
+                        <Grid Grid.Row="3"><Button x:Name="SummaryBackButton" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="SummaryBack_Click" /><Button x:Name="InstallButton" Content="Otium'u kur" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="Install_Click" /></Grid>
+                    </Grid>
+
+                    <Grid x:Name="InstallingPanel" Visibility="Collapsed"><StackPanel VerticalAlignment="Center"><TextBlock x:Name="InstallingEyebrow" Text="OTIUM KURULUYOR" Foreground="{DynamicResource PrimaryBrush}" FontSize="10.5" FontWeight="SemiBold" HorizontalAlignment="Center" /><TextBlock x:Name="InstallingTitle" Text="Her şeyi senin için hazırlıyoruz." FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,12,0,0" /><TextBlock x:Name="InstallingDescription" Text="Bu pencereyi kapatma. Windows yönetici izni isteyebilir." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" HorizontalAlignment="Center" Margin="0,9,0,24" /><ProgressBar IsIndeterminate="True" Height="6" Width="420" Foreground="{DynamicResource PrimaryBrush}" Background="{DynamicResource PrimarySoftBrush}" /></StackPanel></Grid>
+
+                    <Grid x:Name="ErrorPanel" Visibility="Collapsed"><StackPanel VerticalAlignment="Center"><Border Width="58" Height="58" Background="#3B211F" CornerRadius="18"><TextBlock Text="!" Foreground="#E18179" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><TextBlock x:Name="ErrorTitle" Text="Kurulum tamamlanamadı." FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,18,0,0" /><TextBlock x:Name="ErrorDescription" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="560" Margin="0,10,0,22" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><Button x:Name="ErrorBackButton" Content="Geri dön" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" Click="ErrorBack_Click" /><Button x:Name="RetryButton" Content="Tekrar dene" Style="{StaticResource PrimaryButton}" Click="Retry_Click" /></StackPanel></StackPanel></Grid>
+                </Grid>
             </Grid>
         </Grid>
     </Border>

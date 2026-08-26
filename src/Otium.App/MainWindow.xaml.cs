@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,6 +24,7 @@ public partial class MainWindow : Window
     private CafeWindow? _backgroundSessionWindow;
     private bool _ownsBackgroundSessionWindow;
     private bool _sessionEventsAttached;
+    private bool _allowCloseForUninstall;
     private Forms.NotifyIcon? _trayIcon;
     private TrayMenuWindow? _trayMenuWindow;
     private bool _isInitializing = true;
@@ -422,6 +424,27 @@ public partial class MainWindow : Window
     private void Maximize_Click(object sender, RoutedEventArgs e) => ToggleMaximize();
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void UninstallOtium_Click(object sender, RoutedEventArgs e)
+    {
+        string? executablePath = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            System.Windows.MessageBox.Show(LocalizationService.Get("UninstallLaunchFailed"), LocalizationService.Get("UninstallTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = executablePath, Arguments = "--uninstall", UseShellExecute = true });
+            _allowCloseForUninstall = true;
+            Close();
+        }
+        catch
+        {
+            System.Windows.MessageBox.Show(LocalizationService.Get("UninstallLaunchFailed"), LocalizationService.Get("UninstallTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 
     private void ToggleMaximize()
     {
@@ -1237,7 +1260,7 @@ public partial class MainWindow : Window
 
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
-        if ((_viewModel.IsPersonalMode || _viewModel.IsAwarenessMode) && _backgroundSessionWindow is not null)
+        if (!_allowCloseForUninstall && (_viewModel.IsPersonalMode || _viewModel.IsAwarenessMode) && _backgroundSessionWindow is not null)
         {
             e.Cancel = true;
             HideControlCenterToTray();

@@ -6,7 +6,8 @@
     <OtiumVersion Condition="'$(OtiumVersion)' == ''">1.0.0</OtiumVersion>
     <OtiumPublishDir Condition="'$(OtiumPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\win-x64</OtiumPublishDir>
     <OtiumSignerThumbprint Condition="'$(OtiumSignerThumbprint)' == ''">UNSIGNED-DEVELOPMENT-BUILD</OtiumSignerThumbprint>
-    <DefineConstants>OtiumVersion=$(OtiumVersion);OtiumPublishDir=$(OtiumPublishDir);OtiumSignerThumbprint=$(OtiumSignerThumbprint)</DefineConstants>
+    <OtiumAllowSameVersionUpgrades Condition="'$(OtiumAllowSameVersionUpgrades)' == ''">no</OtiumAllowSameVersionUpgrades>
+    <DefineConstants>OtiumVersion=$(OtiumVersion);OtiumPublishDir=$(OtiumPublishDir);OtiumSignerThumbprint=$(OtiumSignerThumbprint);OtiumAllowSameVersionUpgrades=$(OtiumAllowSameVersionUpgrades)</DefineConstants>
     <OutputName>Otium-$(OtiumVersion)-win-x64</OutputName>
   </PropertyGroup>
   <ItemGroup>

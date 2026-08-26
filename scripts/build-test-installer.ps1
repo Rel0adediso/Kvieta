@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '1.0.0'
+    [string]$Version = '1.0.0',
+
+    [ValidatePattern('^[0-9A-Za-z][0-9A-Za-z.-]*$')]
+    [string]$ReleaseLabel = '1.0.0-alpha'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -9,6 +12,7 @@ $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $publishedArtifactDirectory = Join-Path $repositoryRoot 'artifacts\publish-test\win-x64'
 $installerOutputDirectory = Join-Path $repositoryRoot "artifacts\installer-test\$Version"
 $applicationProject = Join-Path $repositoryRoot 'src\Otium.App\Otium.App.csproj'
+$setupProject = Join-Path $repositoryRoot 'src\Otium.SetupApp\Otium.SetupApp.csproj'
 $installerProject = Join-Path $repositoryRoot 'installer\Otium.Setup\Otium.Setup.wixproj'
 $dotnetCommand = Get-Command 'dotnet.exe' -ErrorAction SilentlyContinue
 $dotnet = if ($null -ne $dotnetCommand) {
@@ -26,6 +30,7 @@ $wixStagingDirectory = Join-Path $env:PUBLIC "OtiumBuildStaging\test\$Version"
 $publishDirectory = Join-Path $wixStagingDirectory 'publish'
 $wixIntermediateDirectory = Join-Path $wixStagingDirectory 'obj\'
 $wixOutputDirectory = Join-Path $wixStagingDirectory 'installer\'
+$setupPublishDirectory = Join-Path $wixStagingDirectory 'setup\'
 New-Item -ItemType Directory -Path $cabinetTempDirectory -Force | Out-Null
 $env:TEMP = $cabinetTempDirectory
 $env:TMP = $cabinetTempDirectory
@@ -52,6 +57,8 @@ Copy-Item -LiteralPath (Join-Path $publishDirectory 'Otium.exe') `
     -p:OtiumVersion=$Version `
     -p:OtiumPublishDir="$publishDirectory" `
     -p:OtiumSignerThumbprint=UNSIGNED-DEVELOPMENT-BUILD `
+    -p:OtiumAllowSameVersionUpgrades=yes `
+    -p:SuppressSpecificWarnings=1076 `
     -p:BaseIntermediateOutputPath="$wixIntermediateDirectory" `
     -p:OutputPath="$wixOutputDirectory"
 if ($LASTEXITCODE -ne 0) {
@@ -74,6 +81,28 @@ Set-Content -LiteralPath "$installer.sha256" `
     -Value "$($hash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($installer))" `
     -Encoding ascii
 
+& $dotnet publish $setupProject `
+    -c Release `
+    -r win-x64 `
+    --self-contained true `
+    -p:Version=$Version `
+    -p:InformationalVersion=$ReleaseLabel `
+    -p:OtiumInstallerPath="$stagedInstaller" `
+    -p:PublishDir="$setupPublishDirectory\"
+if ($LASTEXITCODE -ne 0) {
+    throw "Otium setup application publish failed with exit code $LASTEXITCODE."
+}
+
+$publishedSetup = Join-Path $setupPublishDirectory 'Otium.Setup.exe'
+$setup = Join-Path $installerOutputDirectory "Otium-Setup-$ReleaseLabel.exe"
+Copy-Item -LiteralPath $publishedSetup -Destination $setup -Force
+$setupHash = Get-FileHash -LiteralPath $setup -Algorithm SHA256
+Set-Content -LiteralPath "$setup.sha256" `
+    -Value "$($setupHash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($setup))" `
+    -Encoding ascii
+
 Write-Warning 'This package is unsigned and must only be used for local development testing.'
+Write-Output "Test setup:     $setup"
+Write-Output "Setup SHA-256:  $($setupHash.Hash.ToLowerInvariant())"
 Write-Output "Test installer: $installer"
 Write-Output "SHA-256:      $($hash.Hash.ToLowerInvariant())"

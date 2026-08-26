@@ -2,6 +2,7 @@ using Otium.Core.Models;
 using Otium.Core.Services;
 using Otium.App.ViewModels;
 using Otium.App.Services;
+using Otium.SetupApp;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -16,6 +17,59 @@ Assert(WindowsAdministratorVerificationService.IsAllowedAuditEvent("recovery.cod
     !WindowsAdministratorVerificationService.IsAllowedAuditEvent("arbitrary.command"),
     "Windows yönetici doğrulama yardımcısı audit olaylarını allowlist ile sınırlamıyor.");
 Assert(!settings.SetupCompleted, "Yeni kurulum, kullanım biçimi seçilmeden tamamlanmış görünmemeli.");
+SetupPlan awarenessSetup = new()
+{
+    Language = SetupLanguage.English,
+    Mode = ControlMode.Awareness,
+    DeviceName = "Test PC",
+    DailyLimitMinutes = 120,
+    StartWithWindows = true,
+    AwarenessTracking = false
+};
+ControlSettings awarenessSetupSettings = awarenessSetup.ComposeSettings(null);
+Assert(awarenessSetupSettings.SetupCompleted &&
+       awarenessSetupSettings.Mode == ControlMode.Awareness &&
+       awarenessSetupSettings.Language == LanguagePreference.English &&
+       awarenessSetupSettings.AwarenessTrackingEnabled &&
+       awarenessSetupSettings.Schedule.All(day => day.DailyLimitMinutes == 120) &&
+       awarenessSetup.LaunchArguments == string.Empty,
+    "Kurucu Sadece takip ayarlarını doğru oluşturmadı.");
+SetupPlan guardedSetup = new()
+{
+    Mode = ControlMode.Personal,
+    PersonalLevel = PersonalProtectionLevel.Guarded
+};
+ControlSettings guardedSetupSettings = guardedSetup.ComposeSettings(null);
+Assert(guardedSetupSettings.RequiresGuardian && guardedSetupSettings.AdminPin.IsConfigured &&
+       guardedSetup.LaunchArguments == "--session",
+    "Kurucu Gözetimli kişisel mod kimliğini veya başlangıç yüzeyini hazırlamadı.");
+SetupPlan protectedSetup = new() { Mode = ControlMode.Protected, AdminPin = "2468" };
+ControlSettings protectedSetupSettings = protectedSetup.ComposeSettings(null);
+Assert(protectedSetupSettings.AdminPin.IsConfigured &&
+       AdminPinService.Verify("2468", protectedSetupSettings.AdminPin) &&
+       protectedSetup.LaunchArguments == "--session",
+    "Kurucu Korumalı mod PIN'ini veya başlangıç yüzeyini hazırlamadı.");
+ControlSettings existingSetupSettings = new()
+{
+    SetupCompleted = true,
+    Mode = ControlMode.Personal,
+    PersonalProtectionLevel = PersonalProtectionLevel.Flexible,
+    DeviceName = "Korunan ad"
+};
+SetupPlan keepSetup = new()
+{
+    ExistingChoice = SetupChoice.KeepExisting,
+    Language = SetupLanguage.English,
+    Mode = ControlMode.Protected,
+    DeviceName = "Değişmemeli"
+};
+ControlSettings keptSettings = keepSetup.ComposeSettings(existingSetupSettings);
+Assert(ReferenceEquals(keptSettings, existingSetupSettings) &&
+       keptSettings.Mode == ControlMode.Personal &&
+       keptSettings.DeviceName == "Korunan ad" &&
+       keptSettings.Language == LanguagePreference.English &&
+       keepSetup.LaunchArguments == string.Empty,
+    "Kurucu mevcut ayarları koruma seçiminde politika alanlarını değiştirdi.");
 Assert(new ProtectionHealthReport(ProtectionServiceState.Running, []).IsHealthy,
     "Eksiksiz çalışan Guardian sağlık raporu sağlıklı sayılmadı.");
 Assert(!new ProtectionHealthReport(

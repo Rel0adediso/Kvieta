@@ -34,6 +34,8 @@
     <sys:String x:Key="NoHistoryApplications">Henüz uygulama kullanım verisi oluşmadı.</sys:String>
     <sys:String x:Key="NoHistoryEvents">Henüz kaydedilmiş bir hareket yok.</sys:String>
     <sys:String x:Key="UninstallTitle">Otium'u kaldır</sys:String>
+    <sys:String x:Key="UninstallSettingsDescription">Windows kaldırma akışını başlatır. Korumalı kullanımda yönetici PIN'i istenir; yerel kullanım geçmişin korunur.</sys:String>
+    <sys:String x:Key="UninstallAction">Uygulamayı kaldır</sys:String>
     <sys:String x:Key="UninstallConfirmation">Otium bu bilgisayardan kaldırılsın mı? Yerel kullanım verilerin korunacak.</sys:String>
     <sys:String x:Key="UninstallLaunchFailed">Kaldırma işlemi başlatılamadı. Windows yönetici iznini kontrol et.</sys:String>
     <sys:String x:Key="UninstallNotAvailableDescription">Bu Otium kopyası Windows Installer tarafından kurulmamış.</sys:String>

@@ -19,6 +19,7 @@ $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $publishedArtifactDirectory = Join-Path $repositoryRoot 'artifacts\publish\win-x64'
 $installerOutputDirectory = Join-Path $repositoryRoot "artifacts\installer\$Version"
 $applicationProject = Join-Path $repositoryRoot 'src\Otium.App\Otium.App.csproj'
+$setupProject = Join-Path $repositoryRoot 'src\Otium.SetupApp\Otium.SetupApp.csproj'
 $installerProject = Join-Path $repositoryRoot 'installer\Otium.Setup\Otium.Setup.wixproj'
 $normalizedThumbprint = ($SigningCertificateThumbprint -replace '\s', '').ToUpperInvariant()
 $dotnetCommand = Get-Command 'dotnet.exe' -ErrorAction SilentlyContinue
@@ -38,6 +39,7 @@ $wixStagingDirectory = Join-Path $env:PUBLIC "OtiumBuildStaging\release\$Version
 $publishDirectory = Join-Path $wixStagingDirectory 'publish'
 $wixIntermediateDirectory = Join-Path $wixStagingDirectory 'obj\'
 $wixOutputDirectory = Join-Path $wixStagingDirectory 'installer\'
+$setupPublishDirectory = Join-Path $wixStagingDirectory 'setup\'
 New-Item -ItemType Directory -Path $cabinetTempDirectory -Force | Out-Null
 $env:TEMP = $cabinetTempDirectory
 $env:TMP = $cabinetTempDirectory
@@ -148,6 +150,24 @@ if (-not (Test-Path -LiteralPath $installer)) {
 Invoke-BinarySigning $installer $signTool $normalizedThumbprint $certificateUsesMachineStore
 Assert-ValidSignature $installer $normalizedThumbprint
 
+& $dotnet publish $setupProject `
+    -c Release `
+    -r win-x64 `
+    --self-contained true `
+    -p:Version=$Version `
+    -p:InformationalVersion=$Version `
+    -p:OtiumInstallerPath="$installer" `
+    -p:PublishDir="$setupPublishDirectory\"
+if ($LASTEXITCODE -ne 0) {
+    throw "Otium setup application publish failed with exit code $LASTEXITCODE."
+}
+
+$publishedSetup = Join-Path $setupPublishDirectory 'Otium.Setup.exe'
+$setup = Join-Path $installerOutputDirectory "Otium-Setup-$Version.exe"
+Copy-Item -LiteralPath $publishedSetup -Destination $setup -Force
+Invoke-BinarySigning $setup $signTool $normalizedThumbprint $certificateUsesMachineStore
+Assert-ValidSignature $setup $normalizedThumbprint
+
 $verificationScript = Join-Path $installerOutputDirectory 'verify-installer.ps1'
 $updateScript = Join-Path $installerOutputDirectory 'install-update.ps1'
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'verify-installer.ps1') -Destination $verificationScript -Force
@@ -164,6 +184,8 @@ foreach ($scriptPath in @($verificationScript, $updateScript)) {
 $hash = Get-FileHash -LiteralPath $installer -Algorithm SHA256
 $checksumPath = "$installer.sha256"
 Set-Content -LiteralPath $checksumPath -Value "$($hash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($installer))" -Encoding ascii
+$setupHash = Get-FileHash -LiteralPath $setup -Algorithm SHA256
+Set-Content -LiteralPath "$setup.sha256" -Value "$($setupHash.Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($setup))" -Encoding ascii
 
 $manifestPath = Join-Path $installerOutputDirectory 'release-manifest.json'
 $manifest = [ordered]@{
@@ -172,12 +194,16 @@ $manifest = [ordered]@{
     version = $Version
     architecture = 'win-x64'
     package = [IO.Path]::GetFileName($installer)
+    setup = [IO.Path]::GetFileName($setup)
     sizeBytes = (Get-Item -LiteralPath $installer).Length
+    setupSizeBytes = (Get-Item -LiteralPath $setup).Length
     sha256 = $hash.Hash.ToLowerInvariant()
+    setupSha256 = $setupHash.Hash.ToLowerInvariant()
     signerThumbprint = $normalizedThumbprint.ToLowerInvariant()
 }
 $manifest | ConvertTo-Json | Set-Content -LiteralPath $manifestPath -Encoding utf8
 
 Write-Output "Installer: $installer"
+Write-Output "Setup:     $setup"
 Write-Output "SHA-256:  $checksumPath"
 Write-Output "Manifest: $manifestPath"
