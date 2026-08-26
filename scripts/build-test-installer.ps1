@@ -4,13 +4,18 @@ param(
     [string]$Version = '1.0.0',
 
     [ValidatePattern('^[0-9A-Za-z][0-9A-Za-z.-]*$')]
-    [string]$ReleaseLabel = '1.0.0-alpha'
+    [string]$ReleaseLabel = '1.0.0-alpha',
+
+    [switch]$CommunityRelease
 )
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-$publishedArtifactDirectory = Join-Path $repositoryRoot 'artifacts\publish-test\win-x64'
-$installerOutputDirectory = Join-Path $repositoryRoot "artifacts\installer-test\$Version"
+$packageKind = if ($CommunityRelease) { 'community' } else { 'test' }
+$buildConfiguration = if ($CommunityRelease) { 'Release' } else { 'Debug' }
+$artifactKind = if ($CommunityRelease) { 'community' } else { 'test' }
+$publishedArtifactDirectory = Join-Path $repositoryRoot "artifacts\publish-$artifactKind\win-x64"
+$installerOutputDirectory = Join-Path $repositoryRoot "artifacts\installer-$artifactKind\$Version"
 $applicationProject = Join-Path $repositoryRoot 'src\Otium.App\Otium.App.csproj'
 $setupProject = Join-Path $repositoryRoot 'src\Otium.SetupApp\Otium.SetupApp.csproj'
 $installerProject = Join-Path $repositoryRoot 'installer\Otium.Setup\Otium.Setup.wixproj'
@@ -26,7 +31,7 @@ if (-not (Test-Path -LiteralPath $dotnet)) {
 
 # Native Windows cabinet tooling is not Unicode-safe for every temporary path.
 $cabinetTempDirectory = Join-Path $env:PUBLIC 'OtiumBuildTemp'
-$wixStagingDirectory = Join-Path $env:PUBLIC "OtiumBuildStaging\test\$Version"
+$wixStagingDirectory = Join-Path $env:PUBLIC "OtiumBuildStaging\$artifactKind\$Version"
 $publishDirectory = Join-Path $wixStagingDirectory 'publish'
 $wixIntermediateDirectory = Join-Path $wixStagingDirectory 'obj\'
 $wixOutputDirectory = Join-Path $wixStagingDirectory 'installer\'
@@ -43,7 +48,7 @@ $sourceCommit = ((& git -C $repositoryRoot rev-parse HEAD) | Select-Object -Firs
 $repositoryDirty = @(& git -C $repositoryRoot status --porcelain --untracked-files=normal).Count -gt 0
 
 & $dotnet publish $applicationProject `
-    -c Debug `
+    -c $buildConfiguration `
     -r win-x64 `
     --self-contained true `
     -p:Version=$Version `
@@ -62,7 +67,7 @@ Copy-Item -LiteralPath (Join-Path $publishDirectory 'Otium.exe') `
     -p:OtiumVersion=$Version `
     -p:OtiumReleaseLabel=$ReleaseLabel `
     -p:OtiumPublishDir="$publishDirectory" `
-    -p:OtiumSignerThumbprint=UNSIGNED-DEVELOPMENT-BUILD `
+    -p:OtiumSignerThumbprint=$(if ($CommunityRelease) { 'UNSIGNED-COMMUNITY-BUILD' } else { 'UNSIGNED-DEVELOPMENT-BUILD' }) `
     -p:OtiumAllowSameVersionUpgrades=yes `
     -p:SuppressSpecificWarnings=1076 `
     -p:BaseIntermediateOutputPath="$wixIntermediateDirectory" `
@@ -123,15 +128,19 @@ $manifestPath = Join-Path $installerOutputDirectory 'release-manifest.json'
     -SetupPath $setup `
     -Version $Version `
     -ReleaseLabel $ReleaseLabel `
-    -PackageKind test
+    -PackageKind $packageKind
 if ($LASTEXITCODE -ne 0) {
     throw "Test release manifest generation failed with exit code $LASTEXITCODE."
 }
 & (Join-Path $PSScriptRoot 'verify-release-manifest.ps1') `
     -ManifestPath $manifestPath `
-    -ExpectedPackageKind test
+    -ExpectedPackageKind $packageKind
 
-Write-Warning 'This package is unsigned and must only be used for local development testing.'
+if ($CommunityRelease) {
+    Write-Warning 'This community package is unsigned. Windows SmartScreen may display an unknown publisher warning.'
+} else {
+    Write-Warning 'This package is unsigned and must only be used for local development testing.'
+}
 Write-Output "Test setup:     $setup"
 Write-Output "Setup SHA-256:  $($setupHash.Hash.ToLowerInvariant())"
 Write-Output "Test installer: $installer"

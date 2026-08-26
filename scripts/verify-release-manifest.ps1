@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$ManifestPath,
     [string]$ExpectedCommit,
-    [ValidateSet('test', 'public')][string]$ExpectedPackageKind
+    [ValidateSet('test', 'community', 'public')][string]$ExpectedPackageKind
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,6 +24,9 @@ if ($manifest.packageKind -eq 'public' -and -not $manifest.signed) {
 if ($manifest.packageKind -eq 'test' -and $manifest.signed) {
     throw 'Test release manifest must not declare signed artifacts.'
 }
+if ($manifest.packageKind -eq 'community' -and ($manifest.signed -or $manifest.configuration -ne 'Release')) {
+    throw 'Community release artifacts must be unsigned Release builds.'
+}
 
 $artifactDirectory = $manifestFile.DirectoryName
 $roles = @($manifest.artifacts | ForEach-Object { $_.role })
@@ -44,4 +47,3 @@ foreach ($artifact in $manifest.artifacts) {
 }
 
 Write-Output "Release manifest verification passed: $($manifest.releaseLabel) ($($manifest.commit))"
-

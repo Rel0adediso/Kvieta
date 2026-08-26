@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory = $true)][string]$SetupPath,
     [Parameter(Mandatory = $true)][string]$Version,
     [Parameter(Mandatory = $true)][string]$ReleaseLabel,
-    [Parameter(Mandatory = $true)][ValidateSet('test', 'public')][string]$PackageKind,
+    [Parameter(Mandatory = $true)][ValidateSet('test', 'community', 'public')][string]$PackageKind,
     [string]$SignerThumbprint
 )
 
@@ -28,7 +28,7 @@ $manifest = [ordered]@{
     releaseLabel = $ReleaseLabel
     architecture = 'win-x64'
     packageKind = $PackageKind
-    configuration = if ($PackageKind -eq 'public') { 'Release' } else { 'Debug' }
+    configuration = if ($PackageKind -eq 'test') { 'Debug' } else { 'Release' }
     commit = $commit.Trim()
     signed = $PackageKind -eq 'public'
     signerThumbprint = if ($SignerThumbprint) { $SignerThumbprint.ToLowerInvariant() } else { $null }
@@ -37,4 +37,3 @@ $manifest = [ordered]@{
 
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $OutputPath -Encoding utf8
 Write-Output "Release manifest: $OutputPath"
-
