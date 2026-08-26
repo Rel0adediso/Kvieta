@@ -66,6 +66,8 @@ bulunmadıkça yeni büyük özellik eklenmez.
 
 ### Alpha.1 yayın kapısı
 
+- [x] Yerel NuGet audit, format, dokümantasyon, Debug/Release build, iki smoke-test
+  yapılandırması ve public-build bypass kontrolü aynı temiz commit'te geçti.
 - [ ] Son release commit'i için GitHub Actions kalite hattının tamamı geçmeli.
 - [ ] Temiz kurulumda Türkçe ve English kurucu, uygulama açılışı ve temel
   ayar kaydı doğrulanmalı.
