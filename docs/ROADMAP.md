@@ -72,14 +72,9 @@ bulunmadıkça yeni büyük özellik eklenmez.
 
 - [x] Yerel NuGet audit, format, dokümantasyon, Debug/Release build, iki smoke-test
   yapılandırması ve public-build bypass kontrolü aynı temiz commit'te geçti.
+- [x] Community Setup EXE/MSI metadata'sı, gömülü MSI, Guardian servis kaydı,
+  manifest, dosya boyutu ve SHA-256 eşleşmesi otomatik doğrulandı.
 - [ ] Son release commit'i için GitHub Actions kalite hattının tamamı geçmeli.
-- [ ] Temiz kurulumda Türkçe ve English kurucu, uygulama açılışı ve temel
-  ayar kaydı doğrulanmalı.
-- [ ] Protected seçiminde Guardian kurulumu, enrollment ve korunan oturum açılışı
-  gerçek paketle doğrulanmalı.
-- [ ] Süre dolmasında Windows kilidi/engel ekranı ve yönetici geri dönüşü
-  çıkış veya kilit döngüsü oluşturmamalı.
-- [ ] Uygulama içinden kaldırma ve temel repair akışı gerçek paketle denenmeli.
 - [x] Release notes son güvenlik, optimizasyon, mod kaydetme ve süre dolma
   değişiklikleriyle güncellenmeli.
 - [ ] Eski `v1.0.0-rc.1` etiketinin alpha sürüm sırasıyla oluşturduğu
@@ -90,6 +85,22 @@ bulunmadıkça yeni büyük özellik eklenmez.
   olarak yayınlanmalı.
 - [ ] Setup EXE, MSI, SHA-256 dosyaları ve `release-manifest.json` GitHub Release'e
   eklenmeli; SmartScreen ve imzasız yayıncı uyarısı açıkça yazılmalı.
+
+### Alpha.1 yayın sonrası saha testi
+
+Bu kontroller Alpha.1 paketinin gerçek kullanım amacıyla yayımlanmasından sonra,
+ayrı bir Windows cihazında yapılır. Engelleyici, veri kaybı veya güvenlik riski
+bulunursa mevcut prerelease kaldırılır ve düzeltilmiş bir alpha paketi hazırlanır.
+
+- [ ] Temiz kurulumda Türkçe ve English kurucu, uygulama açılışı ve temel ayar
+  kaydı doğrulanmalı.
+- [ ] Protected seçiminde Guardian kurulumu, enrollment ve korunan oturum açılışı
+  gerçek paketle doğrulanmalı.
+- [ ] Süre dolmasında Windows kilidi/engel ekranı ve yönetici geri dönüşü çıkış
+  veya kilit döngüsü oluşturmamalı.
+- [ ] Uygulama içinden kaldırma ve temel repair akışı gerçek paketle denenmeli.
+- [ ] Bir veya iki günlük gerçek kullanım gözlemi tamamlanmalı; sonuçlar roadmap'e
+  ve gerekirse issue/release notes'a işlenmeli.
 
 ### Alpha.1 sonrasına ertelenenler
 
@@ -399,10 +410,10 @@ Final sürüm ancak aşağıdaki koşulların tamamı sağlandığında yayınla
    kapılarını çalıştır.
 3. Community Setup EXE'yi temiz commit'ten yeniden üret ve manifest/SHA-256
    eşleşmesini doğrula.
-4. Temiz kurulum, Guardian, süre dolması, repair ve kaldırma minimum matrisini
-   gerçek Windows cihazında tamamla.
-5. Eski RC etiketi hakkında karar ver; `v1.0.0-alpha.1` tag ve GitHub prerelease'i
+4. Eski RC etiketi hakkında karar ver; `v1.0.0-alpha.1` tag ve GitHub prerelease'i
    paket varlıklarıyla yayınla.
+5. Temiz kurulum, Guardian, süre dolması, repair ve kaldırma minimum matrisini
+   kardeş bilgisayarındaki gerçek Alpha.1 paketiyle tamamla.
 6. Bir veya iki günlük gerçek kullanım testinde yalnız alpha engelleyici ve veri/
    güvenlik riski oluşturan hataları acil düzelt.
 7. Alpha.1 geri bildirimlerinden sonra Balanced/Protected kaçış, Windows yaşam
