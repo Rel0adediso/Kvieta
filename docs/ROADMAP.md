@@ -57,6 +57,10 @@ bulunmadıkça yeni büyük özellik eklenmez.
   eşleşmesi otomatik doğrulanıyor.
 - Public assembly'de development unlock yolu bulunmadığı ikili çıktıdan
   doğrulanıyor.
+- Community paket job'unu içeren GitHub Actions koşusunda (`3d15959`) hem
+  **Build and test** hem de **Package community alpha installer** işleri geçti.
+- Aynı commit'ten üretilen yerel community adayında paket metadata'sı, gömülü
+  MSI, self-contained publish, manifest ve SHA-256 kontrolleri geçti.
 - Temel iki fiziksel ekran kullanımında oturum yüzeyi ve ekran kalkanları
   başarıyla denendi.
 - Süre dolduğunda Windows oturumunu tekrar tekrar kapatan eylem kaldırıldı;
