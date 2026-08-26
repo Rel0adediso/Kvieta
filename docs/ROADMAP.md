@@ -74,7 +74,7 @@ bulunmadıkça yeni büyük özellik eklenmez.
 - [ ] Süre dolmasında Windows kilidi/engel ekranı ve yönetici geri dönüşü
   çıkış veya kilit döngüsü oluşturmamalı.
 - [ ] Uygulama içinden kaldırma ve temel repair akışı gerçek paketle denenmeli.
-- [ ] Release notes son güvenlik, optimizasyon, mod kaydetme ve süre dolma
+- [x] Release notes son güvenlik, optimizasyon, mod kaydetme ve süre dolma
   değişiklikleriyle güncellenmeli.
 - [ ] Eski `v1.0.0-rc.1` etiketinin alpha sürüm sırasıyla oluşturduğu
   tutarsızlık yayından önce karara bağlanmalı.
