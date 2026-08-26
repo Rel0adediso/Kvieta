@@ -21,11 +21,6 @@ public static partial class SystemPowerController
         StartShutdownProcess("/s /t 0");
     }
 
-    public static void SignOut()
-    {
-        StartShutdownProcess("/l");
-    }
-
     public static void LockWindows()
     {
         LockWorkStation();

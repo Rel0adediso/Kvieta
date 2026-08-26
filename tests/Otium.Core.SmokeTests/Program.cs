@@ -713,6 +713,14 @@ Assert(migratedSettings.Mode == ControlMode.Protected &&
 Assert(!migratedSettings.AwarenessTrackingEnabled && migratedSettings.UsageRetentionDays == 90, "Migration açık rıza gerektiren ölçümü kendiliğinden etkinleştirdi.");
 Assert(migratedSettings.WeeklyReductionGoalPercent == 0, "Migration kullanıcı onayı olmadan azaltma hedefi oluşturdu.");
 
+string signOutSettingsPath = Path.Combine(testDirectory, "sign-out-settings.json");
+await File.WriteAllTextAsync(
+    signOutSettingsPath,
+    "{\"SchemaVersion\":9,\"SetupCompleted\":true,\"LimitAction\":\"SignOut\"}");
+ControlSettings migratedSignOutSettings = await new JsonSettingsStore(signOutSettingsPath).LoadAsync();
+Assert(migratedSignOutSettings.LimitAction == LimitReachedAction.LockWindows,
+    "Eski oturum kapatma eylemi güvenli Windows kilidine taşınmadı.");
+
 string legacyPersonalPath = Path.Combine(testDirectory, "legacy-personal-settings.json");
 await File.WriteAllTextAsync(
     legacyPersonalPath,
@@ -970,6 +978,20 @@ JsonSettingsStore personalSettingsStore = new(personalSettingsPath);
 await personalSettingsStore.SaveAsync(personalSettings);
 MainViewModel personalViewModel = new(personalSettingsStore, new JsonUsageStore(personalUsagePath));
 await personalViewModel.InitializeAsync();
+
+string stagedModeSettingsPath = Path.Combine(testDirectory, "staged-mode-settings.json");
+JsonSettingsStore stagedModeStore = new(stagedModeSettingsPath);
+await stagedModeStore.SaveAsync(new ControlSettings { SetupCompleted = true, Mode = ControlMode.Personal });
+MainViewModel stagedModeViewModel = new(stagedModeStore, new JsonUsageStore(Path.Combine(testDirectory, "staged-mode-usage.json")));
+await stagedModeViewModel.InitializeAsync();
+stagedModeViewModel.StageControlMode(ControlMode.Protected, PersonalProtectionLevel.Balanced, "4826");
+Assert((await stagedModeStore.LoadAsync()).Mode == ControlMode.Personal,
+    "Korumalı mod Kaydet'e basılmadan etkinleşti.");
+Assert(await stagedModeViewModel.SaveAsync(), "Hazırlanan korumalı mod kaydedilemedi.");
+ControlSettings savedStagedMode = await stagedModeStore.LoadAsync();
+Assert(savedStagedMode.Mode == ControlMode.Protected && AdminPinService.Verify("4826", savedStagedMode.AdminPin),
+    "Korumalı mod Kaydet sonrasında uygulanmadı.");
+
 personalViewModel.AwarenessTrackingEnabled = true;
 Assert(await personalViewModel.SaveAsync(), "Ritim farkındalığı tercihi kaydedilemedi.");
 Assert((await personalSettingsStore.LoadAsync()).AwarenessTrackingEnabled, "Ritim farkındalığı tercihi kalıcı olmadı.");

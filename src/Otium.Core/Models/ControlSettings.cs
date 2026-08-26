@@ -6,6 +6,7 @@ public enum LimitReachedAction
 {
     ShowBlockScreen,
     LockWindows,
+    // Kept for settings-file compatibility. JsonSettingsStore migrates it to LockWindows.
     SignOut
 }
 
@@ -43,7 +44,7 @@ public sealed class ControlSettings
     public ControlMode Mode { get; set; } = ControlMode.Protected;
     public string DeviceName { get; set; } = "Bu Bilgisayar";
     public int DefaultDailyLimitMinutes { get; set; } = 180;
-    public LimitReachedAction LimitAction { get; set; } = LimitReachedAction.SignOut;
+    public LimitReachedAction LimitAction { get; set; } = LimitReachedAction.LockWindows;
     public ThemePreference Theme { get; set; } = ThemePreference.System;
     public LanguagePreference Language { get; set; } = LanguagePreference.Turkish;
     public bool StartWithWindows { get; set; }

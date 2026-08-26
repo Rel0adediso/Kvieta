@@ -146,9 +146,6 @@ public partial class CafeWindow : Window
             case LimitReachedAction.LockWindows:
                 SystemPowerController.LockWindows();
                 break;
-            case LimitReachedAction.SignOut:
-                SystemPowerController.SignOut();
-                break;
         }
     }
 

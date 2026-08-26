@@ -478,10 +478,21 @@ public partial class MainWindow : Window
             _viewModel.StatusMessage = $"Windows başlangıcı ayarlanamadı: {exception.Message}";
         }
 
-        if (_backgroundSessionWindow is not null)
+        if (_viewModel.IsGuardianRequired)
+        {
+            await CloseOwnedBackgroundSessionAsync();
+        }
+        else if (_backgroundSessionWindow is not null && !_ownsBackgroundSessionWindow)
+        {
+            await _backgroundSessionWindow.SwitchToUserSettingsStoreAsync();
+        }
+        else if (_backgroundSessionWindow is not null)
         {
             await _backgroundSessionWindow.ReloadSettingsAsync();
         }
+
+        RefreshProtectionStatus();
+        EnsurePersonalBackgroundSession();
 
         SaveButton.IsEnabled = false;
         try
@@ -887,7 +898,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void ChangeMode_Click(object sender, RoutedEventArgs e)
+    private void ChangeMode_Click(object sender, RoutedEventArgs e)
     {
         ModeSelectionWindow selection = new(
             _viewModel.SelectedControlMode,
@@ -922,9 +933,6 @@ public partial class MainWindow : Window
 
         string? newPin = null;
         AdminCredential? newCredential = null;
-        bool targetRequiresGuardian =
-            targetMode == ControlMode.Protected ||
-            targetMode == ControlMode.Personal && targetPersonalLevel == PersonalProtectionLevel.Guarded;
         if (targetMode == ControlMode.Protected && !_viewModel.IsProtectedMode)
         {
             AdminPinWindow setup = AdminPinWindow.CreateSetup();
@@ -944,37 +952,7 @@ public partial class MainWindow : Window
             newCredential = AdminPinService.CreateInternalCredential();
         }
 
-        ControlSettings rollbackSettings = _viewModel.CreateSettingsSnapshot();
-        await _viewModel.SetControlModeAsync(targetMode, targetPersonalLevel, newPin, newCredential);
-        if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
-        {
-            return;
-        }
-
-        AdminCredential? guardedAuthorization = rollbackSettings.Mode == ControlMode.Personal &&
-            rollbackSettings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded
-                ? rollbackSettings.AdminPin
-                : null;
-        if (!await SyncProtectedPolicyAsync(guardedAuthorization))
-        {
-            return;
-        }
-
-        if (_viewModel.IsGuardianRequired)
-        {
-            await CloseOwnedBackgroundSessionAsync();
-        }
-        else if (_backgroundSessionWindow is not null && !_ownsBackgroundSessionWindow)
-        {
-            await _backgroundSessionWindow.SwitchToUserSettingsStoreAsync();
-        }
-        else if (_backgroundSessionWindow is not null)
-        {
-            await _backgroundSessionWindow.ReloadSettingsAsync();
-        }
-
-        RefreshProtectionStatus();
-        EnsurePersonalBackgroundSession();
+        _viewModel.StageControlMode(targetMode, targetPersonalLevel, newPin, newCredential);
         ResetSettingsScrollPosition();
     }
 

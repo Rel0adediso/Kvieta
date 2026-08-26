@@ -126,6 +126,7 @@ public sealed class JsonSettingsStore
 
             settings.SchemaVersion = 9;
             changed |= NormalizePersonalProtection(settings);
+            changed |= NormalizeLimitAction(settings);
             if (settings.PendingChange?.TargetSettings is { } target && target.SchemaVersion < 9)
             {
                 target.PersonalProtectionLevel = target.StrictPersonalMode
@@ -136,6 +137,7 @@ public sealed class JsonSettingsStore
             if (settings.PendingChange?.TargetSettings is { } pendingTarget)
             {
                 changed |= NormalizePersonalProtection(pendingTarget);
+                changed |= NormalizeLimitAction(pendingTarget);
             }
             if (settings.Mode == ControlMode.Awareness)
             {
@@ -173,5 +175,16 @@ public sealed class JsonSettingsStore
         settings.PersonalProtectionLevel = level;
         settings.StrictPersonalMode = strict;
         return changed;
+    }
+
+    private static bool NormalizeLimitAction(ControlSettings settings)
+    {
+        if (settings.LimitAction != LimitReachedAction.SignOut)
+        {
+            return false;
+        }
+
+        settings.LimitAction = LimitReachedAction.LockWindows;
+        return true;
     }
 }

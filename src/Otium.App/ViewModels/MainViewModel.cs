@@ -30,7 +30,7 @@ public sealed class MainViewModel : ObservableObject
     private int _selectedPageIndex;
     private string _deviceName = string.Empty;
     private int _defaultDailyLimitMinutes;
-    private string _limitAction = "Oturumu kapat";
+    private string _limitAction = "Windows'u kilitle";
     private string _themeMode = "Sistem";
     private string _languageMode = "Türkçe";
     private bool _animationsEnabled = true;
@@ -50,6 +50,7 @@ public sealed class MainViewModel : ObservableObject
     private int _usedTodayMinutes;
     private UsageLedger? _lastUsageLedger;
     private string _selectedHistoryDaySummaryText = "—";
+    private AdminCredential? _stagedAdminCredential;
 
     public MainViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
@@ -311,7 +312,7 @@ public sealed class MainViewModel : ObservableObject
     public bool HasNoAppRules => AppRules.Count == 0;
     public string CurrentWindowStatus { get; private set; } = "Program yükleniyor…";
     public string SettingsPath => _settingsStore.FilePath;
-    public bool HasAdminPin => _settings.AdminPin.IsConfigured;
+    public bool HasAdminPin => (_stagedAdminCredential ?? _settings.AdminPin).IsConfigured;
     public string AdminPinActionText => HasAdminPin ? LocalizationService.Get("ChangePin") : LocalizationService.Get("CreatePin");
     public bool HasPendingChange => _settings.PendingChange is not null;
     public string HeaderStatusText => HasPendingChange
@@ -355,6 +356,7 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             _settings = await _settingsStore.LoadAsync();
+            _stagedAdminCredential = null;
             bool settingsRecovered = _settingsStore.LastLoadRecoveredFromBackup;
             DeviceName = _settings.DeviceName is "Kardeş Bilgisayarı" or "Oyun Bilgisayarı" or "Bu Bilgisayar" or "This Computer"
                 ? LocalizationService.Get("DefaultDeviceName")
@@ -469,7 +471,7 @@ public sealed class MainViewModel : ObservableObject
                 StrictPersonalMode = StrictPersonalMode,
                 PersonalProtectionLevel = PersonalProtectionLevel,
                 WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal),
-                AdminPin = _settings.AdminPin,
+                AdminPin = _stagedAdminCredential ?? _settings.AdminPin,
                 RecoveryCodes = CloneRecoveryCodes(_settings.RecoveryCodes),
                 WarningMinutes = [15, 5, 1],
                 Schedule = schedule,
@@ -499,6 +501,7 @@ public sealed class MainViewModel : ObservableObject
                 };
                 _settings = immediate;
                 await SaveUserSettingsAsync(_settings);
+                _stagedAdminCredential = null;
                 await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
                 if (policyChanged)
                 {
@@ -506,6 +509,8 @@ public sealed class MainViewModel : ObservableObject
                 }
                 OnPropertyChanged(nameof(AppliedStartWithWindows));
                 StartWithWindows = _settings.StartWithWindows;
+                SelectedControlMode = _settings.Mode;
+                PersonalProtectionLevel = _settings.PersonalProtectionLevel;
                 LoadPolicyRows(_settings);
                 NotifyPendingChange();
                 RefreshOverview();
@@ -532,6 +537,7 @@ public sealed class MainViewModel : ObservableObject
             _settings = desired;
 
             await SaveUserSettingsAsync(_settings);
+            _stagedAdminCredential = null;
             await _usageStore.TrimHistoryAsync(_settings.UsageRetentionDays);
             if (policyChanged)
             {
@@ -899,6 +905,40 @@ public sealed class MainViewModel : ObservableObject
             ControlMode.Awareness => L("Sadece takip moduna geçildi · Kısıtlama yok", "Switched to tracking-only mode · No restrictions"),
             _ => L("Kişisel kullanıma geçildi", "Switched to personal mode")
         };
+    }
+
+    public void StageControlMode(
+        ControlMode mode,
+        PersonalProtectionLevel personalProtectionLevel,
+        string? newPin = null,
+        AdminCredential? newCredential = null)
+    {
+        PersonalProtectionLevel normalizedPersonalLevel = mode == ControlMode.Personal
+            ? personalProtectionLevel
+            : PersonalProtectionLevel.Balanced;
+
+        if (!string.IsNullOrWhiteSpace(newPin))
+        {
+            _stagedAdminCredential = AdminPinService.Create(newPin);
+        }
+        else if (newCredential is not null)
+        {
+            _stagedAdminCredential = newCredential;
+        }
+
+        SelectedControlMode = mode;
+        PersonalProtectionLevel = normalizedPersonalLevel;
+        if (mode == ControlMode.Awareness)
+        {
+            AwarenessTrackingEnabled = true;
+        }
+
+        OnPropertyChanged(nameof(HasAdminPin));
+        OnPropertyChanged(nameof(AdminPinActionText));
+        RefreshOverview();
+        StatusMessage = L(
+            "Mod seçildi · Uygulamak için Kaydet'e bas.",
+            "Mode selected · Press Save to apply.");
     }
 
     public void RefreshOverview()
@@ -1372,7 +1412,6 @@ public sealed class MainViewModel : ObservableObject
         LimitActions.Clear();
         LimitActions.Add(LocalizationService.Get("BlockScreen"));
         LimitActions.Add(LocalizationService.Get("WindowsLock"));
-        LimitActions.Add(LocalizationService.Get("SignOut"));
         ThemeModes.Clear();
         ThemeModes.Add(LocalizationService.Get("System"));
         ThemeModes.Add(LocalizationService.Get("Light"));
@@ -1804,15 +1843,14 @@ public sealed class MainViewModel : ObservableObject
     {
         LimitReachedAction.ShowBlockScreen => LocalizationService.Get("BlockScreen"),
         LimitReachedAction.LockWindows => LocalizationService.Get("WindowsLock"),
-        LimitReachedAction.SignOut => LocalizationService.Get("SignOut"),
-        _ => LocalizationService.Get("SignOut")
+        _ => LocalizationService.Get("WindowsLock")
     };
 
     private static LimitReachedAction FromDisplayAction(string action) => action switch
     {
         var value when value == LocalizationService.Get("BlockScreen") => LimitReachedAction.ShowBlockScreen,
         var value when value == LocalizationService.Get("WindowsLock") => LimitReachedAction.LockWindows,
-        _ => LimitReachedAction.SignOut
+        _ => LimitReachedAction.LockWindows
     };
 
     public static ThemePreference FromDisplayTheme(string theme) => theme switch
