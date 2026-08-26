@@ -2,9 +2,11 @@
 
 **Son güncelleme:** 27 Ağustos 2026
 
-**Mevcut sürüm:** `v1.0.0-alpha.1` hazırlığı
+**Mevcut sürüm:** `v1.0.0-alpha.1` GitHub prerelease
 
-**Aktif hedef:** GitHub'da imzasız community paketiyle `v1.0.0-alpha.1` prerelease yayını
+**Aktif hedef:** Ayrı Windows cihazında Alpha.1 kurulum ve gerçek kullanım saha testi
+
+**Yayın:** [Otium v1.0.0-alpha.1 — First community prerelease](https://github.com/Rel0adediso/Otium/releases/tag/v1.0.0-alpha.1)
 
 Bu belge Otium'un bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
@@ -61,6 +63,8 @@ bulunmadıkça yeni büyük özellik eklenmez.
   **Build and test** hem de **Package community alpha installer** işleri geçti.
 - Aynı commit'ten üretilen yerel community adayında paket metadata'sı, gömülü
   MSI, self-contained publish, manifest ve SHA-256 kontrolleri geçti.
+- Nihai `4dd94ca` release commit'inde aynı iki GitHub Actions işi yeniden geçti;
+  bu commit'e bağlı paket `v1.0.0-alpha.1` prerelease olarak yayımlandı.
 - Temel iki fiziksel ekran kullanımında oturum yüzeyi ve ekran kalkanları
   başarıyla denendi.
 - Süre dolduğunda Windows oturumunu tekrar tekrar kapatan eylem kaldırıldı;
@@ -74,16 +78,17 @@ bulunmadıkça yeni büyük özellik eklenmez.
   yapılandırması ve public-build bypass kontrolü aynı temiz commit'te geçti.
 - [x] Community Setup EXE/MSI metadata'sı, gömülü MSI, Guardian servis kaydı,
   manifest, dosya boyutu ve SHA-256 eşleşmesi otomatik doğrulandı.
-- [ ] Son release commit'i için GitHub Actions kalite hattının tamamı geçmeli.
+- [x] Son release commit'i (`4dd94ca`) için GitHub Actions kalite hattının tamamı
+  geçmeli.
 - [x] Release notes son güvenlik, optimizasyon, mod kaydetme ve süre dolma
   değişiklikleriyle güncellenmeli.
-- [ ] Eski `v1.0.0-rc.1` etiketinin alpha sürüm sırasıyla oluşturduğu
-  tutarsızlık yayından önce karara bağlanmalı.
-- [ ] Temiz release commit'inden son community paketi yeniden üretilmeli; manifest
+- [x] Eski `v1.0.0-rc.1`, herhangi bir GitHub Release'e bağlı olmayan legacy
+  etiket olarak korunmalı; ilk gerçek test yayını Alpha.1 olarak belgelenmeli.
+- [x] Temiz release commit'inden son community paketi yeniden üretilmeli; manifest
   commit'i release tag'iyle birebir eşmeli.
-- [ ] `v1.0.0-alpha.1` annotated tag'i oluşturulup GitHub Release, **Pre-release**
+- [x] `v1.0.0-alpha.1` annotated tag'i oluşturulup GitHub Release, **Pre-release**
   olarak yayınlanmalı.
-- [ ] Setup EXE, MSI, SHA-256 dosyaları ve `release-manifest.json` GitHub Release'e
+- [x] Setup EXE, MSI, SHA-256 dosyaları ve `release-manifest.json` GitHub Release'e
   eklenmeli; SmartScreen ve imzasız yayıncı uyarısı açıkça yazılmalı.
 
 ### Alpha.1 yayın sonrası saha testi
@@ -529,14 +534,14 @@ uygulama geliştirmesi başlatılmaz.
 - Tek oturum yüzeyi, Control Center geçiş korumaları ve startup düzeltmeleri.
 - Final release engellerinin açıkça belgelenmesi.
 
-### v1.0.0-alpha.1 — İlk GitHub prerelease (aktif)
+### v1.0.0-alpha.1 — İlk GitHub prerelease (yayımlandı; saha testinde)
 
 - Development bypass içermeyen imzasız Release community paketi.
 - Tek dosyalı Setup EXE, MSI, SHA-256 ve commit bağlı release manifesti.
 - Korumalı modun yalnız Kaydet sonrası uygulanması ve süre dolma çıkış
   döngüsünün kaldırılması.
-- Minimum gerçek kurulum kapısından sonra bir veya iki günlük gerçek cihaz
-  kullanım testi.
+- Yayın sonrası minimum kurulum/Guardian kapısı ve bir veya iki günlük gerçek
+  cihaz kullanım testi.
 - Tam Windows, DPI, installer ve UI otomasyon matrislerinin final V1 planında açık tutulması.
 
 ## Roadmap bakım kuralları
