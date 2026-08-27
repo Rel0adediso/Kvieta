@@ -45,7 +45,7 @@ public partial class CafeWindow : Window
         CafeViewModel? viewModel = null)
     {
         InitializeComponent();
-        Title = $"Otium · {LocalizationService.Get("SessionScreen")}";
+        Title = $"Otium · {(LocalizationService.CurrentLanguage == LanguagePreference.English ? "Focus session" : "Odak oturumu")}";
         _viewModel = viewModel ?? new CafeViewModel();
         _isDirectSession = isDirectSession;
         _startHidden = startHidden;
@@ -229,9 +229,9 @@ public partial class CafeWindow : Window
 
     private async void Sleep_Click(object sender, RoutedEventArgs e)
     {
-        await _viewModel.SaveAsync();
         PowerOverlay.Visibility = Visibility.Collapsed;
-        SystemPowerController.Sleep();
+        await RunBeforePowerActionAsync(_viewModel.SaveAsync);
+        TryPowerAction(SystemPowerController.Sleep);
     }
 
     private async void Restart_Click(object sender, RoutedEventArgs e)
@@ -241,9 +241,11 @@ public partial class CafeWindow : Window
             return;
         }
 
-        await _viewModel.EndSessionAsync();
-        _allowClose = true;
-        SystemPowerController.Restart();
+        await RunBeforePowerActionAsync(_viewModel.EndSessionAsync);
+        if (TryPowerAction(SystemPowerController.Restart))
+        {
+            _allowClose = true;
+        }
     }
 
     private async void Shutdown_Click(object sender, RoutedEventArgs e)
@@ -255,9 +257,59 @@ public partial class CafeWindow : Window
             return;
         }
 
-        await _viewModel.EndSessionAsync();
-        _allowClose = true;
-        SystemPowerController.ShutDown();
+        await RunBeforePowerActionAsync(_viewModel.EndSessionAsync);
+        if (TryPowerAction(SystemPowerController.ShutDown))
+        {
+            _allowClose = true;
+        }
+    }
+
+    private async Task RunBeforePowerActionAsync(Func<Task> saveAction)
+    {
+        try
+        {
+            await saveAction().WaitAsync(TimeSpan.FromSeconds(3));
+        }
+        catch (TimeoutException)
+        {
+        }
+        catch (Exception exception)
+        {
+            _viewModel.ReportRuntimeError(exception);
+        }
+    }
+
+    private bool TryPowerAction(Func<bool> powerAction)
+    {
+        try
+        {
+            if (powerAction())
+            {
+                return true;
+            }
+
+            ShowPowerActionFailure();
+            return false;
+        }
+        catch (Exception exception)
+        {
+            ShowPowerActionFailure(exception.Message);
+            return false;
+        }
+    }
+
+    private void ShowPowerActionFailure(string? details = null)
+    {
+        PowerOverlay.Visibility = Visibility.Collapsed;
+        System.Windows.MessageBox.Show(
+            this,
+            IsEnglish
+                ? $"Windows could not complete this action.{Environment.NewLine}{details}"
+                : $"Windows bu işlemi tamamlayamadı.{Environment.NewLine}{details}",
+            IsEnglish ? "Otium · Action unavailable" : "Otium · İşlem kullanılamıyor",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+        EnsureCorrectSurface();
     }
 
     private bool ConfirmPowerAction(string message)

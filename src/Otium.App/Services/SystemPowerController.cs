@@ -6,19 +6,26 @@ namespace Otium.App.Services;
 
 public static partial class SystemPowerController
 {
-    public static void Sleep()
+    public static bool Sleep()
     {
-        SetSuspendState(false, false, false);
+        try
+        {
+            return SetSuspendState(false, false, false);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
-    public static void Restart()
+    public static bool Restart()
     {
-        StartShutdownProcess("/r /t 0");
+        return StartShutdownProcess("/r /t 0");
     }
 
-    public static void ShutDown()
+    public static bool ShutDown()
     {
-        StartShutdownProcess("/s /t 0");
+        return StartShutdownProcess("/s /t 0");
     }
 
     public static void LockWindows()
@@ -26,15 +33,24 @@ public static partial class SystemPowerController
         LockWorkStation();
     }
 
-    private static void StartShutdownProcess(string arguments)
+    private static bool StartShutdownProcess(string arguments)
     {
-        Process.Start(new ProcessStartInfo
+        try
         {
-            FileName = Path.Combine(Environment.SystemDirectory, "shutdown.exe"),
-            Arguments = arguments,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        });
+            using Process process = Process.Start(new ProcessStartInfo
+            {
+                FileName = Path.Combine(Environment.SystemDirectory, "shutdown.exe"),
+                Arguments = arguments,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }) ?? throw new InvalidOperationException("Windows power command could not be started.");
+            process.WaitForExit(3000);
+            return process.HasExited && process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     [LibraryImport("powrprof.dll", SetLastError = true)]
