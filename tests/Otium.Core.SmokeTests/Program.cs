@@ -97,6 +97,25 @@ Assert(!new ProtectionHealthReport(
         [ProtectionHealthIssue.GuardianSessionMissing]).IsHealthy &&
     !new ProtectionHealthReport(ProtectionServiceState.Stopped, []).IsHealthy,
     "Eksik veya durmuş Guardian sağlık raporu yanlışlıkla sağlıklı sayıldı.");
+Assert(ProtectionServiceManager.IsCommunityClientIdentityValid(
+        "community",
+        "AA BB",
+        "aabb",
+        new Version(1, 0, 0),
+        new Version(1, 0, 0)) &&
+    !ProtectionServiceManager.IsCommunityClientIdentityValid(
+        "community",
+        "aabb",
+        "aabc",
+        new Version(1, 0, 0),
+        new Version(1, 0, 0)) &&
+    !ProtectionServiceManager.IsCommunityClientIdentityValid(
+        "test",
+        "aabb",
+        "aabb",
+        new Version(1, 0, 0),
+        new Version(1, 0, 0)),
+    "Community Guardian istemci kimliği hash ve paket türüyle doğrulanmadı.");
 Assert(SessionSurfaceRecoveryPolicy.ShouldRecover(
         shouldShowSessionSurfaces: true,
         isSurfaceVisible: true,

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography;
 using System.Security.Principal;
 using System.ServiceProcess;
 using System.Text;
@@ -86,6 +87,12 @@ public static class ProtectionServiceManager
     public static string? RegisteredSignerThumbprint =>
         ReadInstallerValue("SignerThumbprint") as string;
 
+    public static string? RegisteredPackageKind =>
+        ReadInstallerValue("PackageKind") as string;
+
+    public static string? RegisteredExecutableSha256 =>
+        ReadInstallerValue("ExecutableSha256") as string;
+
     public static ProtectionInstallationIdentity GetInstallationIdentity() => new(
         IsInstallerManaged,
         ReadInstallerValue("InstalledReleaseLabel") as string,
@@ -93,6 +100,29 @@ public static class ProtectionServiceManager
         ReadProductVersion(InstalledExecutablePath),
         GetState(),
         GetVersionCompatibility());
+
+    public static bool IsCommunityClientIdentityValid(
+        string? packageKind,
+        string? expectedHash,
+        string? actualHash,
+        Version? registeredVersion,
+        Version? clientVersion) =>
+        string.Equals(packageKind, "community", StringComparison.OrdinalIgnoreCase) &&
+        !string.IsNullOrWhiteSpace(expectedHash) &&
+        !string.IsNullOrWhiteSpace(actualHash) &&
+        string.Equals(NormalizeHash(expectedHash), NormalizeHash(actualHash), StringComparison.OrdinalIgnoreCase) &&
+        registeredVersion is not null &&
+        clientVersion == registeredVersion;
+
+    public static Version? ReadRegisteredVersionForIdentity() => ReadRegisteredVersion();
+
+    public static Version? ReadProductVersionForIdentity(string filePath) => ReadProductVersion(filePath);
+
+    public static string ComputeSha256(string filePath) =>
+        Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(filePath)));
+
+    private static string NormalizeHash(string value) =>
+        value.Replace(" ", string.Empty, StringComparison.Ordinal).Trim();
 
     public static ProtectionVersionCompatibility GetVersionCompatibility()
     {

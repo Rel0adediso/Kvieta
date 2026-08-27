@@ -61,6 +61,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 Copy-Item -LiteralPath (Join-Path $publishDirectory 'Otium.exe') `
     -Destination (Join-Path $publishedArtifactDirectory 'Otium.exe') -Force
+$publishedExecutableHash = (Get-FileHash -LiteralPath (Join-Path $publishDirectory 'Otium.exe') -Algorithm SHA256).Hash
 
 & $dotnet build $installerProject `
     -c Release `
@@ -68,6 +69,8 @@ Copy-Item -LiteralPath (Join-Path $publishDirectory 'Otium.exe') `
     -p:OtiumReleaseLabel=$ReleaseLabel `
     -p:OtiumPublishDir="$publishDirectory" `
     -p:OtiumSignerThumbprint=$(if ($CommunityRelease) { 'UNSIGNED-COMMUNITY-BUILD' } else { 'UNSIGNED-DEVELOPMENT-BUILD' }) `
+    -p:OtiumPackageKind=$packageKind `
+    -p:OtiumExecutableSha256=$publishedExecutableHash `
     -p:OtiumAllowSameVersionUpgrades=yes `
     -p:SuppressSpecificWarnings=1076 `
     -p:BaseIntermediateOutputPath="$wixIntermediateDirectory" `
@@ -116,7 +119,8 @@ Set-Content -LiteralPath "$setup.sha256" `
     -InstallerPath $installer `
     -SetupPath $setup `
     -ExpectedVersion $Version `
-    -ExpectedReleaseLabel $ReleaseLabel
+    -ExpectedReleaseLabel $ReleaseLabel `
+    -ExpectedPackageKind $packageKind
 if ($LASTEXITCODE -ne 0) {
     throw "Test package metadata verification failed with exit code $LASTEXITCODE."
 }

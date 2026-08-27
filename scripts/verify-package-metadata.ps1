@@ -11,6 +11,8 @@ param(
     [string]$ExpectedVersion,
 
     [string]$ExpectedReleaseLabel = $ExpectedVersion,
+    [ValidateSet('test', 'community', 'public')]
+    [string]$ExpectedPackageKind,
     [string]$ExpectedSignerThumbprint,
     [switch]$RequireSignature
 )
@@ -66,6 +68,15 @@ try {
     Assert-Equal 'Guardian service' (Get-MsiScalar $database "SELECT ``Name`` FROM ``ServiceInstall`` WHERE ``Name``='OtiumGuardian'") 'OtiumGuardian'
     Assert-Equal 'Uninstall entry point' (Get-MsiScalar $database "SELECT ``Arguments`` FROM ``Shortcut`` WHERE ``Arguments``='--uninstall'") '--uninstall'
     Assert-Equal 'Embedded cabinet' (Get-MsiScalar $database "SELECT ``Cabinet`` FROM ``Media`` WHERE ``DiskId``=1") '#cab1.cab'
+    $packageKind = Get-MsiScalar $database "SELECT ``Value`` FROM ``Registry`` WHERE ``Name``='PackageKind'"
+    if ($ExpectedPackageKind) {
+        Assert-Equal 'Package kind' $packageKind $ExpectedPackageKind
+    } elseif ([string]::IsNullOrWhiteSpace($packageKind)) {
+        throw 'Package kind metadata is missing.'
+    }
+    if ([string]::IsNullOrWhiteSpace((Get-MsiScalar $database "SELECT ``Value`` FROM ``Registry`` WHERE ``Name``='ExecutableSha256'"))) {
+        throw 'Executable SHA-256 metadata is missing.'
+    }
 } finally {
     if ($null -ne $database) {
         [System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($database) | Out-Null

@@ -275,7 +275,7 @@ Kabul kriteri:
 teknik olarak ayrıldı. Son release commit'inde bütünlük doğrulamasının yeniden
 çalıştırılması ve SmartScreen/SHA-256 yayın metni bekliyor.
 
-**Durum:** Devam ediyor; ticari sertifika satın alınmayacak, güvenli imzasız community dağıtım modeli açık.
+**Durum:** Kod modeli uygulandı; gerçek kurulu community paket testi bekliyor. Ticari sertifika satın alınmayacak.
 
 Proje kişisel ve ticari olmayan bir açık kaynak çalışma olarak yayımlanacak. Bu
 nedenle V1 için ücretli code-signing sertifikası zorunlu tutulmayacak. Bu karar,
@@ -286,6 +286,7 @@ kimliğinin bulunmaması kullanıcıya açıkça anlatılacaktır.
 Yapılacaklar:
 
 - Release community paketinin test/development paketinden teknik ayrımını koruma.
+- Community MSI metadata'sına paket türü ve kurulu EXE SHA-256 kimliğini yazma; Guardian'ın yalnız installer-managed, exact path, sürüm ve hash eşleşen istemciyi kabul etmesini sağlama.
 - Son release commit'inde EXE, MSI, manifest, SHA-256 ve kaynak commit'inin aynı build'e ait olduğunu yeniden doğrulama.
 - Guardian'ın Development bypass kullanmadan yalnız installer'ın kurduğu beklenen istemciyi kabul edeceği bütünlük modelini tamamlama.
 - Değiştirilmiş veya farklı kaynaktan gelen istemcinin Guardian tarafından reddedildiğini test etme.

@@ -122,6 +122,7 @@ if ($LASTEXITCODE -ne 0) {
 $publishedExecutable = Join-Path $publishDirectory 'Otium.exe'
 Invoke-BinarySigning $publishedExecutable $signTool $normalizedThumbprint $certificateUsesMachineStore
 Assert-ValidSignature $publishedExecutable $normalizedThumbprint
+$publishedExecutableHash = (Get-FileHash -LiteralPath $publishedExecutable -Algorithm SHA256).Hash
 Copy-Item -LiteralPath $publishedExecutable `
     -Destination (Join-Path $publishedArtifactDirectory 'Otium.exe') -Force
 
@@ -130,6 +131,8 @@ Copy-Item -LiteralPath $publishedExecutable `
     -p:OtiumVersion=$Version `
     -p:OtiumPublishDir="$publishDirectory" `
     -p:OtiumSignerThumbprint=$normalizedThumbprint `
+    -p:OtiumPackageKind=public `
+    -p:OtiumExecutableSha256=$publishedExecutableHash `
     -p:BaseIntermediateOutputPath="$wixIntermediateDirectory" `
     -p:OutputPath="$wixOutputDirectory"
 if ($LASTEXITCODE -ne 0) {
@@ -192,6 +195,7 @@ Set-Content -LiteralPath "$setup.sha256" -Value "$($setupHash.Hash.ToLowerInvari
     -SetupPath $setup `
     -ExpectedVersion $Version `
     -ExpectedReleaseLabel $Version `
+    -ExpectedPackageKind public `
     -ExpectedSignerThumbprint $normalizedThumbprint `
     -RequireSignature
 if ($LASTEXITCODE -ne 0) {

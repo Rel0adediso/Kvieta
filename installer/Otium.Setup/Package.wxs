@@ -125,6 +125,18 @@
         Name="SignerThumbprint"
         Type="string"
         Value="$(var.OtiumSignerThumbprint)" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Otium"
+        Name="PackageKind"
+        Type="string"
+        Value="$(var.OtiumPackageKind)" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Otium"
+        Name="ExecutableSha256"
+        Type="string"
+        Value="$(var.OtiumExecutableSha256)" />
     </Component>
 
     <Component

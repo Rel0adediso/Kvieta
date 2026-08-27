@@ -646,6 +646,25 @@ public static class ProtectionPolicyChannel
             }
 
             string? pinnedThumbprint = ProtectionServiceManager.RegisteredSignerThumbprint;
+            if (string.Equals(
+                    ProtectionServiceManager.RegisteredPackageKind,
+                    "community",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                if (!ProtectionServiceManager.IsInstallerManaged)
+                {
+                    return false;
+                }
+
+                string actualHash = ProtectionServiceManager.ComputeSha256(path);
+                return ProtectionServiceManager.IsCommunityClientIdentityValid(
+                    ProtectionServiceManager.RegisteredPackageKind,
+                    ProtectionServiceManager.RegisteredExecutableSha256,
+                    actualHash,
+                    ProtectionServiceManager.ReadRegisteredVersionForIdentity(),
+                    ProtectionServiceManager.ReadProductVersionForIdentity(path));
+            }
+
             if (string.IsNullOrWhiteSpace(pinnedThumbprint) || !AuthenticodeTrustVerifier.IsTrusted(path)) return false;
 #pragma warning disable SYSLIB0057
             using X509Certificate2 signer = new(X509Certificate.CreateFromSignedFile(path));
