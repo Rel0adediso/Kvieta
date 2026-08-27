@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.ServiceProcess;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -305,6 +306,13 @@ public partial class SetupWindow : Window
                       $"Windows Installer stopped with code {exitCode}. Diagnostics are in ProgramData\\Otium\\SetupLogs."));
             }
 
+            if (_plan.RequiresGuardian && !await WaitForGuardianServiceAsync())
+            {
+                throw new InvalidOperationException(
+                    T("Guardian servisi başlatılamadı. Korumalı ayarlar kaydedilmedi ve Otium başlatılmadı.",
+                      "The Guardian service could not be started. Protected settings were not saved and Otium was not launched."));
+            }
+
             await _settingsStore.SaveAsync(settings);
             LaunchInstalledOtium(_plan.LaunchArguments);
             await Task.Delay(650);
@@ -381,6 +389,30 @@ public partial class SetupWindow : Window
             Arguments = arguments,
             UseShellExecute = true
         });
+    }
+
+    private async Task<bool> WaitForGuardianServiceAsync()
+    {
+        DateTime deadline = DateTime.UtcNow.AddSeconds(15);
+        while (DateTime.UtcNow < deadline)
+        {
+            try
+            {
+                using ServiceController service = new("OtiumGuardian");
+                service.Refresh();
+                if (service.Status == ServiceControllerStatus.Running)
+                {
+                    return true;
+                }
+            }
+            catch (InvalidOperationException)
+            {
+            }
+
+            await Task.Delay(250);
+        }
+
+        return false;
     }
 
     private void ReadPreferences()

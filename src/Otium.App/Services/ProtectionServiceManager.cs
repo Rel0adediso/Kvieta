@@ -489,10 +489,13 @@ public static class ProtectionServiceManager
         }
         catch (Exception exception)
         {
-            TraceInstallStep($"failure.{exception.GetType().Name}");
+            TraceInstallStep($"failure.{exception.GetType().Name}.{SanitizeInstallLogValue(exception.Message)}");
             return 1;
         }
     }
+
+    private static string SanitizeInstallLogValue(string value) =>
+        new(value.Where(character => char.IsAsciiLetterOrDigit(character) || character is ' ' or '.' or '-' or '_' or '(' or ')').ToArray());
 
     private static void TraceInstallStep(string step)
     {
