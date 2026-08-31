@@ -25,6 +25,9 @@ public enum SetupPackageAction
 
 public sealed class SetupPlan
 {
+    private IReadOnlyList<string>? _plainRecoveryCodes;
+    private List<RecoveryCodeRecord> _recoveryCodeRecords = [];
+
     public static SetupPackageAction DeterminePackageAction(Version? installedVersion, Version packageVersion)
     {
         if (installedVersion is null) return SetupPackageAction.FreshInstall;
@@ -45,12 +48,26 @@ public sealed class SetupPlan
     public bool StartWithWindows { get; set; } = true;
     public bool DesktopShortcut { get; set; } = true;
     public bool AwarenessTracking { get; set; } = true;
+    public bool PairManagerDeviceAfterInstall { get; set; }
     public string? AdminPin { get; set; }
 
     public bool RequiresUserPin => Mode == ControlMode.Protected;
     public bool RequiresGuardian =>
         Mode == ControlMode.Protected ||
         Mode == ControlMode.Personal && PersonalLevel == PersonalProtectionLevel.Guarded;
+
+    public IReadOnlyList<string> EnsureRecoveryCodes()
+    {
+        if (_plainRecoveryCodes is not null)
+        {
+            return _plainRecoveryCodes;
+        }
+
+        ControlSettings recoverySettings = new();
+        _plainRecoveryCodes = RecoveryCodeService.Generate(recoverySettings);
+        _recoveryCodeRecords = CloneRecoveryCodes(recoverySettings.RecoveryCodes);
+        return _plainRecoveryCodes;
+    }
 
     public ControlSettings ComposeSettings(ControlSettings? existing)
     {
@@ -91,16 +108,29 @@ public sealed class SetupPlan
                 AdminPinService.CreateInternalCredential(),
             _ => new AdminCredential()
         };
+        if (Mode == ControlMode.Protected)
+        {
+            EnsureRecoveryCodes();
+            settings.RecoveryCodes = CloneRecoveryCodes(_recoveryCodeRecords);
+        }
         return settings;
     }
 
-    public string LaunchArguments => ExistingChoice == SetupChoice.KeepExisting
-        ? string.Empty
-        : Mode == ControlMode.Protected ||
-          Mode == ControlMode.Personal && PersonalLevel is PersonalProtectionLevel.Balanced or PersonalProtectionLevel.Guarded
-            ? "--session"
-            : string.Empty;
+    // Setup always opens the control center. Guardian owns the protected session
+    // lifecycle and starts that surface independently when the policy requires it.
+    public string LaunchArguments => string.Empty;
 
     private static LanguagePreference ToLanguagePreference(SetupLanguage language) =>
         language == SetupLanguage.English ? LanguagePreference.English : LanguagePreference.Turkish;
+
+    private static List<RecoveryCodeRecord> CloneRecoveryCodes(IEnumerable<RecoveryCodeRecord> codes) =>
+        codes.Select(code => new RecoveryCodeRecord
+        {
+            Id = code.Id,
+            Iterations = code.Iterations,
+            SaltBase64 = code.SaltBase64,
+            HashBase64 = code.HashBase64,
+            CreatedAtUtc = code.CreatedAtUtc,
+            UsedAtUtc = code.UsedAtUtc
+        }).ToList();
 }

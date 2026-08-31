@@ -18,7 +18,6 @@
          self-contained without applying the much slower default LZX recompression. -->
     <MediaTemplate EmbedCab="yes" CompressionLevel="mszip" />
 
-    <Property Id="ARPNOREMOVE" Value="1" />
     <Property Id="ARPNOMODIFY" Value="1" />
     <Property
       Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT"
@@ -91,7 +90,6 @@
       <ServiceControl
         Id="GuardianServiceControl"
         Name="OtiumGuardian"
-        Start="install"
         Stop="both"
         Remove="uninstall"
         Wait="yes" />

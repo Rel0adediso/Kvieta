@@ -24,13 +24,12 @@ public partial class CafeWindow : Window
     private readonly SemaphoreSlim _systemInterruptionGate = new(1, 1);
     private SystemInterruptionState _systemInterruptionState = new();
     private readonly bool _requirePinToExit;
-    private readonly AdminCredential? _exitCredentialOverride;
+    private AdminCredential? _exitCredentialOverride;
     private readonly bool _isDirectSession;
     private readonly bool _startHidden;
     private bool _returnToControlCenter;
     private bool _forceSurfaceVisible;
     private bool _controlCenterOpen;
-    private bool _keepSessionBehindControlCenter;
     private bool _limitActionHandled;
     private bool _surfaceTransitionInProgress;
     private bool _surfaceRecoveryQueued;
@@ -51,11 +50,13 @@ public partial class CafeWindow : Window
         _startHidden = startHidden;
         _requirePinToExit = requirePinToExit;
         _exitCredentialOverride = exitCredentialOverride;
-        _returnToControlCenter = returnToControlCenter;
+        // A PIN-protected exit is a transition to management, not a request to
+        // tear down the Guardian service that owns this session.
+        _returnToControlCenter = returnToControlCenter || requirePinToExit;
         _shortcutGuard = new SessionShortcutGuard(ShouldRecoverSessionSurface);
         _displayShieldManager = new SessionDisplayShieldManager(this, ShouldCoverAllDisplays);
         ExitButton.Content = LocalizationService.Get(
-            returnToControlCenter ? "ControlCenter" : !isDirectSession ? "ExitPreview" : requirePinToExit ? "AdminExit" : "ExitOtium");
+            requirePinToExit ? "AdminExit" : returnToControlCenter ? "ControlCenter" : !isDirectSession ? "ExitPreview" : "ExitOtium");
         DataContext = _viewModel;
 
         if (_startHidden)
@@ -107,6 +108,7 @@ public partial class CafeWindow : Window
         {
             await _viewModel.TickAsync();
             EnsureCorrectSurface();
+            await HandleLimitReachedAsync();
         }
         catch (Exception exception)
         {
@@ -128,6 +130,12 @@ public partial class CafeWindow : Window
     private async Task HandleLimitReachedAsync()
     {
         if (_viewModel.State != SessionState.TimeExpired)
+        {
+            _limitActionHandled = false;
+            return;
+        }
+
+        if (ProtectionPolicyChannel.IsAdministrativeActivityActive())
         {
             _limitActionHandled = false;
             return;
@@ -180,11 +188,18 @@ public partial class CafeWindow : Window
 
     private async void RequestTime_Click(object sender, RoutedEventArgs e)
     {
-        AdminCredential credential = _exitCredentialOverride
-            ?? (await new JsonSettingsStore().LoadAsync()).AdminPin;
+        AdminCredential credential = await LoadExitCredentialAsync();
+        if (!credential.IsConfigured && _requirePinToExit)
+        {
+            ShowMissingAdministratorCredential();
+            return;
+        }
+
         if (credential.IsConfigured)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(pin => VerifyExitPinAsync(pin, credential));
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                pin => VerifyExitPinAsync(pin, credential),
+                RecoverExitPinAsync);
             verification.Owner = this;
             _modalDialogOpen = true;
             try
@@ -241,6 +256,7 @@ public partial class CafeWindow : Window
             return;
         }
 
+        PowerOverlay.Visibility = Visibility.Collapsed;
         await RunBeforePowerActionAsync(_viewModel.EndSessionAsync);
         if (TryPowerAction(SystemPowerController.Restart))
         {
@@ -257,6 +273,7 @@ public partial class CafeWindow : Window
             return;
         }
 
+        PowerOverlay.Visibility = Visibility.Collapsed;
         await RunBeforePowerActionAsync(_viewModel.EndSessionAsync);
         if (TryPowerAction(SystemPowerController.ShutDown))
         {
@@ -314,12 +331,26 @@ public partial class CafeWindow : Window
 
     private bool ConfirmPowerAction(string message)
     {
-        return System.Windows.MessageBox.Show(
-            this,
-            message,
-            "Otium",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question) == MessageBoxResult.Yes;
+        _modalDialogOpen = true;
+        bool confirmed = false;
+        try
+        {
+            confirmed = System.Windows.MessageBox.Show(
+                this,
+                message,
+                "Otium",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) == MessageBoxResult.Yes;
+            return confirmed;
+        }
+        finally
+        {
+            _modalDialogOpen = false;
+            if (!confirmed)
+            {
+                EnsureCorrectSurface();
+            }
+        }
     }
 
     private static bool IsEnglish => LocalizationService.CurrentLanguage == LanguagePreference.English;
@@ -393,23 +424,19 @@ public partial class CafeWindow : Window
             return;
         }
 
+        if (ProtectionPolicyChannel.IsAdministrativeActivityActive())
+        {
+            _widget?.Hide();
+            Hide();
+            return;
+        }
+
         _displayShieldManager.Refresh();
 
         if (_controlCenterOpen)
         {
             _widget?.Hide();
-            if (_keepSessionBehindControlCenter)
-            {
-                if (!IsVisible)
-                {
-                    Show();
-                }
-                WindowState = WindowState.Maximized;
-            }
-            else
-            {
-                Hide();
-            }
+            Hide();
             return;
         }
 
@@ -459,8 +486,7 @@ public partial class CafeWindow : Window
         return SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
             _viewModel.ShouldShowSessionSurfaces,
             _forceSurfaceVisible || !_viewModel.IsActive,
-            _controlCenterOpen,
-            _keepSessionBehindControlCenter);
+            _controlCenterOpen);
     }
 
     private void QueueSessionSurfaceRecovery()
@@ -547,14 +573,19 @@ public partial class CafeWindow : Window
     public void EnableControlCenterReturn()
     {
         _returnToControlCenter = true;
-        ExitButton.Content = LocalizationService.Get("ControlCenter");
-        SuspendForControlCenter();
+        ExitButton.Content = LocalizationService.Get(
+            _requirePinToExit ? "AdminExit" : "ControlCenter");
+        if (!_controlCenterOpen)
+        {
+            SuspendForControlCenter();
+        }
     }
 
     public void ResumeFromControlCenter()
     {
         _controlCenterOpen = false;
-        _keepSessionBehindControlCenter = false;
+        ExitButton.Content = LocalizationService.Get(
+            _requirePinToExit ? "AdminExit" : _returnToControlCenter ? "ControlCenter" : "ExitOtium");
         EnsureCorrectSurface();
     }
 
@@ -604,6 +635,7 @@ public partial class CafeWindow : Window
         {
             PowerModes.Suspend => SystemInterruptionKind.PowerSuspend,
             PowerModes.Resume => SystemInterruptionKind.PowerResume,
+
             _ => null
         };
         if (kind is not null)
@@ -672,27 +704,27 @@ public partial class CafeWindow : Window
 
     private async void ExitPrototype_Click(object sender, RoutedEventArgs e)
     {
-        if (_returnToControlCenter)
+        try
         {
-            if (_controlCenterOpen)
+            string? verifiedPin = null;
+            if (_requirePinToExit)
             {
-                ControlCenterRequested?.Invoke(this, new ControlCenterRequestEventArgs());
-                return;
-            }
+                AdminCredential credential = await LoadExitCredentialAsync();
+                if (!credential.IsConfigured)
+                {
+                    ShowMissingAdministratorCredential();
+                    return;
+                }
 
-            SuspendForControlCenter();
-            ControlCenterRequested?.Invoke(this, new ControlCenterRequestEventArgs());
-            return;
-        }
-
-        if (_requirePinToExit)
-        {
-            AdminCredential credential = _exitCredentialOverride
-                ?? (await new JsonSettingsStore().LoadAsync()).AdminPin;
-            if (credential.IsConfigured)
-            {
                 AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                    pin => VerifyExitPinAsync(pin, credential));
+                    pin => VerifyExitPinAsync(pin, credential),
+                    RecoverExitPinAsync,
+                    LocalizationService.CurrentLanguage == LanguagePreference.English
+                        ? "Open Control Center"
+                        : "Kontrol Merkezi'ni aç",
+                    LocalizationService.CurrentLanguage == LanguagePreference.English
+                        ? "Enter the administrator PIN to leave the session screen and manage Otium. Guardian protection will remain active."
+                        : "Oturum ekranından çıkıp Otium'u yönetmek için yönetici PIN'ini gir. Guardian koruması açık kalacak.");
                 verification.Owner = this;
                 bool verified;
                 _modalDialogOpen = true;
@@ -711,49 +743,65 @@ public partial class CafeWindow : Window
                     return;
                 }
 
+                verifiedPin = verification.ResultPin;
+            }
+
+            if (_returnToControlCenter)
+            {
+                if (_controlCenterOpen)
+                {
+                    ControlCenterRequested?.Invoke(
+                        this,
+                        new ControlCenterRequestEventArgs(verifiedPin, _requirePinToExit));
+                    return;
+                }
+
                 SuspendForControlCenter();
                 ControlCenterRequested?.Invoke(
                     this,
-                    new ControlCenterRequestEventArgs(verification.ResultPin));
+                    new ControlCenterRequestEventArgs(verifiedPin, _requirePinToExit));
                 return;
             }
-        }
 
-        if (_viewModel.IsActive)
+            if (_viewModel.IsActive)
+            {
+                await _viewModel.PauseAsync();
+            }
+
+            await _viewModel.SaveAsync();
+            _allowClose = true;
+            Close();
+        }
+        catch (Exception exception)
         {
-            await _viewModel.PauseAsync();
+            _modalDialogOpen = true;
+            try
+            {
+                System.Windows.MessageBox.Show(
+                    this,
+                    LocalizationService.CurrentLanguage == LanguagePreference.English
+                        ? $"An error occurred during exit: {exception.Message}"
+                        : $"Çıkış sırasında bir hata oluştu: {exception.Message}",
+                    "Otium",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            finally
+            {
+                _modalDialogOpen = false;
+                EnsureCorrectSurface();
+            }
         }
-
-        await _viewModel.SaveAsync();
-        _allowClose = true;
-        Close();
     }
 
     public event EventHandler<ControlCenterRequestEventArgs>? ControlCenterRequested;
 
-    public bool KeepsSessionBehindControlCenter => _keepSessionBehindControlCenter;
-
     private void SuspendForControlCenter()
     {
-        _keepSessionBehindControlCenter = SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
-            _viewModel.IsGuardedPersonalMode,
-            _forceSurfaceVisible,
-            _viewModel.IsActive);
         _controlCenterOpen = true;
-        _forceSurfaceVisible = _keepSessionBehindControlCenter;
+        _forceSurfaceVisible = false;
         _widget?.Hide();
-        if (_keepSessionBehindControlCenter)
-        {
-            if (!IsVisible)
-            {
-                Show();
-            }
-            WindowState = WindowState.Maximized;
-        }
-        else
-        {
-            Hide();
-        }
+        Hide();
         _displayShieldManager.Refresh();
     }
 
@@ -795,10 +843,78 @@ public partial class CafeWindow : Window
         }
     }
 
+    private async Task<string?> RecoverExitPinAsync(Window owner)
+    {
+        string? newPin = await ((App)System.Windows.Application.Current)
+            .RunPinRecoveryForCurrentPolicyAsync(owner);
+        if (string.IsNullOrWhiteSpace(newPin))
+        {
+            return null;
+        }
+
+        _exitCredentialOverride = AdminPinService.Create(newPin);
+        return newPin;
+    }
+
     private Task<bool> VerifyExitPinAsync(string pin, AdminCredential credential) =>
         _requirePinToExit && ProtectionServiceManager.GetState() == ProtectionServiceState.Running
             ? ProtectionPolicyChannel.VerifyPinAsync(pin)
             : Task.FromResult(AdminPinService.Verify(pin, credential));
+
+    private async Task<AdminCredential> LoadExitCredentialAsync()
+    {
+        if (_exitCredentialOverride?.IsConfigured == true)
+        {
+            return _exitCredentialOverride;
+        }
+
+        if (File.Exists(ProtectionServiceManager.ProtectedSettingsPath))
+        {
+            try
+            {
+                ControlSettings protectedSettings = await new JsonSettingsStore(
+                    ProtectionServiceManager.ProtectedSettingsPath,
+                    readOnly: true).LoadAsync();
+                if (protectedSettings.AdminPin.IsConfigured)
+                {
+                    return protectedSettings.AdminPin;
+                }
+            }
+            catch
+            {
+                // Fall through to the user copy; protected exit still fails closed
+                // if neither authoritative source contains a usable credential.
+            }
+        }
+
+        try
+        {
+            return (await new JsonSettingsStore().LoadAsync()).AdminPin;
+        }
+        catch
+        {
+            return new AdminCredential();
+        }
+    }
+
+    private void ShowMissingAdministratorCredential()
+    {
+        _modalDialogOpen = true;
+        try
+        {
+            System.Windows.MessageBox.Show(
+                this,
+                LocalizationService.Get("AdminCredentialUnavailableDescription"),
+                LocalizationService.Get("AdminCredentialUnavailableTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            _modalDialogOpen = false;
+            EnsureCorrectSurface();
+        }
+    }
 
     private void Window_Closed(object? sender, EventArgs e)
     {
@@ -820,7 +936,10 @@ public partial class CafeWindow : Window
     }
 }
 
-public sealed class ControlCenterRequestEventArgs(string? verifiedPin = null) : EventArgs
+public sealed class ControlCenterRequestEventArgs(
+    string? verifiedPin = null,
+    bool administratorVerified = false) : EventArgs
 {
     public string? VerifiedPin { get; } = verifiedPin;
+    public bool AdministratorVerified { get; } = administratorVerified;
 }

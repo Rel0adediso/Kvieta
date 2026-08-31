@@ -1,10 +1,22 @@
 using Otium.Core.Models;
 using Otium.Core.Services;
+using Otium.App;
 using Otium.App.ViewModels;
 using Otium.App.Services;
 using Otium.SetupApp;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Security.Cryptography;
+
+if (args.Contains("--companion-preview", StringComparer.Ordinal))
+{
+    await using LocalManagerDeviceEnrollmentEndpoint previewEndpoint =
+        LocalManagerDeviceEnrollmentEndpoint.Start(_ => Task.FromResult(false), DateTimeOffset.UtcNow);
+    Console.WriteLine(previewEndpoint.PairingUri.AbsoluteUri);
+    await Task.Delay(TimeSpan.FromMinutes(2));
+    return;
+}
 
 ControlSettings settings = new();
 #if OTIUM_DEVELOPMENT_BUILD
@@ -19,6 +31,306 @@ Assert(!string.IsNullOrWhiteSpace(BuildInfo.RepositoryCommit) &&
        BuildInfo.DisplayRevision.EndsWith("-dirty", StringComparison.Ordinal) == BuildInfo.IsRepositoryDirty,
     "Build commit veya çalışma ağacı kimliği assembly metadata'sına doğru gömülmedi.");
 Assert(settings.DeviceName == "Bu Bilgisayar", "Yeni kurulumun varsayılan cihaz adı yanlış.");
+string singleWindowChannel = $"Smoke{Guid.NewGuid():N}";
+using (SingleInstanceCoordinator primaryWindow = new(singleWindowChannel))
+using (SingleInstanceCoordinator duplicateWindow = new(singleWindowChannel))
+{
+    Assert(primaryWindow.IsPrimary && !duplicateWindow.IsPrimary,
+        "Aynı yönetim penceresi kanalı ikinci bir örneğe izin veriyor.");
+}
+Exception? adminPinWindowInitializationError = null;
+Thread adminPinWindowThread = new(() =>
+{
+    try
+    {
+        Otium.App.App application = new();
+        application.InitializeComponent();
+        _ = Otium.App.AdminPinWindow.CreateSetup();
+        _ = new Otium.App.RecoveryResetWindow(
+            (_, _) => Task.FromResult(false),
+            _ => Task.FromResult(false),
+            recoveryCodeAvailable: false,
+            managerDeviceName: "Test phone");
+        application.Shutdown();
+    }
+    catch (Exception exception)
+    {
+        adminPinWindowInitializationError = exception;
+    }
+});
+adminPinWindowThread.SetApartmentState(ApartmentState.STA);
+adminPinWindowThread.Start();
+adminPinWindowThread.Join();
+Assert(adminPinWindowInitializationError is null,
+    $"PIN, QR ve yönetici çıkışının ortak penceresi oluşturulamadı: {adminPinWindowInitializationError?.Message}");
+RecoveryChallenge protocolVector = new(
+    "ABC",
+    "device-1",
+    DateTimeOffset.FromUnixTimeSeconds(1_700_000_123),
+    "AQIDBA==",
+    "pin-reset",
+    "YWJjZA==");
+Assert(ManagerDeviceAuthorizationService.CreateSignedContent(protocolVector) ==
+       "otium-manager-recovery-v1.QUJD.ZGV2aWNlLTE=.MTcwMDAwMDEyMw==.QVFJREJBPT0=.cGluLXJlc2V0.WVdKalpBPT0=" &&
+       ManagerDeviceVerificationCode.ForRecoveryChallenge(protocolVector) == "660957",
+    "Yerel companion sitesiyle paylaşılan recovery protokol vektörü değişti.");
+Assert(QrCodeImageService.Create("http://192.168.1.2:24873/token/").PixelWidth > 0,
+    "Companion eşleştirme QR görseli üretilemedi.");
+await using (LocalManagerDeviceEnrollmentEndpoint endpoint =
+    LocalManagerDeviceEnrollmentEndpoint.Start(_ => Task.FromResult(false), DateTimeOffset.UtcNow))
+{
+    using HttpClient localClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+    using HttpResponseMessage siteResponse = await localClient.GetAsync(endpoint.PairingUri);
+    string siteHtml = await siteResponse.Content.ReadAsStringAsync();
+    Assert(siteResponse.IsSuccessStatusCode &&
+        siteResponse.Content.Headers.ContentType?.MediaType == "text/html" &&
+        siteHtml.Contains("Otium Companion", StringComparison.Ordinal) &&
+        siteResponse.Headers.Contains("Content-Security-Policy"),
+        "Telefon için gömülü yerel companion sitesi sunulamadı.");
+    string endpointDescription = await localClient.GetStringAsync(new Uri(endpoint.PairingUri, "api"));
+    Assert(endpointDescription.Contains("otium-enrollment", StringComparison.Ordinal) &&
+        endpointDescription.Contains(endpoint.VerificationCode, StringComparison.Ordinal),
+        "Standart kullanıcı yerel eşleştirme endpoint'ini açamadı.");
+}
+await using (LocalManagerDeviceEnrollmentEndpoint firstEndpoint =
+    LocalManagerDeviceEnrollmentEndpoint.Start(_ => Task.FromResult(false), DateTimeOffset.UtcNow))
+await using (LocalManagerDeviceEnrollmentEndpoint secondEndpoint =
+    LocalManagerDeviceEnrollmentEndpoint.Start(_ => Task.FromResult(false), DateTimeOffset.UtcNow))
+{
+    Assert(firstEndpoint.PairingUri.Port != secondEndpoint.PairingUri.Port,
+        "Açık kalmış eşleştirme oturumu yeni QR oturumunun başlamasını engelledi.");
+    using HttpClient localClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+    using HttpResponseMessage firstResponse = await localClient.GetAsync(firstEndpoint.PairingUri);
+    using HttpResponseMessage secondResponse = await localClient.GetAsync(secondEndpoint.PairingUri);
+    Assert(firstResponse.IsSuccessStatusCode && secondResponse.IsSuccessStatusCode,
+        "Yedek eşleştirme portu yerel companion sitesini sunamadı.");
+}
+DateTimeOffset challengeNow = DateTimeOffset.UtcNow;
+byte[] challengeKey = RandomNumberGenerator.GetBytes(32);
+RecoveryChallengeService challengeService = new();
+RecoveryChallenge challenge = challengeService.Issue("manager-phone", challengeNow);
+byte[] challengeSignature = HMACSHA256.HashData(
+    challengeKey,
+    System.Text.Encoding.UTF8.GetBytes(RecoveryChallengeService.CreateSignedContent(challenge)));
+RecoveryChallengeResponse challengeResponse = new(
+    challenge.ChallengeId,
+    challenge.DeviceId,
+    challenge.NonceBase64,
+    Convert.ToBase64String(challengeSignature));
+Assert(!challengeService.TryConsume(
+        challengeResponse with { SignatureBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)) },
+        "manager-phone",
+        challengeKey,
+        challengeNow) &&
+       challengeService.TryConsume(challengeResponse, "manager-phone", challengeKey, challengeNow) &&
+       !challengeService.TryConsume(challengeResponse, "manager-phone", challengeKey, challengeNow),
+    "Hatalı imza challenge'ı tüketti veya recovery challenge tek kullanımlık uygulanmadı.");
+RecoveryChallenge expiredChallenge = challengeService.Issue("manager-phone", challengeNow);
+byte[] expiredSignature = HMACSHA256.HashData(
+    challengeKey,
+    System.Text.Encoding.UTF8.GetBytes(RecoveryChallengeService.CreateSignedContent(expiredChallenge)));
+Assert(!challengeService.TryConsume(
+        new RecoveryChallengeResponse(
+            expiredChallenge.ChallengeId,
+            expiredChallenge.DeviceId,
+            expiredChallenge.NonceBase64,
+            Convert.ToBase64String(expiredSignature)),
+        "manager-phone",
+        challengeKey,
+        challengeNow.AddMinutes(3)) &&
+    !challengeService.TryConsume(
+        challengeResponse with
+        {
+            ChallengeId = expiredChallenge.ChallengeId,
+            NonceBase64 = expiredChallenge.NonceBase64
+        },
+        "other-phone",
+        challengeKey,
+        challengeNow),
+    "Recovery challenge süresi veya cihaz bağlamı doğrulanmıyor.");
+using ECDsa managerKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+RecoveryChallenge managerChallenge = challengeService.Issue("manager-phone", challengeNow);
+ManagerDeviceEnrollment managerEnrollment = new(
+    "manager-phone",
+    "Manager phone",
+    managerKey.ExportSubjectPublicKeyInfoPem(),
+    challengeNow);
+byte[] enrollmentProof = managerKey.SignData(
+    System.Text.Encoding.UTF8.GetBytes(ManagerDeviceEnrollmentService.CreateProofContent(managerEnrollment)),
+    HashAlgorithmName.SHA256,
+    DSASignatureFormat.Rfc3279DerSequence);
+ManagerDeviceEnrollmentRequest enrollmentRequest = new(
+    managerEnrollment,
+    Convert.ToBase64String(enrollmentProof));
+Assert(ManagerDeviceEnrollmentService.VerifyRequest(enrollmentRequest, challengeNow) &&
+    !ManagerDeviceEnrollmentService.VerifyRequest(enrollmentRequest, challengeNow.AddMinutes(11)) &&
+    !ManagerDeviceEnrollmentService.VerifyRequest(
+        enrollmentRequest with { ProofSignatureBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)) },
+        challengeNow),
+    "Yönetici cihazı enrollment anahtar sahipliği veya zaman sınırı doğrulanmadı.");
+bool localEnrollmentAccepted = false;
+await using (LocalManagerDeviceEnrollmentEndpoint endpoint =
+    LocalManagerDeviceEnrollmentEndpoint.Start(request =>
+    {
+        localEnrollmentAccepted = ManagerDeviceEnrollmentService.VerifyRequest(request, DateTimeOffset.UtcNow);
+        return Task.FromResult(localEnrollmentAccepted);
+    }, DateTimeOffset.UtcNow))
+{
+    using HttpClient localClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+    using StringContent content = new(
+        JsonSerializer.Serialize(enrollmentRequest),
+        System.Text.Encoding.UTF8,
+        "application/json");
+    using HttpResponseMessage response = await localClient.PostAsync(new Uri(endpoint.PairingUri, "api"), content);
+    Assert(response.IsSuccessStatusCode && localEnrollmentAccepted,
+        "Companion enrollment paketi yerel endpoint üzerinden Guardian callback'ine ulaşmadı.");
+}
+byte[] managerSignature = managerKey.SignData(
+    System.Text.Encoding.UTF8.GetBytes(ManagerDeviceAuthorizationService.CreateSignedContent(managerChallenge)),
+    HashAlgorithmName.SHA256,
+    DSASignatureFormat.Rfc3279DerSequence);
+RecoveryChallengeResponse managerResponse = new(
+    managerChallenge.ChallengeId,
+    managerChallenge.DeviceId,
+    managerChallenge.NonceBase64,
+    Convert.ToBase64String(managerSignature));
+Assert(ManagerDeviceAuthorizationService.VerifyResponse(
+        managerEnrollment,
+        managerChallenge,
+        managerResponse,
+        challengeNow) &&
+    !ManagerDeviceAuthorizationService.VerifyResponse(
+        managerEnrollment with { RevokedAtUtc = challengeNow },
+        managerChallenge,
+        managerResponse,
+        challengeNow) &&
+    !ManagerDeviceAuthorizationService.VerifyResponse(
+        managerEnrollment,
+        managerChallenge,
+        managerResponse,
+        challengeNow.AddMinutes(3)),
+    "Yönetici telefonunun imzası, iptal durumu veya challenge süresi doğrulanmadı.");
+bool localRecoveryAccepted = false;
+await using (LocalRecoveryEndpoint endpoint = LocalRecoveryEndpoint.Start(
+    managerEnrollment,
+    managerChallenge,
+    _ =>
+    {
+        localRecoveryAccepted = true;
+        return Task.FromResult(true);
+    },
+    challengeNow))
+{
+    using HttpClient localClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+    using StringContent content = new(
+        JsonSerializer.Serialize(managerResponse),
+        System.Text.Encoding.UTF8,
+        "application/json");
+    using HttpResponseMessage response = await localClient.PostAsync(new Uri(endpoint.RecoveryUri, "api"), content);
+    Assert(response.IsSuccessStatusCode && localRecoveryAccepted,
+        "Companion recovery imzası yerel endpoint üzerinden Guardian callback'ine ulaşmadı.");
+}
+AdminCredential managerResetCredential = AdminPinService.Create("7351");
+RecoveryChallenge managerResetChallenge = ManagerDeviceRecoveryService.CreatePinResetChallenge(
+    managerEnrollment.DeviceId,
+    managerResetCredential,
+    challengeNow);
+byte[] managerResetSignature = managerKey.SignData(
+    System.Text.Encoding.UTF8.GetBytes(
+        ManagerDeviceAuthorizationService.CreateSignedContent(managerResetChallenge)),
+    HashAlgorithmName.SHA256,
+    DSASignatureFormat.Rfc3279DerSequence);
+RecoveryChallengeResponse managerResetResponse = new(
+    managerResetChallenge.ChallengeId,
+    managerResetChallenge.DeviceId,
+    managerResetChallenge.NonceBase64,
+    Convert.ToBase64String(managerResetSignature));
+Assert(ManagerDeviceRecoveryService.MatchesPinReset(managerResetChallenge, managerResetCredential) &&
+    !ManagerDeviceRecoveryService.MatchesPinReset(
+        managerResetChallenge,
+        AdminPinService.Create("7352")) &&
+    ManagerDeviceAuthorizationService.VerifyResponse(
+        managerEnrollment,
+        managerResetChallenge,
+        managerResetResponse,
+        challengeNow),
+    "Yönetici cihazı onayı yeni PIN credential'ına bağlanmadı.");
+using ECDsa replacementKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+ManagerDeviceEnrollment replacementEnrollment = new(
+    "replacement-phone",
+    "Replacement phone",
+    replacementKey.ExportSubjectPublicKeyInfoPem(),
+    challengeNow);
+ManagerDeviceTransfer deviceTransfer = new(
+    managerEnrollment.DeviceId,
+    replacementEnrollment.DeviceId,
+    ManagerDeviceTransferService.CreatePublicKeyHash(replacementEnrollment.PublicKeyPem),
+    challengeNow.AddMinutes(5),
+    Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)),
+    string.Empty,
+    string.Empty);
+byte[] transferContent = System.Text.Encoding.UTF8.GetBytes(
+    ManagerDeviceTransferService.CreateSignedContent(deviceTransfer));
+deviceTransfer = deviceTransfer with
+{
+    CurrentDeviceSignatureBase64 = Convert.ToBase64String(managerKey.SignData(
+        transferContent,
+        HashAlgorithmName.SHA256,
+        DSASignatureFormat.Rfc3279DerSequence)),
+    NewDeviceSignatureBase64 = Convert.ToBase64String(replacementKey.SignData(
+        transferContent,
+        HashAlgorithmName.SHA256,
+        DSASignatureFormat.Rfc3279DerSequence))
+};
+Assert(ManagerDeviceTransferService.CompleteTransfer(
+        managerEnrollment,
+        replacementEnrollment,
+        deviceTransfer,
+        challengeNow)?.DeviceId == replacementEnrollment.DeviceId &&
+    ManagerDeviceTransferService.CompleteTransfer(
+        managerEnrollment,
+        replacementEnrollment,
+        deviceTransfer,
+        challengeNow.AddMinutes(6)) is null &&
+    ManagerDeviceTransferService.CompleteTransfer(
+        managerEnrollment,
+        replacementEnrollment,
+        deviceTransfer with { NewDeviceSignatureBase64 = deviceTransfer.CurrentDeviceSignatureBase64 },
+        challengeNow) is null &&
+    !ManagerDeviceTransferService.Revoke(managerEnrollment, challengeNow).IsActive,
+    "Yönetici telefonu aktarımı imzaları, süresi veya eski cihaz iptali doğru uygulanmadı.");
+bool localTransferAccepted = false;
+await using (LocalManagerDeviceTransferEndpoint endpoint = LocalManagerDeviceTransferEndpoint.Start(
+    managerEnrollment,
+    request =>
+    {
+        localTransferAccepted = ManagerDeviceTransferService.CompleteTransfer(
+            managerEnrollment, request.Replacement, request.Transfer, DateTimeOffset.UtcNow) is not null;
+        return Task.FromResult(localTransferAccepted);
+    },
+    DateTimeOffset.UtcNow))
+{
+    using HttpClient localClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+    Uri apiUri = new(endpoint.TransferUri, "api");
+    ManagerDeviceTransferRequest proposal = new(
+        replacementEnrollment,
+        deviceTransfer with { CurrentDeviceSignatureBase64 = string.Empty });
+    using StringContent proposalContent = new(
+        JsonSerializer.Serialize(proposal),
+        System.Text.Encoding.UTF8,
+        "application/json");
+    using HttpResponseMessage proposalResponse = await localClient.PostAsync(apiUri, proposalContent);
+    string currentPhase = await localClient.GetStringAsync(apiUri);
+    using StringContent approvalContent = new(
+        JsonSerializer.Serialize(new { deviceTransfer.CurrentDeviceSignatureBase64 }),
+        System.Text.Encoding.UTF8,
+        "application/json");
+    using HttpResponseMessage approvalResponse = await localClient.PostAsync(apiUri, approvalContent);
+    Assert(proposalResponse.IsSuccessStatusCode &&
+        currentPhase.Contains("otium-transfer-current", StringComparison.Ordinal) &&
+        approvalResponse.IsSuccessStatusCode && localTransferAccepted,
+        "Yerel site üzerinden çift cihaz imzalı yönetici telefonu aktarımı tamamlanmadı.");
+}
 Assert(SetupPlan.DeterminePackageAction(null, new Version(1, 0, 0)) == SetupPackageAction.FreshInstall &&
        SetupPlan.DeterminePackageAction(new Version(0, 19, 0), new Version(1, 0, 0)) == SetupPackageAction.Update &&
        SetupPlan.DeterminePackageAction(new Version(1, 0, 0), new Version(1, 0, 0)) == SetupPackageAction.Repair &&
@@ -42,6 +354,7 @@ Assert(awarenessSetupSettings.SetupCompleted &&
        awarenessSetupSettings.Mode == ControlMode.Awareness &&
        awarenessSetupSettings.Language == LanguagePreference.English &&
        awarenessSetupSettings.AwarenessTrackingEnabled &&
+       awarenessSetupSettings.RecoveryCodes.Count == 0 &&
        awarenessSetupSettings.Schedule.All(day => day.DailyLimitMinutes == 120) &&
        awarenessSetup.LaunchArguments == string.Empty,
     "Kurucu Sadece takip ayarlarını doğru oluşturmadı.");
@@ -52,14 +365,22 @@ SetupPlan guardedSetup = new()
 };
 ControlSettings guardedSetupSettings = guardedSetup.ComposeSettings(null);
 Assert(guardedSetupSettings.RequiresGuardian && guardedSetupSettings.AdminPin.IsConfigured &&
-       guardedSetup.LaunchArguments == "--session",
+       guardedSetup.LaunchArguments == string.Empty,
     "Kurucu Gözetimli kişisel mod kimliğini veya başlangıç yüzeyini hazırlamadı.");
 SetupPlan protectedSetup = new() { Mode = ControlMode.Protected, AdminPin = "2468" };
+IReadOnlyList<string> setupRecoveryCodes = protectedSetup.EnsureRecoveryCodes();
+Assert(setupRecoveryCodes.SequenceEqual(protectedSetup.EnsureRecoveryCodes()),
+    "Kurucu geri dönüşte kurtarma kodlarını sessizce yeniledi.");
 ControlSettings protectedSetupSettings = protectedSetup.ComposeSettings(null);
 Assert(protectedSetupSettings.AdminPin.IsConfigured &&
        AdminPinService.Verify("2468", protectedSetupSettings.AdminPin) &&
-       protectedSetup.LaunchArguments == "--session",
-    "Kurucu Korumalı mod PIN'ini veya başlangıç yüzeyini hazırlamadı.");
+       setupRecoveryCodes.Count == 8 &&
+       protectedSetupSettings.RecoveryCodes.Count == 8 &&
+       setupRecoveryCodes.All(code => !JsonSerializer.Serialize(protectedSetupSettings).Contains(code, StringComparison.Ordinal)) &&
+       RecoveryCodeService.TryConsume(protectedSetupSettings, setupRecoveryCodes[0]) &&
+       !RecoveryCodeService.TryConsume(protectedSetupSettings, setupRecoveryCodes[0]) &&
+       protectedSetup.LaunchArguments == string.Empty,
+    "Kurucu Korumalı mod PIN'ini, tek kullanımlık kurtarmayı veya başlangıç yüzeyini hazırlamadı.");
 string protectedCredentialHash = protectedSetupSettings.AdminPin.HashBase64;
 string protectedCredentialSalt = protectedSetupSettings.AdminPin.SaltBase64;
 ControlSettings publicProtectedPolicy = ProtectionPolicyChannel.CreatePublicPolicy(protectedSetupSettings);
@@ -67,8 +388,51 @@ Assert(publicProtectedPolicy.AdminPin.IsPublicMarker &&
        publicProtectedPolicy.AdminPin.IsConfigured &&
        !AdminPinService.Verify("2468", publicProtectedPolicy.AdminPin) &&
        publicProtectedPolicy.AdminPin.HashBase64 != protectedCredentialHash &&
-       publicProtectedPolicy.AdminPin.SaltBase64 != protectedCredentialSalt,
-    "Kullanıcı tarafından okunabilen korumalı politika çevrimdışı PIN doğrulayıcısını sızdırıyor.");
+       publicProtectedPolicy.AdminPin.SaltBase64 != protectedCredentialSalt &&
+       publicProtectedPolicy.RecoveryCodes.Count == 8 &&
+       setupRecoveryCodes.All(code => !JsonSerializer.Serialize(publicProtectedPolicy).Contains(code, StringComparison.Ordinal)) &&
+       !protectedSetup.PairManagerDeviceAfterInstall,
+    "Kullanıcı politikası PIN doğrulayıcısını sızdırıyor veya kurtarma/onboarding verisini kaybediyor.");
+ControlSettings storedProtectedPolicy = JsonSerializer.Deserialize<ControlSettings>(
+    ProtectionPolicyChannel.CreateProtectedPolicyBytes(protectedSetupSettings),
+    new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } })
+    ?? throw new InvalidOperationException("Guardian politikası ayrıştırılamadı.");
+Assert(storedProtectedPolicy.AdminPin.IsPublicMarker &&
+       storedProtectedPolicy.RecoveryCodes.Count == protectedSetupSettings.RecoveryCodes.Count &&
+       RecoveryCodeService.TryConsume(storedProtectedPolicy, setupRecoveryCodes[1]),
+    "Guardian'a yazılan politika geçerli kurtarma kayıtlarını kaybetti.");
+Assert(ProtectionPolicyChannel.CanAttemptDuringPinCooldown("recovery-pin-reset") &&
+       ProtectionPolicyChannel.CanAttemptDuringPinCooldown("manager-device-pin-reset") &&
+       !ProtectionPolicyChannel.CanAttemptDuringPinCooldown("verify-pin") &&
+       !ProtectionPolicyChannel.CanAttemptDuringPinCooldown("sync"),
+    "PIN bekleme politikası kurtarma yolunu da kilitliyor.");
+GuardianInstallRequest repairRequest = new("S-1-5-21-test", "C:\\Users\\test\\settings.json");
+GuardianEnrollment existingGuardianEnrollment = new(
+    repairRequest.UserSid,
+    repairRequest.SettingsPath,
+    protectedSetupSettings.AdminPin);
+GuardianEnrollment repairedGuardianEnrollment = ProtectionServiceManager.ResolveEnrollmentForProvisioning(
+    repairRequest,
+    publicProtectedPolicy.AdminPin,
+    existingGuardianEnrollment);
+Assert(ReferenceEquals(repairedGuardianEnrollment.AdminPin, protectedSetupSettings.AdminPin) &&
+       AdminPinService.Verify("2468", repairedGuardianEnrollment.AdminPin) &&
+       !repairedGuardianEnrollment.AdminPin.IsPublicMarker,
+    "KeepExisting repair gerçek Guardian PIN'ini public marker ile değiştirdi.");
+bool missingRepairCredentialRejected = false;
+try
+{
+    _ = ProtectionServiceManager.ResolveEnrollmentForProvisioning(
+        repairRequest,
+        publicProtectedPolicy.AdminPin,
+        existingEnrollment: null);
+}
+catch (InvalidOperationException)
+{
+    missingRepairCredentialRejected = true;
+}
+Assert(missingRepairCredentialRejected,
+    "Gerçek enrollment credential'ı olmadan public marker provisioning kabul edildi.");
 ControlSettings existingSetupSettings = new()
 {
     SetupCompleted = true,
@@ -76,6 +440,7 @@ ControlSettings existingSetupSettings = new()
     PersonalProtectionLevel = PersonalProtectionLevel.Flexible,
     DeviceName = "Korunan ad"
 };
+IReadOnlyList<string> existingRecoveryCodes = RecoveryCodeService.Generate(existingSetupSettings, 1);
 SetupPlan keepSetup = new()
 {
     ExistingChoice = SetupChoice.KeepExisting,
@@ -88,6 +453,8 @@ Assert(ReferenceEquals(keptSettings, existingSetupSettings) &&
        keptSettings.Mode == ControlMode.Personal &&
        keptSettings.DeviceName == "Korunan ad" &&
        keptSettings.Language == LanguagePreference.English &&
+       keptSettings.RecoveryCodes.Count == 1 &&
+       RecoveryCodeService.TryConsume(keptSettings, existingRecoveryCodes[0]) &&
        keepSetup.LaunchArguments == string.Empty,
     "Kurucu mevcut ayarları koruma seçiminde politika alanlarını değiştirdi.");
 Assert(new ProtectionHealthReport(ProtectionServiceState.Running, []).IsHealthy,
@@ -172,46 +539,27 @@ Assert(!SessionSurfaceRecoveryPolicy.ShouldRecover(
         isModalDialogOpen: false,
         isTransitionInProgress: false),
     "Sadece takip modu yanlışlıkla tam ekran yüzey korumasını etkinleştiriyor.");
-Assert(SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
-        isGuardedPersonalMode: false,
-        isFullSurfaceForced: false,
-        isSessionActive: false) &&
-    SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
-        isGuardedPersonalMode: false,
-        isFullSurfaceForced: true,
-        isSessionActive: true) &&
-    SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
-        isGuardedPersonalMode: true,
-        isFullSurfaceForced: false,
-        isSessionActive: true),
-    "Zorunlu veya Guardian destekli oturum yüzeyi Kontrol Merkezi arkasında korunmuyor.");
-Assert(!SessionSurfaceRecoveryPolicy.ShouldKeepVisibleBehindControlCenter(
-        isGuardedPersonalMode: false,
-        isFullSurfaceForced: false,
-        isSessionActive: true),
-    "Normal aktif oturum widget'ı Kontrol Merkezi arkasında tam ekrana zorlanıyor.");
+Assert(!SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(isProtectedMode: true) &&
+       SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(isProtectedMode: false),
+    "Korumalı Kontrol Merkezi kapatılınca oturum yüzeyi kendiliğinden geri geliyor.");
 Assert(SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
         shouldShowSessionSurfaces: true,
         isFullSurfaceRequired: true,
-        isControlCenterOpen: false,
-        keepSessionBehindControlCenter: false) &&
-    SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
-        shouldShowSessionSurfaces: true,
-        isFullSurfaceRequired: true,
-        isControlCenterOpen: true,
-        keepSessionBehindControlCenter: true),
+        isControlCenterOpen: false),
     "Zorunlu oturum yüzeyi bütün bağlı ekranları kapsamıyor.");
 Assert(!SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
         shouldShowSessionSurfaces: true,
         isFullSurfaceRequired: false,
-        isControlCenterOpen: false,
-        keepSessionBehindControlCenter: false) &&
+        isControlCenterOpen: false) &&
     !SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
         shouldShowSessionSurfaces: false,
         isFullSurfaceRequired: true,
-        isControlCenterOpen: false,
-        keepSessionBehindControlCenter: false),
-    "Aktif widget veya Sadece takip modu ikincil ekranları yanlışlıkla kapatıyor.");
+        isControlCenterOpen: false) &&
+    !SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
+        shouldShowSessionSurfaces: true,
+        isFullSurfaceRequired: true,
+        isControlCenterOpen: true),
+    "Kontrol Merkezi, aktif widget veya Sadece takip modu ikincil ekranları yanlışlıkla kapatıyor.");
 Assert(SessionShortcutGuard.ShouldBlockShortcut(
         SessionShortcutGuard.VirtualKeyLeftWindows,
         controlPressed: false,
@@ -329,6 +677,21 @@ uninstallPolicy.Mode = ControlMode.Personal;
 uninstallPolicy.PersonalProtectionLevel = PersonalProtectionLevel.Guarded;
 Assert(!ProtectionServiceManager.RequiresPinForUninstall(uninstallPolicy),
     "Sıkı kişisel mod kendi belirlediği PIN'i çıkış anahtarına dönüştürdü.");
+ProtectionHealthReport missingProtection = new(
+    ProtectionServiceState.NotInstalled,
+    [ProtectionHealthIssue.ServiceNotInstalled]);
+Assert(ProtectionServiceManager.RequiresProductRepair(missingProtection, installerManaged: true),
+    "Installer yönetimli eksik Guardian ürün onarımına yönlendirilmedi.");
+Assert(!ProtectionServiceManager.RequiresProductRepair(missingProtection, installerManaged: false),
+    "Installer dışı Guardian gereksiz MSI onarımına yönlendirildi.");
+ProtectionHealthReport stoppedProtection = new(
+    ProtectionServiceState.Stopped,
+    [ProtectionHealthIssue.ServiceStopped]);
+Assert(!ProtectionServiceManager.RequiresProductRepair(stoppedProtection, installerManaged: true),
+    "Yalnız durmuş Guardian gereksiz MSI onarımına yönlendirildi.");
+Assert(ManagerDeviceWindow.GetFriendlyDeviceName("Linux armv81", english: false) == "Android telefon" &&
+       ManagerDeviceWindow.GetFriendlyDeviceName("Linux aarch64", english: true) == "Android phone",
+    "Telefon platform bilgisi kullanıcı dostu cihaz adına dönüştürülmedi.");
 
 ControlSettings allowanceSettings = new();
 DaySchedule allowanceMonday = allowanceSettings.Schedule.Single(item => item.Day == DayOfWeek.Monday);

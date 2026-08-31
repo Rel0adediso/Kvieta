@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace Otium.App.Services;
 
@@ -14,7 +15,7 @@ public static class BuildInfo
     public const string Flavor = "public";
 #endif
 
-    public static string Version
+    private static string AssemblyVersion
     {
         get
         {
@@ -24,7 +25,28 @@ public static class BuildInfo
     }
 
     public static string InformationalVersion =>
-        EntryAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? Version;
+        EntryAssembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? AssemblyVersion;
+
+    public static string Version => InformationalVersion.Split('+')[0];
+
+    public static string DisplayVersion => ToDisplayReleaseName(Version);
+
+    public static string ToDisplayReleaseName(string? releaseLabel)
+    {
+        if (string.IsNullOrWhiteSpace(releaseLabel))
+        {
+            return "unknown";
+        }
+
+        string value = releaseLabel.Trim();
+        Match alphaMatch = Regex.Match(
+            value,
+            @"^(?:v?\d+\.\d+\.\d+-)?alpha[.-]?(?<number>\d+)$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        return alphaMatch.Success
+            ? $"Alpha {alphaMatch.Groups["number"].Value}"
+            : value;
+    }
 
     public static string RepositoryCommit => MetadataValue("RepositoryCommit") is { Length: > 0 } value
         ? value

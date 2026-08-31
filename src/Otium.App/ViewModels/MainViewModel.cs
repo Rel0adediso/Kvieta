@@ -214,7 +214,7 @@ public sealed class MainViewModel : ObservableObject
         ? $"{ModeDisplayName(SelectedControlMode)} · {PersonalLevelDisplayName(PersonalProtectionLevel)}"
         : ModeDisplayName(SelectedControlMode);
     public string BuildInformationText =>
-        $"Otium {BuildInfo.Version} · {LocalizationService.Get(BuildInfo.IsDevelopmentBuild ? "DevelopmentTestBuild" : "PublicReleaseBuild")} · {BuildInfo.DisplayRevision}";
+        $"Otium {BuildInfo.DisplayVersion} · {LocalizationService.Get(BuildInfo.IsDevelopmentBuild ? "DevelopmentTestBuild" : "PublicReleaseBuild")} · {BuildInfo.DisplayRevision}";
     public string InstallationInformationText
     {
         get
@@ -225,7 +225,9 @@ public sealed class MainViewModel : ObservableObject
                 return L("Windows Installer kaydı yok", "No Windows Installer registration");
             }
 
-            string release = identity.ReleaseLabel ?? identity.RegisteredVersion?.ToString(3) ?? "unknown";
+            string release = identity.ReleaseLabel is { Length: > 0 } releaseLabel
+                ? BuildInfo.ToDisplayReleaseName(releaseLabel)
+                : identity.RegisteredVersion?.ToString(3) ?? "unknown";
             string guardian = identity.InstalledBinaryVersion?.ToString(3) ?? "unknown";
             string compatibility = identity.Compatibility switch
             {
@@ -802,12 +804,21 @@ public sealed class MainViewModel : ObservableObject
             .Append("\r\n");
     }
 
-    public async Task SetAdminPinAsync(string pin)
+    public async Task<bool> SetAdminPinAsync(string pin)
     {
+        AdminCredential previousCredential = _settings.AdminPin;
         _settings.AdminPin = AdminPinService.Create(pin);
         OnPropertyChanged(nameof(HasAdminPin));
         OnPropertyChanged(nameof(AdminPinActionText));
-        await SaveAsync();
+        if (await SaveAsync())
+        {
+            return true;
+        }
+
+        _settings.AdminPin = previousCredential;
+        OnPropertyChanged(nameof(HasAdminPin));
+        OnPropertyChanged(nameof(AdminPinActionText));
+        return false;
     }
 
     public async Task<IReadOnlyList<string>> GenerateRecoveryCodesAsync()

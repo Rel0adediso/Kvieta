@@ -12,12 +12,24 @@ Calm, local-first screen-time management for Windows — no account required.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/version-v1.0.0--alpha.1-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/next-Otium_Alpha_2-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
 
 > Otium makes computer time visible and manageable without turning it into punishment. Plans, rules, and usage history remain on the device; no cloud account is required.
+
+## Otium Alpha 2
+
+**Otium Alpha 2 is being prepared as the next community prerelease.** It adds a
+trusted-phone recovery flow, a substantially more reliable Guardian and
+administrator-exit lifecycle, safer repair/update handling, and many setup and
+session-surface fixes. The public release title will be **Otium Alpha 2**; its
+package-safe Git tag and installer label will use `alpha-2` / `Alpha-2` instead
+of presenting the release as `v1.0.0-alpha.2`.
+
+Until the Alpha 2 package and checksum are published from the matching clean
+release commit, Alpha.1 remains the latest downloadable build.
 
 ## Download Alpha.1
 
@@ -109,11 +121,12 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 
 ## Current status
 
-**v1.0.0-alpha.1 — community prerelease in field testing**
+**Otium Alpha 2 — release candidate preparation**
 
 - The Release community package contains no development/test bypass.
 - Local quality gates and the matching GitHub Actions build/package jobs pass.
-- Setup EXE, MSI, checksums, and the release manifest are tied to source commit `4dd94ca`.
+- The currently published Alpha.1 Setup EXE, MSI, checksums, and release manifest are tied to source commit `4dd94ca`.
+- Alpha 2 has completed hands-on setup, trusted-phone, Guardian, administrator-exit, session, repair, and power-action testing; the clean-commit package gate remains.
 - Settings migration, recovery, Guardian communication, application rules, and session behavior have automated regression coverage.
 - Basic protected-surface behavior passed a physical two-monitor test.
 - Clean install, Guardian enrollment, expiry behavior, repair, and uninstall are now being validated on a separate Windows device.

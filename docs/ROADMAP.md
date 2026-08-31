@@ -1,10 +1,10 @@
 # Otium — Ürün ve Release Yol Haritası
 
-**Son güncelleme:** 27 Ağustos 2026
+**Son güncelleme:** 31 Ağustos 2026
 
-**Mevcut sürüm:** `v1.0.0-alpha.1` GitHub prerelease
+**Mevcut yayın:** `v1.0.0-alpha.1` GitHub prerelease
 
-**Aktif hedef:** Ayrı Windows cihazında Alpha.1 kurulum ve gerçek kullanım saha testi
+**Aktif hedef:** **Otium Alpha 2** temiz release commit'i ve community paket kapısı
 
 **Yayın:** [Otium v1.0.0-alpha.1 — First community prerelease](https://github.com/Rel0adediso/Otium/releases/tag/v1.0.0-alpha.1)
 
@@ -42,7 +42,33 @@ Bu sonuçlar çekirdek ve kaynak build sağlığını doğrular. Gerçek Windows
 döngüsü, Guardian, installer ve ekran davranışlarının tamamının doğrulandığı
 anlamına gelmez.
 
-## `v1.0.0-alpha.1` yayın planı
+## Otium Alpha 2 yayın planı
+
+İkinci community prerelease kullanıcıya **Otium Alpha 2** adıyla sunulur. Git tag
+`alpha-2`, paket etiketi `Alpha-2` olur; `v1.0.0-alpha.2` kullanıcıya görünen yayın
+adı olarak kullanılmaz. Windows Installer ürün sürümü yükseltme/onarım uyumluluğu
+için `1.0.0` kalır.
+
+### Alpha 2 kapsamı
+
+- İsteğe bağlı güvenilir telefon eşleştirme, QR aktarımı ve telefonla PIN kurtarma.
+- Yönetici çıkışı, Control Center/session tekilleştirme ve Guardian geçiş düzeltmeleri.
+- Eski Alpha kurulumunu güncelleme, onarma, yeniden yapılandırma ve kaldırma akışları.
+- Guardian başlatma/onarım, protected policy aktarımı, dosya kilidi ve recovery düzeltmeleri.
+- Kurulum PIN akışı, açıklamalar, hata durumları ve Otium teması iyileştirmeleri.
+- Uygulama kuralları, oturum ekranı ve güç menüsü regresyon düzeltmeleri.
+
+### Alpha 2 yayın kapısı
+
+- [x] Çalışma ağacında geçici çıktı, sır veya yanlışlıkla eklenen makineye özel dosya bulunmadığı doğrulandı.
+- [x] NuGet audit, format, dokümantasyon, Debug/Release build ve smoke testleri temiz geçti.
+- [x] Public-build bypass kontrolü ve companion web bundle üretimi geçti.
+- [x] `Alpha-2` community Setup EXE/MSI metadata, manifest ve SHA-256 kontrollerini geçti.
+- [ ] Release commit'inden temiz community paketi yeniden üretilmeli; manifest commit'i `alpha-2` tag'iyle eşleşmeli.
+- [ ] GitHub Release **Otium Alpha 2** başlığıyla prerelease olarak yayımlanmalı.
+- [ ] README indirme bağlantıları ve SHA-256 değeri yayımlanan son paketle güncellenmeli.
+
+## `v1.0.0-alpha.1` yayın arşivi
 
 `alpha.1`, final `v1.0.0` değil; gerçek cihaz kullanımından geri bildirim
 toplamak için hazırlanan ilk GitHub prerelease paketidir. Bu hedef için özellik
@@ -259,6 +285,9 @@ paketin daha yeni kurulumu düşürmesini engeller.
 
 Yapılacaklar:
 
+- İlk kurulum sihirbazına haftanın günlerini ve izin verilen saat aralıklarını
+  seçmeye yarayan plan oluşturma/düzenleme adımı ekleme; özet ekranında seçilen
+  planı kurulumdan önce açıkça gösterme.
 - Temiz kurulum ve 1.0.0 → 1.0.1 upgrade akışını gerçek kurucu üzerinden doğrulama.
 - Korumalı/Gözetimli seçimde MSI sonrası Guardian enrollment ve oturum açılışını doğrulama.
 - Kurulum iptali/hatasında ayarların değişmediğini ve tanılama logunun kaldığını doğrulama.
@@ -413,20 +442,18 @@ Final sürüm ancak aşağıdaki koşulların tamamı sağlandığında yayınla
 
 ## Önerilen uygulama sırası
 
-1. Alpha.1 release notes ve bilinen sınırları güncelle.
-2. Son release commit'inde build, smoke, format, NuGet audit ve dokümantasyon
-   kapılarını çalıştır.
-3. Community Setup EXE'yi temiz commit'ten yeniden üret ve manifest/SHA-256
-   eşleşmesini doğrula.
-4. Eski RC etiketi hakkında karar ver; `v1.0.0-alpha.1` tag ve GitHub prerelease'i
-   paket varlıklarıyla yayınla.
-5. Temiz kurulum, Guardian, süre dolması, repair ve kaldırma minimum matrisini
-   kardeş bilgisayarındaki gerçek Alpha.1 paketiyle tamamla.
-6. Bir veya iki günlük gerçek kullanım testinde yalnız alpha engelleyici ve veri/
-   güvenlik riski oluşturan hataları acil düzelt.
-7. Alpha.1 geri bildirimlerinden sonra Balanced/Protected kaçış, Windows yaşam
-   döngüsü, genişletilmiş ekran/DPI ve installer matrisine devam et.
-8. Bütün final P0 kanıtları tamamlandıktan sonra `v1.0.0` yayınla.
+1. Alpha 2 release notes, iki dilli durum metinleri ve yayın adını kesinleştir.
+2. Çalışma ağacında gizli, geçici veya makineye özel dosya olmadığını doğrula.
+3. Build, smoke, format, NuGet audit, dokümantasyon ve public bypass kapılarını
+   çalıştır; `Alpha-2` etiketli community paket hattını sınama amacıyla doğrula.
+4. Değişiklikleri tek release commit'inde birleştir.
+5. Community Setup EXE'yi temiz commit'ten yeniden üret; manifest, SHA-256 ve
+   kaynak commit eşleşmesini doğrula.
+6. `alpha-2` annotated tag'ini oluştur ve **Otium Alpha 2** GitHub prerelease'ini
+   paket varlıkları, imzasız yayın uyarısı ve bilinen sınırlarla yayınla.
+7. README indirme bağlantısı ile SHA-256 değerini yayımlanan paketle eşitle.
+8. Alpha 2 geri bildirimlerinden sonra kalan Windows yaşam döngüsü, DPI,
+   kaçış-yolu ve installer matrisini tamamlayıp final `v1.0.0` kapısına devam et.
 
 ## v1 sonrası plan
 
@@ -458,13 +485,32 @@ yeniden sıralanabilir. Yerel çalışma ve hesap zorunluluğu olmaması ilkesi 
 - Eklenti yokken masaüstü uygulamasının normal çalışmasını koruma.
 - Chrome, Edge ve Firefox desteğini ayrı değerlendirme.
 
-### v1.3 — Yerel ağ üzerinden yardımcı kontrol
+### v1.3 — İnternet üzerinden güvenilir telefon doğrulaması
 
-- Aynı yerel ağdaki telefondan durum görüntüleme ve izin isteği.
-- Varsayılan kapalı eşleştirme, kısa ömürlü kod ve cihaz iptali.
-- Kimlik doğrulama, replay koruması ve açık ağ uyarıları.
-- Bulut hesabı zorunluluğu olmadan yerel kullanım.
-- Özelliğin Protected güvenlik sınırını zayıflatmamasını doğrulama.
+**Ön koşul:** Ürünün isim ve marka değişikliği tamamlanmadan alan adı, site adresi
+ve kalıcı servis kimlikleri oluşturulmaz.
+
+- İlk sürümü özel alan adı satın almadan ücretsiz Cloudflare Pages/Workers ve
+  SQLite tabanlı Durable Objects kotasıyla yayınlama.
+- Telefonun aynı yerel ağda bulunmasını gerektirmeyen, masaüstü uygulamasının
+  dışarı doğru açtığı HTTPS/WebSocket bağlantısıyla çalışan relay mimarisi kurma.
+- Hesap açmayı zorunlu tutmadan QR ile kısa ömürlü, tek kullanımlık eşleştirme ve
+  güvenilir telefon iptali sağlama.
+- PIN'i, yeni PIN'i, recovery kodunu, planları veya kullanım verisini sunucuya
+  göndermeme; telefonun yalnız tek kullanımlık doğrulama isteğini cihaz anahtarıyla
+  imzalamasını ve PIN'in bilgisayarda belirlenmesini sağlama.
+- Eşleştirmede iki ekranda karşılaştırma kodu; isteklerde süre sonu, nonce,
+  replay engeli, origin kontrolü ve hız sınırı uygulama.
+- Telefon tarayıcı verileri silindiğinde güvenin kaybolduğunu açıkça gösterme;
+  kurtarma kodlarını çevrimdışı yedek yol olarak koruma.
+- Ücretsiz kotayı korumak için relay bağlantısını yalnız eşleştirme/doğrulama
+  sırasında açma; kalıcı heartbeat kullanmama ve kota aşımını izleme.
+- Relay erişilemediğinde uygulamanın normal yerel çalışmasını sürdürme; telefonla
+  doğrulamanın geçici olarak kullanılamadığını anlaşılır biçimde bildirme.
+- Sunucuda yalnız gerekli kısa ömürlü oturum verisini tutma; saklama, silme,
+  tanılama ve gizlilik sınırlarını iki dilde belgeleme.
+- Özelliğin Protected güvenlik sınırını zayıflatmadığını gerçek telefon, farklı
+  Wi-Fi/mobil veri, bağlantı kesilmesi ve tekrar oynatma senaryolarıyla doğrulama.
 
 ### v1.x — İsteğe bağlı gelişmiş Windows koruması
 

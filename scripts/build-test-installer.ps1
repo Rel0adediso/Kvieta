@@ -52,6 +52,7 @@ $repositoryDirty = @(& git -C $repositoryRoot status --porcelain --untracked-fil
     -r win-x64 `
     --self-contained true `
     -p:Version=$Version `
+    -p:InformationalVersion=$ReleaseLabel `
     -p:RepositoryCommit=$sourceCommit `
     -p:RepositoryDirty=$repositoryDirty `
     -p:PublishSingleFile=true `

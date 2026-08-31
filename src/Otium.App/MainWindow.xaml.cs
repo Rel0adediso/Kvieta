@@ -34,12 +34,18 @@ public partial class MainWindow : Window
     private bool _baselineMilestoneShown;
     private bool _goalMilestoneShown;
     private bool _sessionSurfaceTransitionInProgress;
+    private bool _openManagerDeviceOnLoad;
+    private bool _protectionActionInProgress;
 
-    public MainWindow(CafeWindow? existingSessionWindow = null, string? managementPin = null)
+    public MainWindow(
+        CafeWindow? existingSessionWindow = null,
+        string? managementPin = null,
+        bool openManagerDeviceOnLoad = false)
     {
         InitializeComponent();
         _managementPin = managementPin;
         _backgroundSessionWindow = existingSessionWindow;
+        _openManagerDeviceOnLoad = openManagerDeviceOnLoad;
         Title = $"Otium · {LocalizationService.Get("ControlCenter")}";
         DataContext = _viewModel;
 
@@ -90,6 +96,38 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        try
+        {
+            await InitializeWindowAsync();
+        }
+        catch (Exception exception)
+        {
+            _isInitializing = false;
+            try
+            {
+                await new SecurityAuditLog().AppendAsync(
+                    "control-center.startup",
+                    $"failed.{exception.GetType().Name}");
+            }
+            catch
+            {
+                // The diagnostic path must not hide the original startup failure.
+            }
+
+            System.Windows.MessageBox.Show(
+                this,
+                LocalizationService.CurrentLanguage == LanguagePreference.English
+                    ? $"The control center could not finish starting.\n\n{exception.Message}"
+                    : $"Kontrol Merkezi başlatılamadı.\n\n{exception.Message}",
+                "Otium · Control Center",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Close();
+        }
+    }
+
+    private async Task InitializeWindowAsync()
+    {
         ConstrainToWorkArea();
         if (ActualWidth < 960)
         {
@@ -110,6 +148,11 @@ public partial class MainWindow : Window
         ResetSettingsScrollPosition();
         _overviewTimer.Start();
         _isInitializing = false;
+        if (_openManagerDeviceOnLoad && _viewModel.IsProtectedMode)
+        {
+            _openManagerDeviceOnLoad = false;
+            await TryOpenManagerDeviceAsync(startPairing: true);
+        }
     }
 
     private async void Window_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -588,7 +631,9 @@ public partial class MainWindow : Window
         string? authorizationPin = _managementPin;
         if (_viewModel.HasAdminPin)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                _viewModel.VerifyAdminPinAsync,
+                RecoverAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true)
             {
@@ -596,13 +641,24 @@ public partial class MainWindow : Window
             }
 
             authorizationPin = verification.ResultPin;
+            if (verification.CredentialWasRecovered)
+            {
+                _managementPin = authorizationPin;
+                RefreshProtectionStatus();
+                _viewModel.RefreshOverview();
+                return;
+            }
         }
 
         AdminPinWindow setup = AdminPinWindow.CreateSetup();
         setup.Owner = this;
         if (setup.ShowDialog() == true && setup.ResultPin is not null)
         {
-            await _viewModel.SetAdminPinAsync(setup.ResultPin);
+            if (!await _viewModel.SetAdminPinAsync(setup.ResultPin))
+            {
+                return;
+            }
+
             if (ProtectionServiceManager.GetState() == ProtectionServiceState.Running)
             {
                 if (authorizationPin is null ||
@@ -650,7 +706,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
+        AdminPinWindow verification = AdminPinWindow.CreateVerification(
+            _viewModel.VerifyAdminPinAsync,
+            RecoverAdminPinAsync);
         verification.Owner = this;
         if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin))
         {
@@ -676,12 +734,171 @@ public partial class MainWindow : Window
         _viewModel.StatusMessage = LocalizationService.Get("RecoveryCodesGenerated");
     }
 
+    private async void ManagerDevice_Click(object sender, RoutedEventArgs e) =>
+        await TryOpenManagerDeviceAsync();
+
+    private async Task TryOpenManagerDeviceAsync(bool startPairing = false)
+    {
+        try
+        {
+            await OpenManagerDeviceAsync(startPairing);
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? $"Phone pairing could not be opened: {exception.Message}"
+                : $"Telefon eşleştirme açılamadı: {exception.Message}";
+            System.Windows.MessageBox.Show(
+                this,
+                _viewModel.StatusMessage,
+                LocalizationService.CurrentLanguage == LanguagePreference.English
+                    ? "Otium · Phone pairing"
+                    : "Otium · Telefon eşleştirme",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    private async Task OpenManagerDeviceAsync(bool startPairing)
+    {
+        if (!_viewModel.HasAdminPin)
+        {
+            _viewModel.StatusMessage = LocalizationService.Get("RecoveryCodesRequirePin");
+            return;
+        }
+
+        if (ProtectionServiceManager.GetState() != ProtectionServiceState.Running)
+        {
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "Guardian must be running to manage a trusted phone."
+                : "Güvenilir telefonu yönetmek için Guardian çalışıyor olmalı.";
+            return;
+        }
+
+        AdminPinWindow verification = AdminPinWindow.CreateVerification(
+            _viewModel.VerifyAdminPinAsync,
+            RecoverAdminPinAsync,
+            LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? startPairing ? "Connect a trusted phone" : "Trusted phone settings"
+                : startPairing ? "Güvenilir telefonunu bağla" : "Güvenilir telefon ayarları",
+            LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? startPairing
+                    ? "Enter the administrator PIN you created during setup. This optional step authorizes adding a phone that can help reset your PIN; you can cancel and do it later."
+                    : "Enter the administrator PIN to view or change the trusted phone."
+                : startPairing
+                    ? "Kurulumda oluşturduğun yönetici PIN'ini gir. Bu isteğe bağlı adım, PIN sıfırlamaya yardımcı olacak telefonu yetkilendirir; iptal edip daha sonra da yapabilirsin."
+                    : "Güvenilir telefonu görüntülemek veya değiştirmek için yönetici PIN'ini gir.");
+        verification.Owner = this;
+        if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin))
+        {
+            return;
+        }
+
+        string authorizationPin = verification.ResultPin;
+        if (!await ProtectionPolicyChannel.BeginAdministrativeActivityAsync(authorizationPin))
+        {
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "Guardian could not start the protected pairing session."
+                : "Guardian korumalı eşleştirme oturumunu başlatamadı.";
+            return;
+        }
+
+        try
+        {
+            ManagerDeviceWindow window = new(
+                ManagerDeviceEnrollmentStore.Load(),
+                async () =>
+                {
+                    if (!await WindowsAdministratorVerificationService.RequestAsync("recovery.manager-device.revoke"))
+                    {
+                        return false;
+                    }
+
+                    return await ProtectionPolicyChannel.RevokeManagerDeviceAsync(authorizationPin);
+                },
+                async request =>
+                {
+                    if (!await WindowsAdministratorVerificationService.RequestAsync("recovery.manager-device.transfer"))
+                    {
+                        return false;
+                    }
+
+                    return await ProtectionPolicyChannel.TransferManagerDeviceAsync(request, authorizationPin);
+                },
+                async owner =>
+                {
+                    if (!await WindowsAdministratorVerificationService.RequestAsync("recovery.manager-device.enroll"))
+                    {
+                        return false;
+                    }
+
+                    try
+                    {
+                        ManagerDeviceApprovalWindow? approvalWindow = null;
+                        TaskCompletionSource<bool> enrollmentResult = new(
+                            TaskCreationOptions.RunContinuationsAsynchronously);
+                        await using LocalManagerDeviceEnrollmentEndpoint endpoint =
+                            LocalManagerDeviceEnrollmentEndpoint.Start(
+                                async request =>
+                                {
+                                    bool accepted = await ProtectionPolicyChannel.EnrollManagerDeviceAsync(
+                                        request,
+                                        authorizationPin);
+                                    enrollmentResult.TrySetResult(accepted);
+                                    approvalWindow?.Complete(accepted);
+                                    return accepted;
+                                },
+                                DateTimeOffset.UtcNow);
+                        approvalWindow = new ManagerDeviceApprovalWindow(
+                            endpoint.PairingUri,
+                            endpoint.ExpiresAtUtc,
+                            enrollment: true,
+                            verificationCode: endpoint.VerificationCode)
+                        {
+                            Owner = owner
+                        };
+                        bool acceptedByDialog = approvalWindow.ShowDialog() == true;
+                        return acceptedByDialog ||
+                            enrollmentResult.Task.IsCompletedSuccessfully && enrollmentResult.Task.Result;
+                    }
+                    catch (Exception exception)
+                    {
+                        System.Windows.MessageBox.Show(
+                            owner,
+                            LocalizationService.CurrentLanguage == LanguagePreference.English
+                                ? $"Could not start local pairing server: {exception.Message}"
+                                : $"Yerel eşleştirme sunucusu başlatılamadı: {exception.Message}",
+                            "Otium",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                        return false;
+                    }
+                },
+                startPairing)
+            {
+                Owner = this
+            };
+            if (window.ShowDialog() == true)
+            {
+                _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                    ? "The manager device record was updated."
+                    : "Yönetici cihazı kaydı güncellendi.";
+            }
+        }
+        finally
+        {
+            await ProtectionPolicyChannel.EndAdministrativeActivityAsync(authorizationPin);
+        }
+    }
+
     private async void RestoreLastKnownGood_Click(object sender, RoutedEventArgs e)
     {
         string? authorizationPin = _managementPin;
         if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                _viewModel.VerifyAdminPinAsync,
+                RecoverAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin)) return;
             authorizationPin = verification.ResultPin;
@@ -756,9 +973,11 @@ public partial class MainWindow : Window
             ProtectionInstallationIdentity identity = ProtectionServiceManager.GetInstallationIdentity();
             ProtectionHealthReport health = ProtectionServiceManager.GetHealthReport();
             bool english = LocalizationService.CurrentLanguage == LanguagePreference.English;
-            string release = identity.ReleaseLabel ?? identity.RegisteredVersion?.ToString(3) ?? "—";
+            string release = identity.ReleaseLabel is { Length: > 0 } releaseLabel
+                ? BuildInfo.ToDisplayReleaseName(releaseLabel)
+                : identity.RegisteredVersion?.ToString(3) ?? "—";
             window = new RecoveryCenterWindow(new SystemHealthSnapshot(
-                $"{BuildInfo.Version} · {BuildInfo.DisplayRevision}",
+                $"{BuildInfo.DisplayVersion} · {BuildInfo.DisplayRevision}",
                 BuildInfo.IsDevelopmentBuild ? (english ? "Development/Test" : "Geliştirme/Test") : (english ? "Public release" : "Public sürüm"),
                 release,
                 identity.Compatibility == ProtectionVersionCompatibility.Compatible ? (english ? "Versions matched" : "Sürümler eşleşiyor") : (english ? "Needs attention" : "Kontrol gerekli"),
@@ -802,7 +1021,9 @@ public partial class MainWindow : Window
     {
         if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                _viewModel.VerifyAdminPinAsync,
+                RecoverAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true) return;
         }
@@ -861,7 +1082,9 @@ public partial class MainWindow : Window
 
         if (string.IsNullOrWhiteSpace(_managementPin))
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                _viewModel.VerifyAdminPinAsync,
+                RecoverAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true || string.IsNullOrWhiteSpace(verification.ResultPin))
             {
@@ -885,7 +1108,8 @@ public partial class MainWindow : Window
         try
         {
             ControlSettings authoritative = await new JsonSettingsStore(
-                ProtectionServiceManager.ProtectedSettingsPath).LoadAsync();
+                ProtectionServiceManager.ProtectedSettingsPath,
+                readOnly: true).LoadAsync();
             await _viewModel.RestoreSettingsAsync(authoritative);
             ((App)System.Windows.Application.Current).ThemeService.SetPreference(
                 MainViewModel.FromDisplayTheme(_viewModel.ThemeMode));
@@ -896,6 +1120,26 @@ public partial class MainWindow : Window
         {
             _viewModel.StatusMessage = $"{LocalizationService.Get("ProtectedPolicySyncFailed")}: {exception.Message}";
         }
+    }
+
+    private async Task<string?> RecoverAdminPinAsync(Window owner)
+    {
+        string? newPin = await ((App)System.Windows.Application.Current)
+            .RunPinRecoveryForCurrentPolicyAsync(owner);
+        if (string.IsNullOrWhiteSpace(newPin))
+        {
+            return null;
+        }
+
+        JsonSettingsStore recoveredSettingsStore = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
+            ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true)
+            : new JsonSettingsStore();
+        ControlSettings recoveredSettings = await recoveredSettingsStore.LoadAsync();
+        await _viewModel.RestoreSettingsAsync(recoveredSettings);
+        _managementPin = newPin;
+        RefreshProtectionStatus();
+        _viewModel.RefreshOverview();
+        return newPin;
     }
 
     private void ChangeMode_Click(object sender, RoutedEventArgs e)
@@ -923,7 +1167,9 @@ public partial class MainWindow : Window
 
         if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(_viewModel.VerifyAdminPinAsync);
+            AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                _viewModel.VerifyAdminPinAsync,
+                RecoverAdminPinAsync);
             verification.Owner = this;
             if (verification.ShowDialog() != true)
             {
@@ -958,14 +1204,65 @@ public partial class MainWindow : Window
 
     private async void ProtectionAction_Click(object sender, RoutedEventArgs e)
     {
-        ProtectionActionButton.IsEnabled = false;
-        bool succeeded = await ProtectionServiceManager.RunElevatedInstallerAsync(install: true);
-        ProtectionActionButton.IsEnabled = true;
-        RefreshProtectionStatus();
+        if (_protectionActionInProgress)
+        {
+            return;
+        }
 
-        if (!succeeded)
+        _protectionActionInProgress = true;
+        ProtectionActionButton.IsEnabled = false;
+        ProtectionActionButton.Content = LocalizationService.Get("ProtectionWorking");
+        _viewModel.StatusMessage = LocalizationService.Get("ProtectionWorking");
+        try
+        {
+            ProtectionHealthReport health = ProtectionServiceManager.GetHealthReport();
+            bool repaired = true;
+            if (ProtectionServiceManager.RequiresProductRepair(health))
+            {
+                repaired = await WindowsAdministratorVerificationService.RequestAsync(
+                    "recovery.installer.repair");
+            }
+
+            bool started = repaired;
+            health = ProtectionServiceManager.GetHealthReport();
+            if (started && !health.IsHealthy)
+            {
+                started = await ProtectionServiceManager.RunElevatedInstallerAsync(install: true);
+            }
+
+            health = ProtectionServiceManager.GetHealthReport();
+            if (started && health.IsHealthy)
+            {
+                _viewModel.StatusMessage = LocalizationService.Get("ProtectionReady");
+                return;
+            }
+
+            _viewModel.StatusMessage = LocalizationService.Get("ProtectionInstallFailed");
+            string message = string.Format(
+                LocalizationService.Get("ProtectionActionFailedDescription"),
+                BuildProtectionHealthDetails(health),
+                ProtectionServiceManager.InstallLogPath);
+            System.Windows.MessageBox.Show(
+                this,
+                message,
+                LocalizationService.Get("ProtectionActionFailedTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        catch (Exception exception)
         {
             _viewModel.StatusMessage = LocalizationService.Get("ProtectionInstallFailed");
+            System.Windows.MessageBox.Show(
+                this,
+                $"{LocalizationService.Get("ProtectionInstallFailed")}\n\n{exception.Message}",
+                LocalizationService.Get("ProtectionActionFailedTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            _protectionActionInProgress = false;
+            RefreshProtectionStatus();
         }
     }
 
@@ -986,13 +1283,15 @@ public partial class MainWindow : Window
             };
         string actionKey = health.IsHealthy
             ? "ProtectionActive"
-            : health.ServiceState == ProtectionServiceState.NotInstalled
-                ? "InstallProtection"
-                : "RepairProtection";
+            : ProtectionServiceManager.RequiresProductRepair(health)
+                ? "RepairProtection"
+                : health.ServiceState == ProtectionServiceState.NotInstalled
+                    ? "InstallProtection"
+                    : "StartProtection";
         ProtectionStatusText.Text = LocalizationService.Get(statusKey);
         ProtectionStatusText.ToolTip = BuildProtectionHealthDetails(health);
         ProtectionActionButton.Content = LocalizationService.Get(actionKey);
-        ProtectionActionButton.IsEnabled = !health.IsHealthy;
+        ProtectionActionButton.IsEnabled = !health.IsHealthy && !_protectionActionInProgress;
         ProtectionStatusDot.Background = (System.Windows.Media.Brush)FindResource(
             health.IsHealthy ? "SuccessBrush" : "WarningBrush");
     }
@@ -1071,6 +1370,34 @@ public partial class MainWindow : Window
         _viewModel.RemoveSelectedApplication();
     }
 
+    private void AddApplication_Click(object sender, RoutedEventArgs e)
+    {
+        Microsoft.Win32.OpenFileDialog dialog = new()
+        {
+            Title = LocalizationService.Get("AddApplication"),
+            Filter = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "Applications (*.exe)|*.exe"
+                : "Uygulamalar (*.exe)|*.exe",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            _viewModel.AddApplication(dialog.FileName);
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? $"The application could not be added: {exception.Message}"
+                : $"Uygulama eklenemedi: {exception.Message}";
+        }
+    }
+
     private void ApplicationMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (sender is System.Windows.Controls.ComboBox
@@ -1115,16 +1442,22 @@ public partial class MainWindow : Window
 
         if (rollbackSettings.RequiresGuardian)
         {
+            bool returnsToProtectedSession = _backgroundSessionWindow is not null;
             System.Windows.MessageBox.Show(
+                this,
                 LocalizationService.CurrentLanguage == LanguagePreference.English
-                    ? "Guardian is unavailable. Protected mode was stopped instead of continuing without protection."
-                    : "Guardian kullanılamıyor. Korumalı mod korumasız devam etmek yerine durduruldu.",
+                    ? returnsToProtectedSession
+                        ? "Guardian is temporarily unavailable. The control center will close and the protected session will remain active."
+                        : "Guardian is unavailable. The protected control center will close instead of continuing without protection."
+                    : returnsToProtectedSession
+                        ? "Guardian geçici olarak kullanılamıyor. Kontrol Merkezi kapatılacak ve korumalı oturum açık kalacak."
+                        : "Guardian kullanılamıyor. Korumalı Kontrol Merkezi korumasız devam etmek yerine kapatılacak.",
                 LocalizationService.CurrentLanguage == LanguagePreference.English
                     ? "Otium · Protection required"
                     : "Otium · Koruma gerekli",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
-            System.Windows.Application.Current.Shutdown();
+            Close();
             return false;
         }
 
@@ -1256,7 +1589,7 @@ public partial class MainWindow : Window
 
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
-        if (!_allowCloseForUninstall && (_viewModel.IsPersonalMode || _viewModel.IsAwarenessMode) && _backgroundSessionWindow is not null)
+        if (!_allowCloseForUninstall && _backgroundSessionWindow is not null)
         {
             e.Cancel = true;
             HideControlCenterToTray();
@@ -1342,7 +1675,11 @@ public partial class MainWindow : Window
             Owner = null;
         }
         Topmost = false;
-        _backgroundSessionWindow?.ResumeFromControlCenter();
+        if (SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(
+                _viewModel.IsProtectedMode))
+        {
+            _backgroundSessionWindow?.ResumeFromControlCenter();
+        }
     }
 
     private void RestoreControlCenter()
@@ -1357,14 +1694,6 @@ public partial class MainWindow : Window
 
     private void ConfigureControlCenterForSession()
     {
-        if (_backgroundSessionWindow?.KeepsSessionBehindControlCenter == true)
-        {
-            Owner = _backgroundSessionWindow;
-            Topmost = true;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            return;
-        }
-
         if (Owner is CafeWindow)
         {
             Owner = null;

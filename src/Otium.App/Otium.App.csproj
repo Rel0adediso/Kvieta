@@ -28,7 +28,11 @@
     <ProjectReference Include="../Otium.Core/Otium.Core.csproj" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
     <PackageReference Include="System.Management" Version="10.0.0" />
+    <PackageReference Include="QRCoder" Version="1.8.0" />
     <AssemblyMetadata Include="RepositoryCommit" Value="$(RepositoryCommit)" Condition="'$(RepositoryCommit)' != ''" />
     <AssemblyMetadata Include="RepositoryDirty" Value="$(RepositoryDirty)" Condition="'$(RepositoryDirty)' != ''" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../companion-web/dist/companion.js" LogicalName="Otium.Companion.js" />
   </ItemGroup>
 </Project>

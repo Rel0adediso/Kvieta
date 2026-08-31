@@ -1,7 +1,7 @@
 <Window x:Class="Otium.App.AdminPinWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Otium · Yönetici PIN'i" Width="390" Height="330"
+        Title="Otium · Yönetici PIN'i" Width="460" Height="430"
         WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         Background="Transparent" AllowsTransparency="True" ShowInTaskbar="False"
         KeyDown="Window_KeyDown" Loaded="Window_Loaded">
@@ -13,36 +13,105 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CaretBrush" Value="{DynamicResource PrimaryBrush}" />
         </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource InputBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CaretBrush" Value="{DynamicResource PrimaryBrush}" />
+        </Style>
     </Window.Resources>
-    <Border Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12">
+
+    <Border Background="{DynamicResource SurfaceRaisedBrush}"
+            BorderBrush="{DynamicResource BorderStrongBrush}"
+            BorderThickness="1"
+            CornerRadius="16">
         <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="38" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                <Grid Margin="14,0"><TextBlock Text="Otium" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" /><Button Content="×" Width="26" Height="26" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click" /></Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="42" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="18,0,12,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="22" Height="22" CornerRadius="7" Background="{DynamicResource PrimaryBrush}">
+                            <TextBlock Text="O" Foreground="{DynamicResource PrimaryForegroundBrush}" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Otium" FontSize="12" FontWeight="SemiBold" Margin="9,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button Content="×" Width="28" Height="28" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click" />
+                </Grid>
             </Border>
 
-            <Grid Grid.Row="1" Margin="26,22,26,24">
-                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <TextBlock x:Name="TitleText" FontSize="21" FontWeight="SemiBold" />
-                <TextBlock x:Name="DescriptionText" Grid.Row="1" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,17" />
+            <Grid Grid.Row="1" Margin="30,25,30,26">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="2">
-                    <TextBlock Text="PIN" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,0,0,6" />
-                    <PasswordBox x:Name="PinBox" Height="36" MaxLength="8" FontSize="17" PasswordChar="●" Padding="11,5" PreviewTextInput="PinBox_PreviewTextInput" />
-                </StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="40" Height="40" CornerRadius="12" Background="{DynamicResource PrimarySoftBrush}" VerticalAlignment="Top">
+                        <Path Data="M8,10 V7 C8,3.8 10.2,2 13,2 C15.8,2 18,3.8 18,7 V10 M6,10 H20 V21 H6 Z"
+                              Width="22" Height="22" Stretch="Uniform"
+                              Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="1.6"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="2,-2,0,0">
+                        <TextBlock x:Name="TitleText" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="DescriptionText" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" TextWrapping="Wrap" LineHeight="17" Margin="0,7,0,0" />
+                    </StackPanel>
+                </Grid>
 
-                <StackPanel x:Name="ConfirmPanel" Grid.Row="3" Margin="0,12,0,0">
-                    <TextBlock Text="{DynamicResource PinRepeat}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,0,0,6" />
-                    <PasswordBox x:Name="ConfirmPinBox" Height="36" MaxLength="8" FontSize="17" PasswordChar="●" Padding="11,5" PreviewTextInput="PinBox_PreviewTextInput" />
-                </StackPanel>
+                <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="11" Padding="15,12" Margin="0,21,0,0">
+                    <StackPanel>
+                        <TextBlock Text="PIN" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" FontWeight="SemiBold" Margin="1,0,0,7" />
+                        <Grid>
+                            <PasswordBox x:Name="PinBox" Height="39" MaxLength="8" FontSize="17" PasswordChar="●" Padding="12,6,48,6" PreviewTextInput="PinBox_PreviewTextInput" />
+                            <TextBox x:Name="VisiblePinBox" Height="39" MaxLength="8" FontSize="17" Padding="12,6,48,6" PreviewTextInput="PinBox_PreviewTextInput" Visibility="Collapsed" />
+                            <Button x:Name="PinVisibilityButton" Width="34" Height="31" HorizontalAlignment="Right" Margin="0,4,4,4" Padding="0" Style="{StaticResource SecondaryButtonStyle}" Click="TogglePinVisibility_Click" ToolTip="PIN'i göster/gizle">
+                                <Path Data="M2,12 C5,5 19,5 22,12 C19,19 5,19 2,12 M12,9 A3,3 0 1 1 11.99,9" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
-                <TextBlock x:Name="ErrorText" Grid.Row="4" Foreground="{DynamicResource DangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0" />
-                <Grid Grid.Row="5">
-                    <Button x:Name="RecoveryButton" Content="{DynamicResource UseRecoveryCode}" Style="{StaticResource SecondaryButtonStyle}" Click="Recovery_Click" HorizontalAlignment="Left" Visibility="Collapsed" />
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="{DynamicResource Cancel}" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click" Margin="0,0,8,0" />
-                    <Button x:Name="ConfirmButton" Content="{DynamicResource Continue}" Style="{StaticResource PrimaryButtonStyle}" Click="Confirm_Click" MinWidth="92" />
-                </StackPanel>
+                <Border x:Name="ConfirmPanel" Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="11" Padding="15,12" Margin="0,10,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource PinRepeat}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" FontWeight="SemiBold" Margin="1,0,0,7" />
+                        <Grid>
+                            <PasswordBox x:Name="ConfirmPinBox" Height="39" MaxLength="8" FontSize="17" PasswordChar="●" Padding="12,6,48,6" PreviewTextInput="PinBox_PreviewTextInput" />
+                            <TextBox x:Name="VisibleConfirmPinBox" Height="39" MaxLength="8" FontSize="17" Padding="12,6,48,6" PreviewTextInput="PinBox_PreviewTextInput" Visibility="Collapsed" />
+                            <Button x:Name="ConfirmPinVisibilityButton" Width="34" Height="31" HorizontalAlignment="Right" Margin="0,4,4,4" Padding="0" Style="{StaticResource SecondaryButtonStyle}" Click="ToggleConfirmPinVisibility_Click" ToolTip="PIN'i göster/gizle">
+                                <Path Data="M2,12 C5,5 19,5 22,12 C19,19 5,19 2,12 M12,9 A3,3 0 1 1 11.99,9" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock x:Name="ErrorText" Grid.Row="3" Foreground="{DynamicResource DangerBrush}" FontSize="11" TextWrapping="Wrap" Margin="2,10,2,8" />
+
+                <Grid Grid.Row="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="RecoveryButton" Content="{DynamicResource UseRecoveryCode}" Style="{StaticResource SecondaryButtonStyle}" Click="Recovery_Click" HorizontalAlignment="Left" Visibility="Collapsed" Padding="13,7" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="{DynamicResource Cancel}" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click" Margin="0,0,8,0" Padding="15,7" />
+                        <Button x:Name="ConfirmButton" Content="{DynamicResource Continue}" Style="{StaticResource PrimaryButtonStyle}" Click="Confirm_Click" MinWidth="104" Padding="15,7" />
+                    </StackPanel>
                 </Grid>
             </Grid>
         </Grid>

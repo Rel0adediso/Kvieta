@@ -31,7 +31,17 @@
                     <Button Content="{Binding PrimaryActionText}" Style="{StaticResource PrimaryButtonStyle}" Visibility="{Binding CanStartOrResume, Converter={StaticResource BooleanToVisibilityConverter}}" Click="StartOrResume_Click" Margin="0,0,8,0" />
                     <Button Content="{DynamicResource EndSession}" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding CanEndSession, Converter={StaticResource BooleanToVisibilityConverter}}" Click="EndSession_Click" Margin="0,0,8,0" />
                     <Button Content="{DynamicResource RequestTime}" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding CanRequestExtraTime, Converter={StaticResource BooleanToVisibilityConverter}}" Click="RequestTime_Click" Margin="0,0,8,0" />
-                    <Button Content="{DynamicResource DevicePower}" Style="{StaticResource SecondaryButtonStyle}" Click="PowerMenu_Click" />
+                    <Button Style="{StaticResource SecondaryButtonStyle}" Click="PowerMenu_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{DynamicResource DevicePower}" VerticalAlignment="Center" />
+                            <Viewbox Width="13" Height="13" Margin="7,0,0,0" VerticalAlignment="Center">
+                                <Grid Width="24" Height="24">
+                                    <Path Data="M12,2 L12,12" Stroke="{DynamicResource PrimaryTextBrush}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                    <Path Data="M7.05,4.11 A9,9 0 1 0 16.95,4.11" Stroke="{DynamicResource PrimaryTextBrush}" StrokeThickness="2.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" />
+                                </Grid>
+                            </Viewbox>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </StackPanel>
             <TextBlock Grid.Row="2" Text="{DynamicResource BreakHint}" Foreground="{DynamicResource FaintTextBrush}" FontSize="11" HorizontalAlignment="Center" />

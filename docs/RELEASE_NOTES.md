@@ -1,5 +1,80 @@
 # Otium release notes
 
+## Otium Alpha 2 — Release candidate
+
+Otium Alpha 2 is the second community prerelease. The public name deliberately
+does not use `v1.0.0-alpha.2`; `alpha-2` is used only where a URL, Git tag, or
+filename-safe identifier is required. The internal MSI product version remains
+`1.0.0` so Windows Installer can service existing Alpha installations.
+
+### Trusted phone and PIN recovery
+
+- Added optional trusted-phone enrollment during setup and from the Control Center.
+- Added a mobile companion page with QR enrollment, short-lived challenges,
+  comparison codes, signed approvals, replay prevention, expiry, and one active
+  trusted device at a time.
+- Added trusted-phone authorization for administrator PIN reset while keeping the
+  new PIN and recovery codes on the Windows device.
+- Added QR-based transfer to replace the trusted phone and explicit device revocation.
+- Kept recovery codes as an offline fallback and clarified every PIN prompt and
+  “forgot PIN” path.
+- Normalized browser user-agent names into a friendly device label such as
+  **Android phone** instead of exposing raw platform strings.
+
+### Setup, update, repair, and removal
+
+- Reworked first-run PIN handling, confirmation, visibility controls, optional
+  phone enrollment, and protected-mode handoff.
+- Added safer handling for existing Alpha installations, including update/repair,
+  settings reconfiguration, stale registration recovery, and in-app removal.
+- Hardened elevated MSI staging, Guardian policy transfer, rollback, lock cleanup,
+  and error reporting so failed setup no longer leaves ambiguous state.
+- Added package checks for Setup metadata, embedded MSI identity, Guardian service
+  registration, public-build configuration, manifest hashes, and release labels.
+
+### Guardian and administrator lifecycle
+
+- Rebuilt administrator exit as a verified transition instead of closing the
+  session surface first and letting Guardian immediately reopen it.
+- Prevented duplicate Control Centers, duplicate session surfaces, and competing
+  management transitions.
+- Added Guardian start/repair recovery from the Control Center and clearer health
+  reporting when installation repair is required.
+- Fixed protected-policy lock ownership, credential synchronization, recovery-code
+  consumption, and service handoff failures observed during physical-machine tests.
+- Prevented automatic plan/session enforcement from taking over while a management
+  window or setup flow is active.
+
+### Session and control experience
+
+- Restored application-rule management and stabilized the protected session after
+  install, administrator exit, cancellation, Windows lock, and restart scenarios.
+- Made trusted-phone enrollment optional without reporting a cancelled enrollment
+  as successful.
+- Improved PIN dialogs, recovery screens, compact-window layouts, error messages,
+  progress states, icons, and the Otium light/dark visual language.
+- Fixed session-surface power actions and confirmation-dialog focus handling.
+
+### Local-first boundary
+
+- The Alpha 2 companion flow is served by the Windows device and stores no Otium
+  usage data in a cloud account.
+- Enrollment and approval payloads are signed, short-lived, origin-checked, and
+  rate-limited; PINs and recovery codes are never sent to the phone.
+- Internet relay support remains a post-v1 roadmap item after the planned product
+  rename. Alpha 2 phone enrollment therefore requires reachability to the Windows
+  device on the local network.
+
+### Release gate
+
+- Hands-on setup, Guardian, trusted-phone, administrator-exit, session, repair,
+  uninstall, and power-action regressions have been exercised on Windows devices.
+- The final Alpha 2 community package must still be rebuilt from the clean release
+  commit and pass the complete build, format, smoke, documentation, public-bypass,
+  package metadata, manifest, and SHA-256 gates before publication.
+- Alpha 2 remains an intentionally unsigned prerelease; Windows SmartScreen may
+  display an unknown-publisher warning.
+
 ## v1.0.0-alpha.1 — First community prerelease
 
 `v1.0.0-alpha.1` is the first public test package for real-device feedback. It is an unsigned Windows community prerelease, not the final V1 release. It consolidates installer, recovery, diagnostics, usage-mode, personal-protection, Guardian, and security work completed after v0.16.1.

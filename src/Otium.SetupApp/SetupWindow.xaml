@@ -57,9 +57,9 @@
                                        TextWrapping="Wrap" LineHeight="21" Margin="0,8,0,0" />
                         </StackPanel>
                         <StackPanel Grid.Row="1" VerticalAlignment="Center">
-                            <TextBlock x:Name="StepLabel" Text="ADIM 1 / 7" Foreground="{DynamicResource PrimaryBrush}"
+                            <TextBlock x:Name="StepLabel" Text="ADIM 1 / 8" Foreground="{DynamicResource PrimaryBrush}"
                                        FontSize="10" FontWeight="SemiBold" />
-                            <ProgressBar x:Name="StepProgress" Minimum="1" Maximum="7" Value="1" Height="4"
+                            <ProgressBar x:Name="StepProgress" Minimum="1" Maximum="8" Value="1" Height="4"
                                          Margin="0,10,0,18" Foreground="{DynamicResource PrimaryBrush}"
                                          Background="{DynamicResource PrimarySoftBrush}" />
                             <TextBlock x:Name="StepTitle" Text="Dil seçimi" FontSize="15" FontWeight="SemiBold" />
@@ -133,7 +133,8 @@
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                         <TextBlock x:Name="ExistingTitle" Text="Bu cihazda Otium ayarları bulundu." FontSize="27" FontWeight="SemiBold" />
                         <TextBlock x:Name="ExistingDescription" Grid.Row="1" Text="Kullanım geçmişin silinmez. Mevcut ayarlarla devam edebilir veya ayarları baştan yapılandırabilirsin." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,9,0,0" />
-                        <StackPanel Grid.Row="2" VerticalAlignment="Center">
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,12,0,12">
+                          <StackPanel VerticalAlignment="Center">
                             <Border x:Name="ExistingVersionCard" Style="{StaticResource FeatureBox}" Margin="0,0,0,14">
                                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                     <StackPanel><TextBlock x:Name="InstalledVersionLabel" Text="KURULU" Foreground="{DynamicResource MutedTextBrush}" FontSize="9.5"/><TextBlock x:Name="InstalledVersionValue" Text="1.0.0" FontSize="16" FontWeight="SemiBold" Margin="0,5,0,0"/></StackPanel>
@@ -143,8 +144,10 @@
                             </Border>
                             <Button x:Name="KeepExistingButton" Style="{StaticResource LanguageCard}" Click="KeepExisting_Click" Margin="0,0,0,14"><StackPanel><TextBlock x:Name="KeepExistingTitle" Text="Mevcut ayarlarla devam et" FontSize="16" FontWeight="SemiBold" /><TextBlock x:Name="KeepExistingText" Text="Kurulumu yenile; modunu, kurallarını ve geçmişini koru." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
                             <Button x:Name="ConfigureNewButton" Style="{StaticResource LanguageCard}" Click="ConfigureNew_Click"><StackPanel><TextBlock x:Name="ConfigureNewTitle" Text="Ayarları baştan yapılandır" FontSize="16" FontWeight="SemiBold" /><TextBlock x:Name="ConfigureNewText" Text="Mod ve başlangıç ayarlarını yeniden seç; geçmiş verilerine dokunma." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
+                            <Button x:Name="ResetBrokenProtectionButton" Style="{StaticResource LanguageCard}" Click="ResetBrokenProtection_Click" Margin="0,14,0,0" Visibility="Collapsed"><StackPanel><TextBlock x:Name="ResetBrokenProtectionTitle" Text="Bozuk korumayı sıfırla" FontSize="16" FontWeight="SemiBold" /><TextBlock x:Name="ResetBrokenProtectionText" Text="Kurtarılamayan eski PIN ve Guardian kaydını temizleyip kurulumu yeniden yap." Foreground="{DynamicResource MutedTextBrush}" FontSize="11" Margin="0,5,0,0" /></StackPanel></Button>
                             <TextBlock x:Name="ExistingSecurityNotice" Foreground="#D89A64" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0" />
-                        </StackPanel>
+                          </StackPanel>
+                        </ScrollViewer>
                         <Button x:Name="ExistingBackButton" Grid.Row="3" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="ExistingBack_Click" />
                     </Grid>
 
@@ -178,7 +181,7 @@
                         <TextBlock x:Name="PreferencesDescription" Grid.Row="1" Text="İlk kullanım için temel tercihleri belirle." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" Margin="0,9,0,0" />
                         <Grid Grid.Row="2" Margin="0,24,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="18" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <StackPanel><TextBlock x:Name="DeviceNameLabel" Text="Cihaz adı" FontWeight="SemiBold" FontSize="12" /><TextBox x:Name="DeviceNameBox" Margin="0,7,0,18" /><TextBlock x:Name="DailyLimitLabel" Text="Günlük süre" FontWeight="SemiBold" FontSize="12" /><ComboBox x:Name="DailyLimitBox" SelectedIndex="2" Margin="0,7,0,0"><ComboBoxItem Tag="60">1 saat / 1 hour</ComboBoxItem><ComboBoxItem Tag="120">2 saat / 2 hours</ComboBoxItem><ComboBoxItem Tag="180">3 saat / 3 hours</ComboBoxItem><ComboBoxItem Tag="240">4 saat / 4 hours</ComboBoxItem><ComboBoxItem Tag="300">5 saat / 5 hours</ComboBoxItem></ComboBox></StackPanel>
-                            <StackPanel Grid.Column="2"><Border Style="{StaticResource FeatureBox}"><StackPanel><CheckBox x:Name="StartWithWindowsBox" Content="Windows ile başlat" IsChecked="True" /><TextBlock x:Name="StartWithWindowsHint" Text="Oturum açınca Otium arka planda hazır olur." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border><Border Style="{StaticResource FeatureBox}" Margin="0,10,0,0"><StackPanel><CheckBox x:Name="DesktopShortcutBox" Content="Masaüstü kısayolu oluştur" IsChecked="True" /><TextBlock x:Name="DesktopShortcutHint" Text="Otium'a masaüstünden hızlı erişim ekler." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border><Border Style="{StaticResource FeatureBox}" Margin="0,10,0,0"><StackPanel><CheckBox x:Name="TrackingBox" Content="Yerel uygulama ölçümünü etkinleştir" IsChecked="True" /><TextBlock x:Name="TrackingHint" Text="Yalnız uygulama adı ve süre; pencere başlığı veya içerik yok." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border></StackPanel>
+                            <StackPanel Grid.Column="2"><Border Style="{StaticResource FeatureBox}"><StackPanel><CheckBox x:Name="StartWithWindowsBox" Content="Windows ile başlat" IsChecked="True" /><TextBlock x:Name="StartWithWindowsHint" Text="Oturum açınca Otium arka planda hazır olur." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border><Border Style="{StaticResource FeatureBox}" Margin="0,10,0,0"><StackPanel><CheckBox x:Name="DesktopShortcutBox" Content="Masaüstü kısayolu oluştur" IsChecked="True" /><TextBlock x:Name="DesktopShortcutHint" Text="Otium'a masaüstünden hızlı erişim ekler." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border><Border Style="{StaticResource FeatureBox}" Margin="0,10,0,0"><StackPanel><CheckBox x:Name="TrackingBox" Content="Yerel uygulama ölçümünü etkinleştir" IsChecked="True" /><TextBlock x:Name="TrackingHint" Text="Yalnız uygulama adı ve süre; pencere başlığı veya içerik yok." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border><Border x:Name="PairManagerDeviceFeature" Style="{StaticResource FeatureBox}" Margin="0,10,0,0"><StackPanel><CheckBox x:Name="PairManagerDeviceBox" Content="Kurulumdan sonra güvenilir telefonu eşleştir" IsChecked="False" /><TextBlock x:Name="PairManagerDeviceHint" Text="İsteğe bağlıdır; PIN kurtarma yetkisi daha sonra da eklenebilir." Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" TextWrapping="Wrap" Margin="22,6,0,0" /></StackPanel></Border></StackPanel>
                         </Grid>
                         <Grid Grid.Row="3"><Button x:Name="PreferencesBackButton" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="PreferencesBack_Click" /><Button x:Name="PreferencesNextButton" Content="Devam et" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="PreferencesNext_Click" /></Grid>
                     </Grid>
@@ -187,8 +190,44 @@
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                         <TextBlock x:Name="PinTitle" Text="Yönetici PIN'i oluştur" FontSize="27" FontWeight="SemiBold" />
                         <TextBlock x:Name="PinDescription" Grid.Row="1" Text="Korumalı ayarları ve yönetici çıkışını güvenceye almak için 4–8 rakam belirle." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,9,0,0" />
-                        <StackPanel Grid.Row="2" Width="360" VerticalAlignment="Center" HorizontalAlignment="Center"><TextBlock x:Name="PinLabel" Text="PIN" FontWeight="SemiBold" FontSize="12" /><PasswordBox x:Name="PinBox" MaxLength="8" Margin="0,7,0,16" PasswordChanged="Pin_Changed" /><TextBlock x:Name="PinRepeatLabel" Text="PIN'i tekrar gir" FontWeight="SemiBold" FontSize="12" /><PasswordBox x:Name="PinRepeatBox" MaxLength="8" Margin="0,7,0,0" PasswordChanged="Pin_Changed" /><TextBlock x:Name="PinErrorText" Foreground="#D86B64" FontSize="11" Margin="0,9,0,0" /></StackPanel>
+                        <StackPanel Grid.Row="2" Width="360" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock x:Name="PinLabel" Text="PIN" FontWeight="SemiBold" FontSize="12" />
+                            <Grid Margin="0,7,0,16">
+                                <PasswordBox x:Name="PinBox" MaxLength="8" Padding="12,8,46,8" PasswordChanged="Pin_Changed" />
+                                <TextBox x:Name="VisiblePinBox" MaxLength="8" Padding="12,8,46,8" TextChanged="VisiblePin_Changed" Visibility="Collapsed" />
+                                <Button x:Name="PinVisibilityButton" Width="34" Height="30" Padding="0" Margin="0,2,3,2" HorizontalAlignment="Right" VerticalAlignment="Stretch" Style="{StaticResource TitleBarButton}" Click="TogglePinVisibility_Click" ToolTip="PIN'i göster/gizle" AutomationProperties.Name="PIN'i göster/gizle">
+                                    <Path Data="M2,12 C5,5 19,5 22,12 C19,19 5,19 2,12 M12,9 A3,3 0 1 1 11.99,9" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                </Button>
+                            </Grid>
+                            <TextBlock x:Name="PinRepeatLabel" Text="PIN'i tekrar gir" FontWeight="SemiBold" FontSize="12" />
+                            <Grid Margin="0,7,0,0">
+                                <PasswordBox x:Name="PinRepeatBox" MaxLength="8" Padding="12,8,46,8" PasswordChanged="Pin_Changed" />
+                                <TextBox x:Name="VisiblePinRepeatBox" MaxLength="8" Padding="12,8,46,8" TextChanged="VisiblePin_Changed" Visibility="Collapsed" />
+                                <Button x:Name="PinRepeatVisibilityButton" Width="34" Height="30" Padding="0" Margin="0,2,3,2" HorizontalAlignment="Right" VerticalAlignment="Stretch" Style="{StaticResource TitleBarButton}" Click="TogglePinRepeatVisibility_Click" ToolTip="PIN'i göster/gizle" AutomationProperties.Name="PIN'i göster/gizle">
+                                    <Path Data="M2,12 C5,5 19,5 22,12 C19,19 5,19 2,12 M12,9 A3,3 0 1 1 11.99,9" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                </Button>
+                            </Grid>
+                            <TextBlock x:Name="PinErrorText" Foreground="#D86B64" FontSize="11" Margin="0,9,0,0" />
+                        </StackPanel>
                         <Grid Grid.Row="3"><Button x:Name="PinBackButton" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="PinBack_Click" /><Button x:Name="PinNextButton" Content="Devam et" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" IsEnabled="False" Click="PinNext_Click" /></Grid>
+                    </Grid>
+
+                    <Grid x:Name="RecoveryPanel" Visibility="Collapsed">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBlock x:Name="RecoveryTitle" Text="Kurtarma kodlarını kaydet" FontSize="27" FontWeight="SemiBold" />
+                        <TextBlock x:Name="RecoveryDescription" Grid.Row="1" Text="PIN'ini unutursan bu tek kullanımlık kodlardan biriyle kurtarma yapabilirsin. Kodlar tekrar gösterilmeyecek." Foreground="{DynamicResource MutedTextBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,9,0,0" />
+                        <Grid Grid.Row="2" Margin="0,20,0,16">
+                            <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <TextBox x:Name="RecoveryCodesBox" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" FontSize="13" Padding="14" VerticalScrollBarVisibility="Auto" />
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button x:Name="CopyRecoveryCodesButton" Content="Kodları kopyala" Style="{StaticResource SecondaryButton}" Click="CopyRecoveryCodes_Click" Margin="0,0,8,0" />
+                                <Button x:Name="SaveRecoveryCodesButton" Content="Dosyaya kaydet" Style="{StaticResource SecondaryButton}" Click="SaveRecoveryCodes_Click" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Margin="0,13,0,0">
+                                <CheckBox x:Name="RecoveryAcknowledgementBox" Content="Kodları güvenli ve cihazdan ayrı bir yere kaydettim" Checked="RecoveryAcknowledgement_Changed" Unchecked="RecoveryAcknowledgement_Changed" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid Grid.Row="3"><Button x:Name="RecoveryBackButton" Content="Geri" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="RecoveryBack_Click" /><Button x:Name="RecoveryNextButton" Content="Devam et" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" IsEnabled="False" Click="RecoveryNext_Click" /></Grid>
                     </Grid>
 
                     <Grid x:Name="SummaryPanel" Visibility="Collapsed">

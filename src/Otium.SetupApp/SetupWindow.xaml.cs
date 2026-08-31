@@ -3,6 +3,9 @@ using System.Diagnostics;
 using System.IO;
 using System.ServiceProcess;
 using System.Reflection;
+using System.Security.Principal;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -21,6 +24,7 @@ public partial class SetupWindow : Window
     private ControlSettings? _existingSettings;
     private bool _hasExistingSettings;
     private bool _existingPolicyLocked;
+    private bool _brokenProtectedCredential;
     private readonly Version _packageVersion = GetPackageVersion();
     private Version? _installedVersion;
     private string? _installedReleaseLabel;
@@ -28,6 +32,8 @@ public partial class SetupWindow : Window
     private bool _openedForExistingInstallation;
     private bool _installationInProgress;
     private bool _languageChosen;
+    private bool _pinVisible;
+    private bool _pinRepeatVisible;
     private WizardPage _page = WizardPage.Language;
 
     public SetupWindow()
@@ -200,6 +206,87 @@ public partial class SetupWindow : Window
         ShowPage(WizardPage.Mode);
     }
 
+    private async void ResetBrokenProtection_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_brokenProtectedCredential) return;
+        MessageBoxResult confirmation = MessageBox.Show(
+            this,
+            T(
+                "Eski Guardian kimliği eksik olduğu için mevcut PIN kurtarılamıyor. Bu işlem eski PIN'i, kurtarma kodlarını ve telefon eşleştirmesini siler. Kullanım geçmişine dokunmaz. Devam edilsin mi?",
+                "The old Guardian identity is missing, so the existing PIN cannot be recovered. This removes the old PIN, recovery codes, and phone pairing. Usage history is kept. Continue?"),
+            "Otium",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirmation != MessageBoxResult.Yes) return;
+
+        ResetBrokenProtectionButton.IsEnabled = false;
+        try
+        {
+            int exitCode = await RunElevatedBrokenProtectionResetAsync();
+            if (exitCode != 0)
+            {
+                throw new InvalidOperationException(T(
+                    "Bozuk Guardian kaydı temizlenemedi. Bilgisayarı yeniden başlatıp tekrar dene.",
+                    "The broken Guardian record could not be cleared. Restart the computer and try again."));
+            }
+
+            DeleteLocalSettingsForProtectionReset();
+
+            _existingSettings = null;
+            _hasExistingSettings = false;
+            _existingPolicyLocked = false;
+            _brokenProtectedCredential = false;
+            _plan.ExistingChoice = SetupChoice.ConfigureNew;
+            ExistingSecurityNotice.Text = string.Empty;
+            ShowPage(WizardPage.Mode);
+        }
+        catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
+        {
+            ExistingSecurityNotice.Text = T(
+                "Windows yönetici izni iptal edildi; hiçbir şey değiştirilmedi.",
+                "Windows administrator permission was cancelled; nothing was changed.");
+        }
+        catch (Exception exception)
+        {
+            ExistingSecurityNotice.Text = exception.Message;
+        }
+        finally
+        {
+            ResetBrokenProtectionButton.IsEnabled = true;
+        }
+    }
+
+    private async Task<int> RunElevatedBrokenProtectionResetAsync()
+    {
+        string executable = Environment.ProcessPath
+            ?? throw new InvalidOperationException(T("Kurulum yolu bulunamadı.", "The setup path could not be resolved."));
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = executable,
+            UseShellExecute = true,
+            Verb = "runas",
+            WindowStyle = ProcessWindowStyle.Hidden
+        };
+        startInfo.ArgumentList.Add("--elevated-reset-broken-protection");
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException(T("Kurtarma aracı başlatılamadı.", "The recovery tool could not be started."));
+        await process.WaitForExitAsync();
+        return process.ExitCode;
+    }
+
+    private void DeleteLocalSettingsForProtectionReset()
+    {
+        foreach (string path in new[]
+        {
+            _settingsStore.FilePath,
+            _settingsStore.BackupPath,
+            _settingsStore.FilePath + ".lock"
+        })
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private void Awareness_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Awareness);
     private void Personal_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Personal);
     private void Protected_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Protected);
@@ -249,8 +336,26 @@ public partial class SetupWindow : Window
 
     private void Pin_Changed(object sender, RoutedEventArgs e)
     {
-        string pin = PinBox.Password;
-        string repeat = PinRepeatBox.Password;
+        ValidatePinFields();
+    }
+
+    private void VisiblePin_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (_pinVisible && ReferenceEquals(sender, VisiblePinBox))
+        {
+            PinBox.Password = VisiblePinBox.Text;
+        }
+        else if (_pinRepeatVisible && ReferenceEquals(sender, VisiblePinRepeatBox))
+        {
+            PinRepeatBox.Password = VisiblePinRepeatBox.Text;
+        }
+        ValidatePinFields();
+    }
+
+    private void ValidatePinFields()
+    {
+        string pin = CurrentPin;
+        string repeat = CurrentPinRepeat;
         bool formatValid = AdminPinService.IsValidFormat(pin);
         bool match = string.Equals(pin, repeat, StringComparison.Ordinal);
         PinNextButton.IsEnabled = formatValid && match;
@@ -263,13 +368,107 @@ public partial class SetupWindow : Window
                     : string.Empty;
     }
 
+    private string CurrentPin => _pinVisible ? VisiblePinBox.Text : PinBox.Password;
+    private string CurrentPinRepeat => _pinRepeatVisible ? VisiblePinRepeatBox.Text : PinRepeatBox.Password;
+
+    private void TogglePinVisibility_Click(object sender, RoutedEventArgs e)
+    {
+        _pinVisible = !_pinVisible;
+        TogglePinField(PinBox, VisiblePinBox, _pinVisible);
+    }
+
+    private void TogglePinRepeatVisibility_Click(object sender, RoutedEventArgs e)
+    {
+        _pinRepeatVisible = !_pinRepeatVisible;
+        TogglePinField(PinRepeatBox, VisiblePinRepeatBox, _pinRepeatVisible);
+    }
+
+    private static void TogglePinField(PasswordBox hidden, TextBox visible, bool show)
+    {
+        if (show)
+        {
+            visible.Text = hidden.Password;
+            visible.Visibility = Visibility.Visible;
+            hidden.Visibility = Visibility.Collapsed;
+            visible.Focus();
+            visible.CaretIndex = visible.Text.Length;
+            return;
+        }
+
+        hidden.Password = visible.Text;
+        hidden.Visibility = Visibility.Visible;
+        visible.Visibility = Visibility.Collapsed;
+        hidden.Focus();
+    }
+
     private void PinBack_Click(object sender, RoutedEventArgs e) => ShowPage(WizardPage.Preferences);
 
     private void PinNext_Click(object sender, RoutedEventArgs e)
     {
-        _plan.AdminPin = PinBox.Password;
+        _plan.AdminPin = CurrentPin;
+        RecoveryCodesBox.Text = string.Join(Environment.NewLine, _plan.EnsureRecoveryCodes());
+        RecoveryNextButton.IsEnabled = RecoveryAcknowledgementBox.IsChecked == true;
+        ShowPage(WizardPage.Recovery);
+    }
+
+    private void RecoveryAcknowledgement_Changed(object sender, RoutedEventArgs e) =>
+        RecoveryNextButton.IsEnabled = RecoveryAcknowledgementBox.IsChecked == true;
+
+    private void RecoveryBack_Click(object sender, RoutedEventArgs e) => ShowPage(WizardPage.Pin);
+
+    private void RecoveryNext_Click(object sender, RoutedEventArgs e)
+    {
         PopulateSummary();
         ShowPage(WizardPage.Summary);
+    }
+
+    private void CopyRecoveryCodes_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Clipboard.SetText(RecoveryCodesBox.Text);
+            CopyRecoveryCodesButton.Content = T("Kopyalandı", "Copied");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                T($"Kodlar panoya kopyalanamadı: {ex.Message}", $"The codes could not be copied: {ex.Message}"),
+                "Otium",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    private void SaveRecoveryCodes_Click(object sender, RoutedEventArgs e)
+    {
+        SaveFileDialog dialog = new()
+        {
+            Title = T("Kurtarma kodlarını kaydet", "Save recovery codes"),
+            FileName = "Otium-recovery-codes.txt",
+            Filter = T("Metin dosyası (*.txt)|*.txt", "Text file (*.txt)|*.txt"),
+            AddExtension = true,
+            DefaultExt = ".txt"
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(dialog.FileName, RecoveryCodesBox.Text);
+            SaveRecoveryCodesButton.Content = T("Kaydedildi", "Saved");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                T($"Kodlar kaydedilemedi: {ex.Message}", $"The codes could not be saved: {ex.Message}"),
+                "Otium",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private void SummaryBack_Click(object sender, RoutedEventArgs e)
@@ -280,7 +479,7 @@ public partial class SetupWindow : Window
         }
         else
         {
-            ShowPage(_plan.RequiresUserPin ? WizardPage.Pin : WizardPage.Preferences);
+            ShowPage(_plan.RequiresUserPin ? WizardPage.Recovery : WizardPage.Preferences);
         }
     }
 
@@ -293,12 +492,48 @@ public partial class SetupWindow : Window
         _installationInProgress = true;
         CloseButton.IsEnabled = false;
         ShowPage(WizardPage.Installing);
+        SettingsFilesSnapshot? settingsSnapshot = null;
+        bool settingsStaged = false;
         try
         {
             ReadPreferences();
             ControlSettings settings = _plan.ComposeSettings(_existingSettings);
-            CloseVisibleOtiumWindow();
-            int exitCode = await RunElevatedInstallerAsync();
+            bool requiresGuardian = settings.RequiresGuardian;
+            settingsSnapshot = await CaptureSettingsSnapshotAsync();
+            await _settingsStore.SaveAsync(settings);
+            settingsStaged = true;
+            string? guardianPayload = requiresGuardian ? CreateGuardianPayload() : null;
+            int exitCode = await RunElevatedInstallerAsync(guardianPayload);
+            if (exitCode == ElevatedPackageInstaller.GuardianProvisioningFailedExitCode)
+            {
+                throw new InvalidOperationException(
+                    T("Otium dosyaları kuruldu ancak korumalı ayarlar Guardian'a aktarılamadı. Mevcut güvenlik verileri geri yüklendi.",
+                      "Otium files were installed, but protected settings could not be provisioned to Guardian. Existing security data was restored."));
+            }
+            if (exitCode == ElevatedPackageInstaller.GuardianCredentialUnavailableExitCode)
+            {
+                if (settingsStaged && settingsSnapshot is not null)
+                {
+                    await RestoreSettingsSnapshotAsync(settingsSnapshot);
+                    settingsStaged = false;
+                }
+                _brokenProtectedCredential = true;
+                RefreshExistingInstallationText();
+                ShowPage(WizardPage.Existing);
+                return;
+            }
+            if (exitCode == ElevatedPackageInstaller.GuardianStartFailedExitCode)
+            {
+                throw new InvalidOperationException(
+                    T("Otium dosyaları kuruldu ancak Guardian servisi başlatılamadı. Mevcut güvenlik verileri geri yüklendi.",
+                      "Otium files were installed, but the Guardian service could not be started. Existing security data was restored."));
+            }
+            if (exitCode == ElevatedPackageInstaller.OrphanedGuardianCleanupFailedExitCode)
+            {
+                throw new InvalidOperationException(
+                    T("Eski kurulumdan kalan bozuk Guardian servisi kaldırılamadı. Bilgisayarı yeniden başlatıp kurulumu tekrar dene. Ayrıntılar ProgramData\\Otium\\SetupLogs klasöründe.",
+                      "The broken Guardian service left by the old installation could not be removed. Restart the computer and run setup again. Details are in ProgramData\\Otium\\SetupLogs."));
+            }
             if (exitCode is not (0 or 1641 or 3010))
             {
                 throw new InvalidOperationException(
@@ -306,26 +541,41 @@ public partial class SetupWindow : Window
                       $"Windows Installer stopped with code {exitCode}. Diagnostics are in ProgramData\\Otium\\SetupLogs."));
             }
 
-            if (_plan.RequiresGuardian && !await WaitForGuardianServiceAsync())
+            if (requiresGuardian && !await WaitForGuardianServiceAsync())
             {
                 throw new InvalidOperationException(
                     T("Guardian servisi başlatılamadı. Korumalı ayarlar kaydedilmedi ve Otium başlatılmadı.",
                       "The Guardian service could not be started. Protected settings were not saved and Otium was not launched."));
             }
 
-            await _settingsStore.SaveAsync(settings);
-            LaunchInstalledOtium(_plan.LaunchArguments);
+            string launchArguments = requiresGuardian
+                ? "--post-install-control-center"
+                : _plan.LaunchArguments;
+            if (_plan.RequiresUserPin && _plan.PairManagerDeviceAfterInstall)
+            {
+                launchArguments += " --pair-manager-device";
+            }
+            LaunchInstalledOtium(launchArguments.Trim());
+            settingsStaged = false;
             await Task.Delay(650);
             _installationInProgress = false;
             Close();
         }
         catch (Win32Exception exception) when (exception.NativeErrorCode == 1223)
         {
+            if (settingsStaged && settingsSnapshot is not null)
+            {
+                await RestoreSettingsSnapshotAsync(settingsSnapshot);
+            }
             ShowInstallError(T("Yönetici izni iptal edildi. Hiçbir ayar değiştirilmedi.",
                                "Administrator permission was cancelled. No settings were changed."));
         }
         catch (Exception exception)
         {
+            if (settingsStaged && settingsSnapshot is not null)
+            {
+                await RestoreSettingsSnapshotAsync(settingsSnapshot);
+            }
             ShowInstallError(exception.Message);
         }
         finally
@@ -335,7 +585,7 @@ public partial class SetupWindow : Window
         }
     }
 
-    private async Task<int> RunElevatedInstallerAsync()
+    private async Task<int> RunElevatedInstallerAsync(string? guardianPayload)
     {
         string executable = Environment.ProcessPath
             ?? throw new InvalidOperationException(T("Kurulum yolu bulunamadı.", "The setup path could not be resolved."));
@@ -347,29 +597,61 @@ public partial class SetupWindow : Window
             WindowStyle = ProcessWindowStyle.Hidden
         };
         startInfo.ArgumentList.Add("--elevated-install");
+        if (_packageAction == SetupPackageAction.Repair)
+        {
+            startInfo.ArgumentList.Add("--force-reinstall");
+        }
         if (_plan.DesktopShortcut) startInfo.ArgumentList.Add("--desktop-shortcut");
+        if (!string.IsNullOrWhiteSpace(guardianPayload))
+        {
+            startInfo.ArgumentList.Add("--guardian-payload");
+            startInfo.ArgumentList.Add(guardianPayload);
+        }
         using Process process = Process.Start(startInfo)
             ?? throw new InvalidOperationException(T("Windows Installer başlatılamadı.", "Windows Installer could not be started."));
         await process.WaitForExitAsync();
         return process.ExitCode;
     }
 
-    private static void CloseVisibleOtiumWindow()
+    private string CreateGuardianPayload()
     {
-        foreach (Process process in Process.GetProcessesByName("Otium"))
+        string userSid = WindowsIdentity.GetCurrent().User?.Value
+            ?? throw new InvalidOperationException(T(
+                "Geçerli Windows kullanıcı kimliği okunamadı.",
+                "The current Windows user identity could not be read."));
+        byte[] json = JsonSerializer.SerializeToUtf8Bytes(new
         {
-            using (process)
-            {
-                if (process.MainWindowHandle == IntPtr.Zero) continue;
-                process.CloseMainWindow();
-                process.WaitForExit(3000);
-                if (!process.HasExited)
-                {
-                    throw new InvalidOperationException(
-                        "Otium is still open. Close the application and run setup again. / Otium hâlâ açık; uygulamayı kapatıp kurulumu yeniden çalıştır.");
-                }
-            }
+            UserSid = userSid,
+            SettingsPath = _settingsStore.FilePath
+        });
+        return Convert.ToBase64String(json);
+    }
+
+    private async Task<SettingsFilesSnapshot> CaptureSettingsSnapshotAsync() => new(
+        await ReadFileIfPresentAsync(_settingsStore.FilePath),
+        await ReadFileIfPresentAsync(_settingsStore.BackupPath));
+
+    private async Task RestoreSettingsSnapshotAsync(SettingsFilesSnapshot snapshot)
+    {
+        await RestoreFileAsync(_settingsStore.FilePath, snapshot.Settings);
+        await RestoreFileAsync(_settingsStore.BackupPath, snapshot.Backup);
+    }
+
+    private static async Task<byte[]?> ReadFileIfPresentAsync(string path) =>
+        File.Exists(path) ? await File.ReadAllBytesAsync(path) : null;
+
+    private static async Task RestoreFileAsync(string path, byte[]? content)
+    {
+        if (content is null)
+        {
+            if (File.Exists(path)) File.Delete(path);
+            return;
         }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        string temporaryPath = path + ".setup-rollback";
+        await File.WriteAllBytesAsync(temporaryPath, content);
+        File.Move(temporaryPath, path, overwrite: true);
     }
 
     private static void LaunchInstalledOtium(string arguments)
@@ -400,7 +682,12 @@ public partial class SetupWindow : Window
             {
                 using ServiceController service = new("OtiumGuardian");
                 service.Refresh();
-                if (service.Status == ServiceControllerStatus.Running)
+                string protectionDirectory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "Otium");
+                if (service.Status == ServiceControllerStatus.Running &&
+                    File.Exists(Path.Combine(protectionDirectory, "guardian-enrollment.json")) &&
+                    File.Exists(Path.Combine(protectionDirectory, "protected-settings.json")))
                 {
                     return true;
                 }
@@ -415,6 +702,8 @@ public partial class SetupWindow : Window
         return false;
     }
 
+    private sealed record SettingsFilesSnapshot(byte[]? Settings, byte[]? Backup);
+
     private void ReadPreferences()
     {
         _plan.DeviceName = string.IsNullOrWhiteSpace(DeviceNameBox.Text)
@@ -427,6 +716,7 @@ public partial class SetupWindow : Window
         _plan.StartWithWindows = StartWithWindowsBox.IsChecked == true;
         _plan.DesktopShortcut = DesktopShortcutBox.IsChecked == true;
         _plan.AwarenessTracking = TrackingBox.IsChecked == true;
+        _plan.PairManagerDeviceAfterInstall = PairManagerDeviceBox.IsChecked == true;
     }
 
     private void PopulateSummary()
@@ -450,6 +740,8 @@ public partial class SetupWindow : Window
         if (_plan.DesktopShortcut) options.Add(T("masaüstü kısayolu", "desktop shortcut"));
         if (_plan.AwarenessTracking || _plan.Mode == ControlMode.Awareness) options.Add(T("yerel ölçüm", "local tracking"));
         if (_plan.RequiresGuardian) options.Add("Guardian");
+        if (_plan.RequiresUserPin) options.Add(T("8 tek kullanımlık kurtarma kodu", "8 one-time recovery codes"));
+        if (_plan.RequiresUserPin && _plan.PairManagerDeviceAfterInstall) options.Add(T("isteğe bağlı telefon eşleştirme", "optional phone pairing"));
         SummaryOptionsValue.Text = options.Count == 0 ? T("Ek seçenek yok", "No optional features") : string.Join(" · ", options);
     }
 
@@ -465,7 +757,7 @@ public partial class SetupWindow : Window
         foreach (Grid panel in new[]
         {
             LanguagePanel, WelcomePanel, ExistingPanel, ModePanel, PersonalPanel,
-            PreferencesPanel, PinPanel, SummaryPanel, InstallingPanel, ErrorPanel
+            PreferencesPanel, PinPanel, RecoveryPanel, SummaryPanel, InstallingPanel, ErrorPanel
         })
         {
             panel.Visibility = Visibility.Collapsed;
@@ -480,11 +772,13 @@ public partial class SetupWindow : Window
             WizardPage.Personal => PersonalPanel,
             WizardPage.Preferences => PreferencesPanel,
             WizardPage.Pin => PinPanel,
+            WizardPage.Recovery => RecoveryPanel,
             WizardPage.Summary => SummaryPanel,
             WizardPage.Installing => InstallingPanel,
             _ => ErrorPanel
         };
         selected.Visibility = Visibility.Visible;
+        PairManagerDeviceFeature.Visibility = _plan.RequiresUserPin ? Visibility.Visible : Visibility.Collapsed;
         AnimatePageEntrance(selected);
         UpdateStepStatus();
         RefreshLanguage();
@@ -522,12 +816,13 @@ public partial class SetupWindow : Window
             WizardPage.Existing or WizardPage.Mode or WizardPage.Personal => 3,
             WizardPage.Preferences => 4,
             WizardPage.Pin => 5,
-            WizardPage.Summary => 6,
-            WizardPage.Installing or WizardPage.Error => 7,
+            WizardPage.Recovery => 6,
+            WizardPage.Summary => 7,
+            WizardPage.Installing or WizardPage.Error => 8,
             _ => 1
         };
         StepProgress.Value = step;
-        StepLabel.Text = T($"ADIM {step} / 7", $"STEP {step} / 7");
+        StepLabel.Text = T($"ADIM {step} / 8", $"STEP {step} / 8");
         (StepTitle.Text, StepDescription.Text) = _page switch
         {
             WizardPage.Language => (T("Dil seçimi", "Language"), T("Kurulum ve Otium aynı dilde devam eder.", "Setup and Otium continue in the same language.")),
@@ -536,6 +831,7 @@ public partial class SetupWindow : Window
             WizardPage.Mode or WizardPage.Personal => (T("Kullanım biçimi", "Usage mode"), T("İhtiyacına uygun koruma düzeyini seç.", "Choose the protection level that fits you.")),
             WizardPage.Preferences => (T("Başlangıç ayarları", "Essentials"), T("Cihaz, süre ve başlangıç seçenekleri.", "Device, time, and startup options.")),
             WizardPage.Pin => (T("Yönetici güvenliği", "Administrator security"), T("Korumalı kullanım için PIN oluştur.", "Create a PIN for protected use.")),
+            WizardPage.Recovery => (T("PIN kurtarma", "PIN recovery"), T("Tek kullanımlık kurtarma kodlarını güvenli biçimde sakla.", "Store the one-time recovery codes securely.")),
             WizardPage.Summary => (T("Son kontrol", "Final review"), T("Kurulumdan önce seçimlerini doğrula.", "Confirm your choices before installation.")),
             WizardPage.Installing => (T("Kurulum", "Installation"), T("Otium ve Guardian hazırlanıyor.", "Otium and Guardian are being prepared.")),
             _ => (T("Kurulum sorunu", "Setup issue"), T("Tanılamayı inceleyip yeniden dene.", "Review diagnostics and try again."))
@@ -586,6 +882,20 @@ public partial class SetupWindow : Window
         TrackingBox.Content = T("Yerel uygulama ölçümünü etkinleştir", "Enable local app tracking"); TrackingHint.Text = T("Yalnız uygulama adı ve süre; pencere başlığı veya içerik yok.", "App name and duration only; no window titles or content.");
         PreferencesBackButton.Content = BackText; PreferencesNextButton.Content = ContinueText;
         PinTitle.Text = T("Yönetici PIN'i oluştur", "Create an administrator PIN"); PinDescription.Text = T("Korumalı ayarları ve yönetici çıkışını güvenceye almak için 4–8 rakam belirle.", "Choose 4–8 digits to secure protected settings and administrator exit."); PinLabel.Text = "PIN"; PinRepeatLabel.Text = T("PIN'i tekrar gir", "Repeat PIN"); PinBackButton.Content = BackText; PinNextButton.Content = ContinueText;
+        string pinVisibilityText = T("PIN'i göster/gizle", "Show/hide PIN");
+        PinVisibilityButton.ToolTip = pinVisibilityText;
+        PinRepeatVisibilityButton.ToolTip = pinVisibilityText;
+        System.Windows.Automation.AutomationProperties.SetName(PinVisibilityButton, pinVisibilityText);
+        System.Windows.Automation.AutomationProperties.SetName(PinRepeatVisibilityButton, pinVisibilityText);
+        RecoveryTitle.Text = T("Kurtarma kodlarını kaydet", "Save recovery codes");
+        RecoveryDescription.Text = T("PIN'ini unutursan bu tek kullanımlık kodlardan biriyle kurtarma yapabilirsin. Kodlar tekrar gösterilmeyecek.", "If you forget your PIN, you can recover it with one of these one-time codes. The codes will not be shown again.");
+        CopyRecoveryCodesButton.Content = T("Kodları kopyala", "Copy codes");
+        SaveRecoveryCodesButton.Content = T("Dosyaya kaydet", "Save to file");
+        RecoveryAcknowledgementBox.Content = T("Kodları güvenli ve cihazdan ayrı bir yere kaydettim", "I stored the codes securely and away from this device");
+        PairManagerDeviceBox.Content = T("Kurulumdan sonra güvenilir telefonu eşleştir", "Pair a trusted phone after installation");
+        PairManagerDeviceHint.Text = T("İsteğe bağlıdır; PIN kurtarma yetkisi daha sonra da eklenebilir.", "Optional; PIN recovery access can also be added later.");
+        RecoveryBackButton.Content = BackText;
+        RecoveryNextButton.Content = ContinueText;
         SummaryTitle.Text = T("Kuruluma hazır", "Ready to install"); SummaryDescription.Text = T("Seçimlerini kontrol et. Kur düğmesi yönetici izni isteyecek.", "Review your choices. Install will request administrator permission.");
         SummaryModeLabel.Text = T("Kullanım biçimi", "Usage mode"); SummaryDeviceLabel.Text = T("Cihaz", "Device"); SummaryLimitLabel.Text = T("Günlük süre", "Daily time"); SummaryOptionsLabel.Text = T("Seçenekler", "Options"); SummaryBackButton.Content = BackText; InstallButton.Content = T("Otium'u kur", "Install Otium");
         InstallingEyebrow.Text = T("OTIUM KURULUYOR", "INSTALLING OTIUM"); InstallingTitle.Text = T("Her şeyi senin için hazırlıyoruz.", "We're preparing everything for you."); InstallingDescription.Text = T("Bu pencereyi kapatma. Windows yönetici izni isteyebilir.", "Keep this window open. Windows may request administrator permission.");
@@ -636,10 +946,21 @@ public partial class SetupWindow : Window
             ? english ? $"{minutes / 60} hours" : $"{minutes / 60} saat"
             : english ? $"{minutes} minutes" : $"{minutes} dakika";
 
-    private static string GetDisplayVersion() =>
+    private static string GetDisplayVersion() => FormatReleaseLabel(
         Assembly.GetExecutingAssembly()
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion ?? "1.0.0-alpha";
+            .InformationalVersion ?? "1.0.0-alpha");
+
+    private static string FormatReleaseLabel(string releaseLabel)
+    {
+        Match alphaMatch = Regex.Match(
+            releaseLabel,
+            @"^(?:v?\d+\.\d+\.\d+-)?alpha[.-]?(?<number>\d+)$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        return alphaMatch.Success
+            ? $"Alpha {alphaMatch.Groups["number"].Value}"
+            : releaseLabel;
+    }
 
     private static Version GetPackageVersion() =>
         Assembly.GetExecutingAssembly().GetName().Version is { } version
@@ -667,7 +988,9 @@ public partial class SetupWindow : Window
     {
         InstalledVersionLabel.Text = T("KURULU", "INSTALLED");
         PackageVersionLabel.Text = T("BU PAKET", "THIS PACKAGE");
-        InstalledVersionValue.Text = _installedReleaseLabel ?? _installedVersion?.ToString(3) ?? T("Ayarlar bulundu", "Settings found");
+        InstalledVersionValue.Text = _installedReleaseLabel is { Length: > 0 } releaseLabel
+            ? FormatReleaseLabel(releaseLabel)
+            : _installedVersion?.ToString(3) ?? T("Ayarlar bulundu", "Settings found");
         PackageVersionValue.Text = GetDisplayVersion();
         ExistingVersionCard.Visibility = _openedForExistingInstallation ? Visibility.Visible : Visibility.Collapsed;
 
@@ -699,8 +1022,30 @@ public partial class SetupWindow : Window
                 break;
         }
 
-        KeepExistingButton.IsEnabled = _packageAction != SetupPackageAction.DowngradeBlocked;
-        ConfigureNewButton.IsEnabled = _packageAction != SetupPackageAction.DowngradeBlocked;
+        ResetBrokenProtectionButton.Visibility = _brokenProtectedCredential
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        ResetBrokenProtectionTitle.Text = T(
+            "Bozuk korumayı sıfırla",
+            "Reset broken protection");
+        ResetBrokenProtectionText.Text = T(
+            "Kurtarılamayan eski PIN ve Guardian kaydını temizle; kullanım geçmişini koru.",
+            "Clear the unrecoverable old PIN and Guardian record while keeping usage history.");
+        if (_brokenProtectedCredential)
+        {
+            ExistingTitle.Text = T(
+                "Eski Guardian kimliği eksik.",
+                "The old Guardian identity is missing.");
+            ExistingDescription.Text = T(
+                "Korunan ayarlar duruyor ancak PIN'i doğrulayacak gizli kayıt silinmiş. Normal onarım bu bilgiyi geri üretemez.",
+                "Protected settings remain, but the secret record required to verify the PIN was deleted. A normal repair cannot recreate it.");
+            ExistingSecurityNotice.Text = T(
+                "Devam etmek için bozuk korumayı Windows yönetici izniyle sıfırlayıp yeni bir PIN belirle.",
+                "To continue, reset the broken protection with Windows administrator permission and create a new PIN.");
+        }
+
+        KeepExistingButton.IsEnabled = _packageAction != SetupPackageAction.DowngradeBlocked && !_brokenProtectedCredential;
+        ConfigureNewButton.IsEnabled = _packageAction != SetupPackageAction.DowngradeBlocked && !_brokenProtectedCredential;
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -720,6 +1065,7 @@ public partial class SetupWindow : Window
         Personal,
         Preferences,
         Pin,
+        Recovery,
         Summary,
         Installing,
         Error

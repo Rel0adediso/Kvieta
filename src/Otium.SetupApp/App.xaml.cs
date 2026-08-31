@@ -20,14 +20,30 @@ public partial class App : System.Windows.Application
         {
             bool desktopShortcut = e.Args.Any(argument =>
                 string.Equals(argument, "--desktop-shortcut", StringComparison.OrdinalIgnoreCase));
+            bool forceReinstall = e.Args.Any(argument =>
+                string.Equals(argument, "--force-reinstall", StringComparison.OrdinalIgnoreCase));
+            int guardianPayloadIndex = e.Args.ToList().FindIndex(argument =>
+                string.Equals(argument, "--guardian-payload", StringComparison.OrdinalIgnoreCase));
+            string? guardianPayload = guardianPayloadIndex >= 0 && guardianPayloadIndex + 1 < e.Args.Length
+                ? e.Args[guardianPayloadIndex + 1]
+                : null;
             try
             {
-                Shutdown(await ElevatedPackageInstaller.RunAsync(desktopShortcut));
+                Shutdown(await ElevatedPackageInstaller.RunAsync(
+                    desktopShortcut,
+                    guardianPayload,
+                    forceReinstall));
             }
             catch
             {
                 Shutdown(1603);
             }
+            return;
+        }
+
+        if (e.Args.Any(argument => string.Equals(argument, "--elevated-reset-broken-protection", StringComparison.OrdinalIgnoreCase)))
+        {
+            Shutdown(ElevatedPackageInstaller.ResetBrokenProtection());
             return;
         }
 

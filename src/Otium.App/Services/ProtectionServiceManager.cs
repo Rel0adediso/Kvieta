@@ -67,6 +67,12 @@ public static class ProtectionServiceManager
     public static string EnrollmentPath => Path.Combine(ProtectionDataDirectory, "guardian-enrollment.json");
     public static string ProcessStatePath => Path.Combine(ProtectionDataDirectory, "guardian-process.json");
     public static string ProtectedSettingsPath => Path.Combine(ProtectionDataDirectory, "protected-settings.json");
+    public static string AdministrativeActivityPath => Path.Combine(
+        ProtectionDataDirectory,
+        "administrative-activity.json");
+    public static string PostInstallControlCenterPath => Path.Combine(
+        ProtectionDataDirectory,
+        "post-install-control-center.pending");
     public static string InstallLogPath => Path.Combine(ProtectionDataDirectory, "guardian-install.log");
 
     public static bool IsInstallerManaged
@@ -156,6 +162,19 @@ public static class ProtectionServiceManager
     public static bool RequiresPinForUninstall(ControlSettings settings) =>
         settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured;
 
+    public static bool RequiresProductRepair(ProtectionHealthReport health) =>
+        RequiresProductRepair(health, IsInstallerManaged);
+
+    public static bool RequiresProductRepair(
+        ProtectionHealthReport health,
+        bool installerManaged) =>
+        installerManaged &&
+        (health.ServiceState == ProtectionServiceState.NotInstalled ||
+         health.Issues.Contains(ProtectionHealthIssue.ExecutableMissing) ||
+         health.Issues.Contains(ProtectionHealthIssue.VersionMismatch) ||
+         health.Issues.Contains(ProtectionHealthIssue.VersionUnknown) ||
+         health.Issues.Contains(ProtectionHealthIssue.StartupNotAutomatic));
+
     public static bool LaunchProductUninstall()
     {
         if (!IsInstallerManaged || ReadInstallerValue("ProductCode") is not string productCode ||
@@ -205,7 +224,12 @@ public static class ProtectionServiceManager
             using Process? process = Process.Start(startInfo);
             if (process is null) return false;
             await process.WaitForExitAsync();
-            return process.ExitCode is 0 or 3010;
+            if (process.ExitCode is not (0 or 3010))
+            {
+                return false;
+            }
+
+            return LoadEnrollment() is null || EnsureServiceRunning();
         }
         catch (System.ComponentModel.Win32Exception)
         {
@@ -376,6 +400,86 @@ public static class ProtectionServiceManager
         return install ? Install(payload) : Remove();
     }
 
+    public static async Task<bool> RunElevatedAuthorizedStopAsync()
+    {
+        if (GetState() != ProtectionServiceState.Running)
+        {
+            return true;
+        }
+
+        if (IsAdministrator())
+        {
+            return ExecuteAuthorizedStopCommand() == 0;
+        }
+
+        string? executable = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(executable))
+        {
+            return false;
+        }
+
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = executable,
+            Arguments = "--stop-guardian",
+            UseShellExecute = true,
+            Verb = "runas",
+            WindowStyle = ProcessWindowStyle.Hidden
+        };
+
+        try
+        {
+            using Process? process = Process.Start(startInfo);
+            if (process is null)
+            {
+                return false;
+            }
+
+            using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
+            await process.WaitForExitAsync(timeout.Token);
+            return process.ExitCode == 0;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    public static int ExecuteProvisioningCommand(string? payload)
+    {
+        if (!IsAdministrator())
+        {
+            return 5;
+        }
+
+        if (!IsInstallerManaged)
+        {
+            return 4;
+        }
+
+        return ProvisionInstallerManagedGuardian(payload);
+    }
+
+    public static int ExecuteAuthorizedStopCommand()
+    {
+        if (!IsAdministrator())
+        {
+            return 5;
+        }
+
+        try
+        {
+            StopServiceIfPresent();
+            StopTrackedGuardianSessionIfPresent();
+            TryDelete(ProcessStatePath);
+            return GetState() == ProtectionServiceState.Running ? 1 : 0;
+        }
+        catch
+        {
+            return 1;
+        }
+    }
+
     public static GuardianEnrollment? LoadEnrollment()
     {
         try
@@ -418,12 +522,22 @@ public static class ProtectionServiceManager
     {
         StopTrackedGuardianSessionIfPresent();
         TryDelete(ProcessStatePath);
+        TryDelete(PostInstallControlCenterPath);
+        TryDelete(AdministrativeActivityPath);
         TryDelete(ProtectedSettingsPath);
         TryDelete(EnrollmentPath);
     }
 
     private static int Install(string? payload)
     {
+        if (IsInstallerManaged)
+        {
+            int provisionResult = ProvisionInstallerManagedGuardian(payload);
+            return provisionResult == 0 && EnsureServiceRunning()
+                ? 0
+                : provisionResult == 0 ? 1 : provisionResult;
+        }
+
         try
         {
             TraceInstallStep("start");
@@ -464,6 +578,8 @@ public static class ProtectionServiceManager
             File.WriteAllBytes(ProtectedSettingsPath, ProtectionPolicyChannel.CreateProtectedPolicyBytes(settings));
             HardenProtectedPolicyAcl(request.UserSid);
             File.Copy(ProtectedSettingsPath, request.SettingsPath, overwrite: true);
+            File.WriteAllText(PostInstallControlCenterPath, "waiting");
+            HardenReadOnlyFileAcl(PostInstallControlCenterPath, request.UserSid);
             TraceInstallStep("policy.ready");
 
             string source = Environment.ProcessPath
@@ -491,6 +607,181 @@ public static class ProtectionServiceManager
         {
             TraceInstallStep($"failure.{exception.GetType().Name}.{SanitizeInstallLogValue(exception.Message)}");
             return 1;
+        }
+    }
+
+    private static int ProvisionInstallerManagedGuardian(string? payload)
+    {
+        GuardianProvisioningSnapshot? snapshot = null;
+        try
+        {
+            TraceInstallStep("provision.start");
+            if (string.IsNullOrWhiteSpace(payload))
+            {
+                TraceInstallStep("provision.failure.payload-missing");
+                return 2;
+            }
+
+            GuardianInstallRequest request = JsonSerializer.Deserialize<GuardianInstallRequest>(
+                Encoding.UTF8.GetString(Convert.FromBase64String(payload)))
+                ?? throw new InvalidOperationException("Guardian enrollment request is invalid.");
+            ControlSettings settings = Task.Run(
+                    () => new JsonSettingsStore(request.SettingsPath).LoadAsync())
+                .GetAwaiter()
+                .GetResult();
+            if (!settings.RequiresGuardian || !settings.AdminPin.IsConfigured)
+            {
+                TraceInstallStep("provision.failure.policy-not-protected");
+                return 3;
+            }
+
+            Directory.CreateDirectory(ProtectionDataDirectory);
+            snapshot = GuardianProvisioningSnapshot.Capture(request.SettingsPath);
+            GuardianEnrollment? existingEnrollment = LoadEnrollment();
+            if (settings.AdminPin.IsPublicMarker &&
+                (existingEnrollment is null ||
+                 !string.Equals(existingEnrollment.UserSid, request.UserSid, StringComparison.OrdinalIgnoreCase) ||
+                 existingEnrollment.AdminPin is null ||
+                 !existingEnrollment.AdminPin.IsConfigured ||
+                 existingEnrollment.AdminPin.IsPublicMarker))
+            {
+                TraceInstallStep("provision.failure.credential-unavailable");
+                return 6;
+            }
+            GuardianEnrollment enrollment = ResolveEnrollmentForProvisioning(
+                request,
+                settings.AdminPin,
+                existingEnrollment);
+            HardenProtectionDataAcl(request.UserSid);
+            WriteBytesAtomically(
+                EnrollmentPath,
+                JsonSerializer.SerializeToUtf8Bytes(enrollment));
+            HardenSensitiveFileAcl(EnrollmentPath);
+            settings.AdminPin = enrollment.AdminPin;
+            WriteBytesAtomically(
+                ProtectedSettingsPath,
+                ProtectionPolicyChannel.CreateProtectedPolicyBytes(settings));
+            HardenProtectedPolicyAcl(request.UserSid);
+            WriteBytesAtomically(request.SettingsPath, File.ReadAllBytes(ProtectedSettingsPath));
+            WriteBytesAtomically(PostInstallControlCenterPath, Encoding.UTF8.GetBytes("waiting"));
+            HardenReadOnlyFileAcl(PostInstallControlCenterPath, request.UserSid);
+            TryDelete(AdministrativeActivityPath);
+            ProtectionPolicyChannel.ResetAuthenticationThrottleAfterProvisioning();
+            TraceInstallStep("provision.complete");
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            snapshot?.Restore();
+            TraceInstallStep($"provision.failure.{exception.GetType().Name}.{SanitizeInstallLogValue(exception.Message)}");
+            return 1;
+        }
+    }
+
+    public static GuardianEnrollment ResolveEnrollmentForProvisioning(
+        GuardianInstallRequest request,
+        AdminCredential requestedCredential,
+        GuardianEnrollment? existingEnrollment)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(requestedCredential);
+        if (!requestedCredential.IsPublicMarker)
+        {
+            return new GuardianEnrollment(request.UserSid, request.SettingsPath, requestedCredential);
+        }
+
+        if (existingEnrollment is null ||
+            !string.Equals(existingEnrollment.UserSid, request.UserSid, StringComparison.OrdinalIgnoreCase) ||
+            !existingEnrollment.AdminPin.IsConfigured ||
+            existingEnrollment.AdminPin.IsPublicMarker)
+        {
+            throw new InvalidOperationException(
+                "The existing Guardian credential is unavailable for protected repair.");
+        }
+
+        return existingEnrollment with
+        {
+            SettingsPath = request.SettingsPath
+        };
+    }
+
+    private static void WriteBytesAtomically(string path, byte[] content)
+    {
+        string? directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
+        string temporaryPath = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllBytes(temporaryPath, content);
+            File.Move(temporaryPath, path, overwrite: true);
+        }
+        finally
+        {
+            TryDelete(temporaryPath);
+        }
+    }
+
+    private static bool EnsureServiceRunning()
+    {
+        try
+        {
+            using ServiceController controller = new(ServiceName);
+            controller.Refresh();
+            if (controller.Status == ServiceControllerStatus.StopPending)
+            {
+                controller.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20));
+                controller.Refresh();
+            }
+            if (controller.Status == ServiceControllerStatus.Stopped)
+            {
+                controller.Start();
+            }
+            if (controller.Status != ServiceControllerStatus.Running)
+            {
+                controller.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(20));
+            }
+            controller.Refresh();
+            return controller.Status == ServiceControllerStatus.Running;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private sealed record GuardianProvisioningSnapshot(
+        string SettingsPath,
+        byte[]? Enrollment,
+        byte[]? ProtectedSettings,
+        byte[]? UserSettings,
+        byte[]? PostInstallMarker)
+    {
+        public static GuardianProvisioningSnapshot Capture(string settingsPath) => new(
+            settingsPath,
+            ReadIfPresent(EnrollmentPath),
+            ReadIfPresent(ProtectedSettingsPath),
+            ReadIfPresent(settingsPath),
+            ReadIfPresent(PostInstallControlCenterPath));
+
+        public void Restore()
+        {
+            RestoreFile(EnrollmentPath, Enrollment);
+            RestoreFile(ProtectedSettingsPath, ProtectedSettings);
+            RestoreFile(SettingsPath, UserSettings);
+            RestoreFile(PostInstallControlCenterPath, PostInstallMarker);
+        }
+
+        private static byte[]? ReadIfPresent(string path) =>
+            File.Exists(path) ? File.ReadAllBytes(path) : null;
+
+        private static void RestoreFile(string path, byte[]? content)
+        {
+            if (content is null)
+            {
+                TryDelete(path);
+                return;
+            }
+            WriteBytesAtomically(path, content);
         }
     }
 
@@ -522,6 +813,7 @@ public static class ProtectionServiceManager
                 // only clears enrollment; MSI repair and uninstall must remain reliable.
                 TryDelete(EnrollmentPath);
                 TryDelete(ProcessStatePath);
+                TryDelete(PostInstallControlCenterPath);
                 TryDelete(ProtectedSettingsPath);
                 return 0;
             }
@@ -539,6 +831,7 @@ public static class ProtectionServiceManager
 
             TryDelete(EnrollmentPath);
             TryDelete(ProcessStatePath);
+            TryDelete(PostInstallControlCenterPath);
             TryDelete(ProtectedSettingsPath);
             return 0;
         }
@@ -679,6 +972,14 @@ public static class ProtectionServiceManager
         "/grant:r",
         "*S-1-5-18:F",
         "*S-1-5-32-544:F");
+
+    public static void HardenReadOnlyFileAcl(string path, string userSid) => RunIcacls(
+        path,
+        "/inheritance:r",
+        "/grant:r",
+        "*S-1-5-18:F",
+        "*S-1-5-32-544:F",
+        $"*{userSid}:R");
 
     public static void HardenProtectedPolicyAcl(string userSid) => RunIcacls(
         ProtectedSettingsPath,

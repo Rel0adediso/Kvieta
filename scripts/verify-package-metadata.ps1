@@ -63,7 +63,9 @@ try {
     Assert-Equal 'Manufacturer' (& $property 'Manufacturer') 'Otium'
     Assert-Equal 'ProductVersion' (& $property 'ProductVersion') $ExpectedVersion
     Assert-Equal 'UpgradeCode' (& $property 'UpgradeCode') '{B7DB180A-83DE-4B93-A8FB-453734F91C10}'
-    Assert-Equal 'ARPNOREMOVE' (& $property 'ARPNOREMOVE') '1'
+    if (-not [string]::IsNullOrWhiteSpace((& $property 'ARPNOREMOVE'))) {
+        throw 'ARPNOREMOVE must be absent so a damaged installation can still be removed from Windows Installed apps.'
+    }
     Assert-Equal 'ARPNOMODIFY' (& $property 'ARPNOMODIFY') '1'
     Assert-Equal 'Guardian service' (Get-MsiScalar $database "SELECT ``Name`` FROM ``ServiceInstall`` WHERE ``Name``='OtiumGuardian'") 'OtiumGuardian'
     Assert-Equal 'Uninstall entry point' (Get-MsiScalar $database "SELECT ``Arguments`` FROM ``Shortcut`` WHERE ``Arguments``='--uninstall'") '--uninstall'
@@ -110,4 +112,3 @@ foreach ($path in @($InstallerPath, $SetupPath)) {
 }
 
 Write-Output "Package metadata verification passed: $ExpectedReleaseLabel"
-

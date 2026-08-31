@@ -25,6 +25,9 @@ public static class ProtectionPolicyChannel
     private static string ThrottleStatePath => Path.Combine(
         ProtectionServiceManager.ProtectionDataDirectory,
         "guardian-auth-throttle.json");
+    private static string ManagerRecoveryReplayPath => Path.Combine(
+        ProtectionServiceManager.ProtectionDataDirectory,
+        "manager-recovery-replay.json");
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -88,6 +91,132 @@ public static class ProtectionPolicyChannel
             cancellationToken);
     }
 
+    public static Task<bool> EnrollManagerDeviceAsync(
+        ManagerDeviceEnrollmentRequest request,
+        string pin,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (!AdminPinService.IsValidFormat(pin))
+        {
+            return Task.FromResult(false);
+        }
+
+        return SendAuthenticatedRequestAsync(
+            new PolicyRequest("manager-device-enroll", pin, null, null, null, request),
+            challenge => AdminPinService.DeriveHash(pin, challenge.SaltBase64, challenge.Iterations),
+            cancellationToken);
+    }
+
+    public static Task<bool> RevokeManagerDeviceAsync(
+        string pin,
+        CancellationToken cancellationToken = default)
+    {
+        if (!AdminPinService.IsValidFormat(pin))
+        {
+            return Task.FromResult(false);
+        }
+
+        return SendAuthenticatedRequestAsync(
+            new PolicyRequest("manager-device-revoke", pin, null, null, null),
+            challenge => AdminPinService.DeriveHash(pin, challenge.SaltBase64, challenge.Iterations),
+            cancellationToken);
+    }
+
+    public static Task<bool> TransferManagerDeviceAsync(
+        ManagerDeviceTransferRequest request,
+        string pin,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (!AdminPinService.IsValidFormat(pin))
+        {
+            return Task.FromResult(false);
+        }
+
+        return SendAuthenticatedRequestAsync(
+            new PolicyRequest(
+                "manager-device-transfer",
+                pin,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                request),
+            challenge => AdminPinService.DeriveHash(pin, challenge.SaltBase64, challenge.Iterations),
+            cancellationToken);
+    }
+
+    public static Task<bool> BeginAdministrativeActivityAsync(
+        string pin,
+        CancellationToken cancellationToken = default) =>
+        SendPinAuthenticatedOperationAsync("admin-activity-begin", pin, cancellationToken);
+
+    public static Task<bool> EndAdministrativeActivityAsync(
+        string pin,
+        CancellationToken cancellationToken = default) =>
+        SendPinAuthenticatedOperationAsync("admin-activity-end", pin, cancellationToken);
+
+    public static bool IsAdministrativeActivityActive()
+    {
+        try
+        {
+            if (!File.Exists(ProtectionServiceManager.AdministrativeActivityPath)) return false;
+            AdministrativeActivityLease? lease = JsonSerializer.Deserialize<AdministrativeActivityLease>(
+                File.ReadAllText(ProtectionServiceManager.AdministrativeActivityPath),
+                JsonOptions);
+            return lease is not null && lease.ExpiresAtUtc > DateTimeOffset.UtcNow;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static Task<bool> SendPinAuthenticatedOperationAsync(
+        string operation,
+        string pin,
+        CancellationToken cancellationToken)
+    {
+        return !AdminPinService.IsValidFormat(pin)
+            ? Task.FromResult(false)
+            : SendAuthenticatedRequestAsync(
+                new PolicyRequest(operation, pin, null, null, null),
+                challenge => AdminPinService.DeriveHash(pin, challenge.SaltBase64, challenge.Iterations),
+                cancellationToken);
+    }
+
+    public static Task<bool> ResetPinWithManagerDeviceAsync(
+        RecoveryChallenge challenge,
+        RecoveryChallengeResponse response,
+        AdminCredential newCredential,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(challenge);
+        ArgumentNullException.ThrowIfNull(response);
+        ArgumentNullException.ThrowIfNull(newCredential);
+        if (!ManagerDeviceRecoveryService.MatchesPinReset(challenge, newCredential) ||
+            string.IsNullOrWhiteSpace(response.SignatureBase64))
+        {
+            return Task.FromResult(false);
+        }
+
+        return SendAuthenticatedRequestAsync(
+            new PolicyRequest(
+                "manager-device-pin-reset",
+                null,
+                null,
+                null,
+                newCredential,
+                null,
+                challenge,
+                response),
+            _ => SHA256.HashData(Convert.FromBase64String(response.SignatureBase64)),
+            cancellationToken);
+    }
+
     private static async Task<bool> SendAuthenticatedRequestAsync(
         PolicyRequest payload,
         Func<PolicyChallenge, byte[]> keyFactory,
@@ -99,7 +228,7 @@ public static class ProtectionPolicyChannel
             using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromSeconds(12));
             await client.ConnectAsync(timeout.Token);
-            if (!IsLocalSystemServer(client)) return false;
+            if (!IsGuardianServiceServer(client)) return false;
 
             using StreamWriter writer = new(client, new UTF8Encoding(false), leaveOpen: true) { AutoFlush = true };
             using StreamReader reader = new(client, Encoding.UTF8, leaveOpen: true);
@@ -184,14 +313,6 @@ public static class ProtectionPolicyChannel
             return;
         }
 
-        AuthenticationThrottleState throttle = LoadThrottleState();
-        if (DateTimeOffset.UtcNow < throttle.BlockedUntilUtc)
-        {
-            await AuditAsync("guardian.ipc.throttle", "rejected", requestTimeout.Token);
-            await writer.WriteLineAsync("ERR".AsMemory(), requestTimeout.Token);
-            return;
-        }
-
         string challengeNonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         PolicyChallenge challenge = new(challengeNonce, enrollment.AdminPin.SaltBase64, enrollment.AdminPin.Iterations);
         await writer.WriteLineAsync(JsonSerializer.Serialize(challenge).AsMemory(), requestTimeout.Token);
@@ -218,6 +339,16 @@ public static class ProtectionPolicyChannel
             request = null;
         }
 
+        AuthenticationThrottleState throttle = LoadThrottleState();
+        if (request is not null &&
+            DateTimeOffset.UtcNow < throttle.BlockedUntilUtc &&
+            !CanAttemptDuringPinCooldown(request.Operation))
+        {
+            await AuditAsync("guardian.ipc.throttle", "rejected", requestTimeout.Token);
+            await writer.WriteLineAsync("ERR".AsMemory(), requestTimeout.Token);
+            return;
+        }
+
         if (request is null || envelope is null ||
             !ValidateEnvelope(envelope, request, challengeNonce, enrollment))
         {
@@ -230,6 +361,25 @@ public static class ProtectionPolicyChannel
         if (string.Equals(request.Operation, "recovery-pin-reset", StringComparison.Ordinal))
         {
             await HandleRecoveryPinResetAsync(request, enrollment, writer, requestTimeout.Token);
+            return;
+        }
+
+        if (string.Equals(request.Operation, "manager-device-pin-reset", StringComparison.Ordinal))
+        {
+            await HandleManagerDevicePinResetAsync(request, enrollment, writer, requestTimeout.Token);
+            return;
+        }
+
+        if (request.Operation is "admin-activity-begin" or "admin-activity-end")
+        {
+            await HandleAdministrativeActivityAsync(request, enrollment, writer, requestTimeout.Token);
+            return;
+        }
+
+        if (request.Operation is "manager-device-enroll" or "manager-device-revoke" or
+            "manager-device-transfer")
+        {
+            await HandleManagerDeviceRequestAsync(request, enrollment, writer, requestTimeout.Token);
             return;
         }
 
@@ -402,6 +552,232 @@ public static class ProtectionPolicyChannel
         await writer.WriteLineAsync("OK".AsMemory(), cancellationToken);
     }
 
+    private static async Task HandleManagerDeviceRequestAsync(
+        PolicyRequest request,
+        GuardianEnrollment guardianEnrollment,
+        StreamWriter writer,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Pin) ||
+            !AdminPinService.Verify(request.Pin, guardianEnrollment.AdminPin))
+        {
+            RegisterAuthenticationFailure(LoadThrottleState());
+            await AuditAsync("recovery.manager-device", "rejected", cancellationToken);
+            await writer.WriteLineAsync("ERR".AsMemory(), cancellationToken);
+            return;
+        }
+
+        // Authentication succeeded. Enrollment payload validation is a separate
+        // concern and must never poison the administrator PIN throttle.
+        ResetAuthenticationThrottle();
+
+        if (string.Equals(request.Operation, "manager-device-enroll", StringComparison.Ordinal))
+        {
+            if (ManagerDeviceEnrollmentStore.Load()?.IsActive == true ||
+                request.ManagerDeviceEnrollment is null ||
+                !ManagerDeviceEnrollmentService.VerifyRequest(
+                    request.ManagerDeviceEnrollment,
+                    DateTimeOffset.UtcNow))
+            {
+                await AuditAsync("recovery.manager-device.enroll", "rejected", cancellationToken);
+                await writer.WriteLineAsync("ERR".AsMemory(), cancellationToken);
+                return;
+            }
+
+            ManagerDeviceEnrollmentStore.Save(request.ManagerDeviceEnrollment.Enrollment);
+            ResetAuthenticationThrottle();
+            await AuditAsync("recovery.manager-device.enroll", "accepted", cancellationToken);
+            await writer.WriteLineAsync("OK".AsMemory(), cancellationToken);
+            return;
+        }
+
+        if (string.Equals(request.Operation, "manager-device-transfer", StringComparison.Ordinal))
+        {
+            if (request.ManagerDeviceTransfer is null ||
+                !ManagerDeviceEnrollmentService.IsValid(request.ManagerDeviceTransfer.Replacement) ||
+                !ManagerDeviceEnrollmentStore.CompleteTransfer(
+                    request.ManagerDeviceTransfer.Replacement,
+                    request.ManagerDeviceTransfer.Transfer,
+                    DateTimeOffset.UtcNow))
+            {
+                await AuditAsync("recovery.manager-device.transfer", "rejected", cancellationToken);
+                await writer.WriteLineAsync("ERR".AsMemory(), cancellationToken);
+                return;
+            }
+
+            ResetAuthenticationThrottle();
+            await AuditAsync("recovery.manager-device.transfer", "accepted", cancellationToken);
+            await writer.WriteLineAsync("OK".AsMemory(), cancellationToken);
+            return;
+        }
+
+        ManagerDeviceEnrollmentStore.Revoke(DateTimeOffset.UtcNow);
+        ResetAuthenticationThrottle();
+        await AuditAsync("recovery.manager-device.revoke", "accepted", cancellationToken);
+        await writer.WriteLineAsync("OK".AsMemory(), cancellationToken);
+    }
+
+    private static async Task HandleAdministrativeActivityAsync(
+        PolicyRequest request,
+        GuardianEnrollment enrollment,
+        StreamWriter writer,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Pin) ||
+            !AdminPinService.Verify(request.Pin, enrollment.AdminPin))
+        {
+            RegisterAuthenticationFailure(LoadThrottleState());
+            await AuditAsync("guardian.admin-activity", "rejected", cancellationToken);
+            await writer.WriteLineAsync("ERR".AsMemory(), cancellationToken);
+            return;
+        }
+
+        if (string.Equals(request.Operation, "admin-activity-begin", StringComparison.Ordinal))
+        {
+            AdministrativeActivityLease lease = new(DateTimeOffset.UtcNow.AddMinutes(3));
+            await WriteBytesAtomicallyAsync(
+                ProtectionServiceManager.AdministrativeActivityPath,
+                JsonSerializer.SerializeToUtf8Bytes(lease, JsonOptions),
+                cancellationToken);
+            ProtectionServiceManager.HardenReadOnlyFileAcl(
+                ProtectionServiceManager.AdministrativeActivityPath,
+                enrollment.UserSid);
+            await AuditAsync("guardian.admin-activity", "started", cancellationToken);
+        }
+        else
+        {
+            try
+            {
+                if (File.Exists(ProtectionServiceManager.AdministrativeActivityPath))
+                {
+                    File.Delete(ProtectionServiceManager.AdministrativeActivityPath);
+                }
+            }
+            catch
+            {
+                await AuditAsync("guardian.admin-activity", "release-failed", cancellationToken);
+                await writer.WriteLineAsync("ERR".AsMemory(), cancellationToken);
+                return;
+            }
+            await AuditAsync("guardian.admin-activity", "ended", cancellationToken);
+        }
+
+        ResetAuthenticationThrottle();
+        await writer.WriteLineAsync("OK".AsMemory(), cancellationToken);
+    }
+
+    private static async Task HandleManagerDevicePinResetAsync(
+        PolicyRequest request,
+        GuardianEnrollment guardianEnrollment,
+        StreamWriter writer,
+        CancellationToken cancellationToken)
+    {
+        ManagerDeviceEnrollment? managerEnrollment = ManagerDeviceEnrollmentStore.Load();
+        if (managerEnrollment?.IsActive != true ||
+            request.RecoveryChallenge is null ||
+            request.RecoveryChallengeResponse is null ||
+            request.NewCredential?.IsConfigured != true ||
+            !ManagerDeviceRecoveryService.MatchesPinReset(request.RecoveryChallenge, request.NewCredential) ||
+            !ManagerDeviceAuthorizationService.VerifyResponse(
+                managerEnrollment,
+                request.RecoveryChallenge,
+                request.RecoveryChallengeResponse,
+                DateTimeOffset.UtcNow) ||
+            !TryConsumeManagerRecoveryChallenge(request.RecoveryChallenge))
+        {
+            RegisterAuthenticationFailure(LoadThrottleState());
+            await AuditAsync("recovery.manager-device.pin-reset", "rejected", cancellationToken);
+            await writer.WriteLineAsync("ERR".AsMemory(), cancellationToken);
+            return;
+        }
+
+        ControlSettings? settings;
+        try
+        {
+            byte[] settingsBytes = await File.ReadAllBytesAsync(
+                ProtectionServiceManager.ProtectedSettingsPath,
+                cancellationToken);
+            settings = JsonSerializer.Deserialize<ControlSettings>(settingsBytes, JsonOptions);
+        }
+        catch
+        {
+            settings = null;
+        }
+
+        if (settings is null)
+        {
+            await AuditAsync("recovery.manager-device.pin-reset", "rejected", cancellationToken);
+            await writer.WriteLineAsync("ERR".AsMemory(), cancellationToken);
+            return;
+        }
+
+        settings.AdminPin = request.NewCredential;
+        byte[] updatedSettings = CreateProtectedPolicyBytes(settings);
+        GuardianEnrollment transition = guardianEnrollment with
+        {
+            AdminPin = request.NewCredential,
+            PreviousAdminPin = guardianEnrollment.AdminPin
+        };
+        await WriteEnrollmentAtomicallyAsync(transition, cancellationToken);
+        await WriteBytesAtomicallyAsync(
+            ProtectionServiceManager.ProtectedSettingsPath,
+            updatedSettings,
+            cancellationToken);
+        ProtectionServiceManager.HardenProtectedPolicyAcl(guardianEnrollment.UserSid);
+        if (!string.IsNullOrWhiteSpace(guardianEnrollment.SettingsPath))
+        {
+            await WriteBytesAtomicallyAsync(guardianEnrollment.SettingsPath, updatedSettings, cancellationToken);
+        }
+
+        await WriteEnrollmentAtomicallyAsync(transition with { PreviousAdminPin = null }, cancellationToken);
+        ResetAuthenticationThrottle();
+        await AuditAsync("recovery.manager-device.pin-reset", "accepted", cancellationToken);
+        await writer.WriteLineAsync("OK".AsMemory(), cancellationToken);
+    }
+
+    private static bool TryConsumeManagerRecoveryChallenge(RecoveryChallenge challenge)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        List<ConsumedManagerChallenge> entries;
+        try
+        {
+            entries = File.Exists(ManagerRecoveryReplayPath)
+                ? JsonSerializer.Deserialize<List<ConsumedManagerChallenge>>(
+                    File.ReadAllText(ManagerRecoveryReplayPath),
+                    JsonOptions) ?? []
+                : [];
+        }
+        catch
+        {
+            return false;
+        }
+
+        entries.RemoveAll(item => item.ExpiresAtUtc <= now);
+        if (entries.Any(item => string.Equals(item.ChallengeId, challenge.ChallengeId, StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        entries.Add(new ConsumedManagerChallenge(challenge.ChallengeId, challenge.ExpiresAtUtc));
+        Directory.CreateDirectory(ProtectionServiceManager.ProtectionDataDirectory);
+        string temporary = $"{ManagerRecoveryReplayPath}.tmp.{Environment.ProcessId}.{Guid.NewGuid():N}";
+        try
+        {
+            File.WriteAllText(temporary, JsonSerializer.Serialize(entries, JsonOptions));
+            File.Move(temporary, ManagerRecoveryReplayPath, overwrite: true);
+            ProtectionServiceManager.HardenSensitiveFileAcl(ManagerRecoveryReplayPath);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
+        }
+    }
+
     private static async Task<string?> ReadBoundedLineAsync(
         StreamReader reader,
         int maximumCharacters,
@@ -439,31 +815,51 @@ public static class ProtectionPolicyChannel
         return null;
     }
 
-    private static bool IsLocalSystemServer(NamedPipeClientStream client)
+    private static bool IsGuardianServiceServer(NamedPipeClientStream client)
     {
+        nint serviceManager = 0;
+        nint service = 0;
         try
         {
-            if (!GetNamedPipeServerProcessId(client.SafePipeHandle, out uint processId) || processId == 0)
+            if (!GetNamedPipeServerProcessId(client.SafePipeHandle, out uint pipeServerProcessId) ||
+                pipeServerProcessId == 0)
             {
                 return false;
             }
 
-            using Process serverProcess = Process.GetProcessById(checked((int)processId));
-            if (!OpenProcessToken(serverProcess.SafeHandle, TokenAccessLevels.Query, out SafeAccessTokenHandle token))
+            serviceManager = OpenSCManager(null, null, ScManagerConnect);
+            if (serviceManager == 0)
             {
                 return false;
             }
 
-            using (token)
-            using (WindowsIdentity identity = new(token.DangerousGetHandle()))
+            service = OpenService(
+                serviceManager,
+                ProtectionServiceManager.ServiceName,
+                ServiceQueryStatus);
+            if (service == 0)
             {
-                SecurityIdentifier localSystem = new(WellKnownSidType.LocalSystemSid, null);
-                return identity.User?.Equals(localSystem) == true;
+                return false;
             }
+
+            ServiceStatusProcess status = new();
+            return QueryServiceStatusEx(
+                    service,
+                    ScStatusProcessInfo,
+                    ref status,
+                    Marshal.SizeOf<ServiceStatusProcess>(),
+                    out _) &&
+                status.CurrentState == ServiceRunning &&
+                status.ProcessId == pipeServerProcessId;
         }
         catch
         {
             return false;
+        }
+        finally
+        {
+            if (service != 0) CloseServiceHandle(service);
+            if (serviceManager != 0) CloseServiceHandle(serviceManager);
         }
     }
 
@@ -530,8 +926,14 @@ public static class ProtectionPolicyChannel
         byte[] key;
         try
         {
-            key = request.Operation is "sync" or "sync-guarded" or "verify-pin"
+            key = request.Operation is "sync" or "sync-guarded" or "verify-pin" or
+                "manager-device-enroll" or "manager-device-revoke" or "manager-device-transfer" or
+                "admin-activity-begin" or "admin-activity-end"
                 ? Convert.FromBase64String(enrollment.AdminPin.HashBase64)
+                : string.Equals(request.Operation, "manager-device-pin-reset", StringComparison.Ordinal) &&
+                    !string.IsNullOrWhiteSpace(request.RecoveryChallengeResponse?.SignatureBase64)
+                    ? SHA256.HashData(Convert.FromBase64String(
+                        request.RecoveryChallengeResponse.SignatureBase64))
                 : string.Equals(request.Operation, "recovery-pin-reset", StringComparison.Ordinal) &&
                     !string.IsNullOrWhiteSpace(request.RecoveryCode)
                     ? SHA256.HashData(Encoding.UTF8.GetBytes(NormalizeRecoveryCode(request.RecoveryCode)))
@@ -573,6 +975,9 @@ public static class ProtectionPolicyChannel
 
     private static string NormalizeRecoveryCode(string code) =>
         new(code.Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
+
+    public static bool CanAttemptDuringPinCooldown(string? operation) =>
+        operation is "recovery-pin-reset" or "manager-device-pin-reset";
 
     private static bool IsGuardedPersonalPolicy(GuardianEnrollment enrollment)
     {
@@ -707,6 +1112,9 @@ public static class ProtectionPolicyChannel
     private static void ResetAuthenticationThrottle() =>
         SaveThrottleState(new AuthenticationThrottleState());
 
+    public static void ResetAuthenticationThrottleAfterProvisioning() =>
+        ResetAuthenticationThrottle();
+
     private static void SaveThrottleState(AuthenticationThrottleState state)
     {
         Directory.CreateDirectory(ProtectionServiceManager.ProtectionDataDirectory);
@@ -783,19 +1191,54 @@ public static class ProtectionPolicyChannel
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetNamedPipeClientProcessId(SafePipeHandle pipe, out uint clientProcessId);
 
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern nint OpenSCManager(string? machineName, string? databaseName, uint desiredAccess);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern nint OpenService(nint serviceManager, string serviceName, uint desiredAccess);
+
     [DllImport("advapi32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool OpenProcessToken(
-        SafeProcessHandle processHandle,
-        TokenAccessLevels desiredAccess,
-        out SafeAccessTokenHandle tokenHandle);
+    private static extern bool QueryServiceStatusEx(
+        nint service,
+        int infoLevel,
+        ref ServiceStatusProcess buffer,
+        int bufferSize,
+        out int bytesNeeded);
+
+    [DllImport("advapi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CloseServiceHandle(nint serviceHandle);
+
+    private const uint ScManagerConnect = 0x0001;
+    private const uint ServiceQueryStatus = 0x0004;
+    private const int ScStatusProcessInfo = 0;
+    private const uint ServiceRunning = 0x00000004;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ServiceStatusProcess
+    {
+        public uint ServiceType;
+        public uint CurrentState;
+        public uint ControlsAccepted;
+        public uint Win32ExitCode;
+        public uint ServiceSpecificExitCode;
+        public uint CheckPoint;
+        public uint WaitHint;
+        public uint ProcessId;
+        public uint ServiceFlags;
+    }
 
     private sealed record PolicyRequest(
         string Operation,
         string? Pin,
         string? SettingsBase64,
         string? RecoveryCode,
-        AdminCredential? NewCredential);
+        AdminCredential? NewCredential,
+        ManagerDeviceEnrollmentRequest? ManagerDeviceEnrollment = null,
+        RecoveryChallenge? RecoveryChallenge = null,
+        RecoveryChallengeResponse? RecoveryChallengeResponse = null,
+        ManagerDeviceTransferRequest? ManagerDeviceTransfer = null);
     private sealed record PolicyChallenge(string NonceBase64, string SaltBase64, int Iterations);
     private sealed record AuthenticatedPolicyRequest(
         Guid RequestId,
@@ -805,4 +1248,8 @@ public static class ProtectionPolicyChannel
     private sealed record AuthenticationThrottleState(
         int FailureCount = 0,
         DateTimeOffset BlockedUntilUtc = default);
+    private sealed record ConsumedManagerChallenge(
+        string ChallengeId,
+        DateTimeOffset ExpiresAtUtc);
+    private sealed record AdministrativeActivityLease(DateTimeOffset ExpiresAtUtc);
 }

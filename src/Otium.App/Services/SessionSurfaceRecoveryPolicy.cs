@@ -2,23 +2,17 @@ namespace Otium.App.Services;
 
 public static class SessionSurfaceRecoveryPolicy
 {
+    public static bool ShouldResumeAfterControlCenterDismissal(bool isProtectedMode) =>
+        !isProtectedMode;
+
     public static bool ShouldCoverAllDisplays(
         bool shouldShowSessionSurfaces,
         bool isFullSurfaceRequired,
-        bool isControlCenterOpen,
-        bool keepSessionBehindControlCenter)
+        bool isControlCenterOpen)
     {
         return shouldShowSessionSurfaces &&
-            (isFullSurfaceRequired && !isControlCenterOpen ||
-             isControlCenterOpen && keepSessionBehindControlCenter);
-    }
-
-    public static bool ShouldKeepVisibleBehindControlCenter(
-        bool isGuardedPersonalMode,
-        bool isFullSurfaceForced,
-        bool isSessionActive)
-    {
-        return isGuardedPersonalMode || isFullSurfaceForced || !isSessionActive;
+            isFullSurfaceRequired &&
+            !isControlCenterOpen;
     }
 
     public static bool ShouldRecover(

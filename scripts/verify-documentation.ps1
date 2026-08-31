@@ -32,8 +32,8 @@ $englishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/USAGE.
 $turkishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/KULLANIM.tr.md') -Raw
 
 $requiredText = @(
-    @{ Name = 'English README alpha status'; Text = $englishReadme; Pattern = 'v1\.0\.0-alpha' }
-    @{ Name = 'Turkish README alpha status'; Text = $turkishReadme; Pattern = 'v1\.0\.0-alpha' }
+    @{ Name = 'English README Alpha 2 status'; Text = $englishReadme; Pattern = 'Otium Alpha 2' }
+    @{ Name = 'Turkish README Alpha 2 status'; Text = $turkishReadme; Pattern = 'Otium Alpha 2' }
     @{ Name = 'English tracking mode'; Text = $englishReadme; Pattern = 'Tracking only' }
     @{ Name = 'Turkish tracking mode'; Text = $turkishReadme; Pattern = 'Sadece takip' }
     @{ Name = 'English usage update guidance'; Text = $englishGuide; Pattern = 'Installation and update' }

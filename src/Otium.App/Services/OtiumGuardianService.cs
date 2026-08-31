@@ -130,9 +130,10 @@ public sealed class OtiumGuardianService : ServiceBase
             return;
         }
 
-        uint sessionId = WTSGetActiveConsoleSessionId();
-        if (sessionId == InvalidSessionId ||
-            !TryGetUserEnvironment(sessionId, out UserEnvironment? user) ||
+        if (!TryGetEnrolledUserEnvironment(
+                enrollment.UserSid,
+                out uint sessionId,
+                out UserEnvironment? user) ||
             user is null)
         {
             return;
@@ -140,7 +141,7 @@ public sealed class OtiumGuardianService : ServiceBase
 
         using (user)
         {
-            if (!string.Equals(user.UserSid, enrollment.UserSid, StringComparison.OrdinalIgnoreCase))
+            if (ShouldDeferForPostInstallControlCenter((int)sessionId))
             {
                 return;
             }
@@ -170,6 +171,111 @@ public sealed class OtiumGuardianService : ServiceBase
                 // The launched process exited before it could be tracked; retry next poll.
             }
         }
+    }
+
+    private static bool ShouldDeferForPostInstallControlCenter(int sessionId)
+    {
+        string path = ProtectionServiceManager.PostInstallControlCenterPath;
+        if (!File.Exists(path))
+        {
+            return false;
+        }
+
+        bool controlCenterProcessAlive = Process.GetProcessesByName("Otium").Any(process =>
+        {
+            using (process)
+            {
+                try
+                {
+                    return process.SessionId == sessionId;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        });
+        string state = File.ReadAllText(path).Trim();
+        if (controlCenterProcessAlive)
+        {
+            if (!string.Equals(state, "seen", StringComparison.Ordinal))
+            {
+                File.WriteAllText(path, "seen");
+            }
+
+            return true;
+        }
+
+        if (string.Equals(state, "seen", StringComparison.Ordinal) ||
+            DateTime.UtcNow - File.GetCreationTimeUtc(path) > TimeSpan.FromSeconds(45))
+        {
+            File.Delete(path);
+            return false;
+        }
+
+        // Give setup enough time to close and display the management window.
+        return true;
+    }
+
+    private static bool TryGetEnrolledUserEnvironment(
+        string enrolledUserSid,
+        out uint sessionId,
+        out UserEnvironment? environment)
+    {
+        sessionId = InvalidSessionId;
+        environment = null;
+
+        List<uint> candidates = [];
+        uint consoleSessionId = WTSGetActiveConsoleSessionId();
+        if (consoleSessionId != InvalidSessionId)
+        {
+            candidates.Add(consoleSessionId);
+        }
+
+        if (WTSEnumerateSessions(
+                IntPtr.Zero,
+                0,
+                1,
+                out IntPtr sessions,
+                out int sessionCount))
+        {
+            try
+            {
+                int itemSize = Marshal.SizeOf<WtsSessionInfo>();
+                for (int index = 0; index < sessionCount; index++)
+                {
+                    WtsSessionInfo item = Marshal.PtrToStructure<WtsSessionInfo>(
+                        IntPtr.Add(sessions, index * itemSize));
+                    if (item.State == WtsConnectState.Active && !candidates.Contains(item.SessionId))
+                    {
+                        candidates.Add(item.SessionId);
+                    }
+                }
+            }
+            finally
+            {
+                WTSFreeMemory(sessions);
+            }
+        }
+
+        foreach (uint candidate in candidates)
+        {
+            if (!TryGetUserEnvironment(candidate, out UserEnvironment? user) || user is null)
+            {
+                continue;
+            }
+
+            if (string.Equals(user.UserSid, enrolledUserSid, StringComparison.OrdinalIgnoreCase))
+            {
+                sessionId = candidate;
+                environment = user;
+                return true;
+            }
+
+            user.Dispose();
+        }
+
+        return false;
     }
 
     private static bool HasTrackedGuardian(int sessionId)
@@ -386,6 +492,28 @@ public sealed class OtiumGuardianService : ServiceBase
         public int ThreadId;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WtsSessionInfo
+    {
+        public uint SessionId;
+        public IntPtr WinStationName;
+        public WtsConnectState State;
+    }
+
+    private enum WtsConnectState
+    {
+        Active,
+        Connected,
+        ConnectQuery,
+        Shadow,
+        Disconnected,
+        Idle,
+        Listen,
+        Reset,
+        Down,
+        Init
+    }
+
     private enum SecurityImpersonationLevel { SecurityAnonymous, SecurityIdentification, SecurityImpersonation, SecurityDelegation }
     private enum TokenType { TokenPrimary = 1, TokenImpersonation }
 
@@ -394,6 +522,17 @@ public sealed class OtiumGuardianService : ServiceBase
 
     [DllImport("wtsapi32.dll", SetLastError = true)]
     private static extern bool WTSQueryUserToken(uint sessionId, out SafeAccessTokenHandle token);
+
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    private static extern bool WTSEnumerateSessions(
+        IntPtr server,
+        int reserved,
+        int version,
+        out IntPtr sessionInfo,
+        out int count);
+
+    [DllImport("wtsapi32.dll")]
+    private static extern void WTSFreeMemory(IntPtr memory);
 
     [DllImport("advapi32.dll", SetLastError = true)]
     private static extern bool DuplicateTokenEx(SafeAccessTokenHandle existingToken, uint desiredAccess, IntPtr tokenAttributes,

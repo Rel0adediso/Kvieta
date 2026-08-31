@@ -55,13 +55,13 @@ Build an unsigned development installer for local testing (never for distributio
 .\scripts\build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel 1.0.0-alpha
 ```
 
-Build the unsigned community Alpha.1 package in Release configuration, without
+Build the unsigned **Otium Alpha 2** package in Release configuration, without
 development/test bypasses:
 
 ```powershell
 .\scripts\build-test-installer.ps1 `
   -Version 1.0.0 `
-  -ReleaseLabel 1.0.0-alpha.1 `
+  -ReleaseLabel Alpha-2 `
   -CommunityRelease
 ```
 
@@ -93,6 +93,11 @@ theme, explains Otium, detects existing settings, collects mode-specific first-r
 choices, requests elevation only for the MSI transaction, saves settings only
 after a successful install, and launches the correct Otium surface. The standalone
 MSI remains beside it for managed and unattended deployment.
+
+For Alpha 2, the release title shown to people is **Otium Alpha 2**. The Git tag
+and package-safe label use `alpha-2` / `Alpha-2`, so the Setup filename is
+`Otium-Setup-Alpha-2.exe`. The numeric MSI version remains `1.0.0` for Windows
+Installer compatibility and is not used as the public release name.
 Development packages explicitly allow reinstalling another build with the same
 numeric MSI version, so alpha iterations do not pretend to be patch releases.
 Signed public builds keep same-version upgrades disabled.

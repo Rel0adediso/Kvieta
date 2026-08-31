@@ -11,6 +11,7 @@ public partial class App : System.Windows.Application
 {
     private readonly SystemThemeService _themeService = new();
     private SingleInstanceCoordinator? _singleInstance;
+    private SingleInstanceCoordinator? _controlCenterWindowInstance;
     private MainWindow? _activatedControlCenter;
     private bool _controlCenterActivationInProgress;
     private AdminCredential? _guardianCredential;
@@ -49,14 +50,36 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (e.Args.Any(argument => string.Equals(argument, "--provision-guardian", StringComparison.OrdinalIgnoreCase)))
+        {
+            string? payload = e.Args.SkipWhile(argument => !string.Equals(argument, "--provision-guardian", StringComparison.OrdinalIgnoreCase)).Skip(1).FirstOrDefault();
+            Shutdown(ProtectionServiceManager.ExecuteProvisioningCommand(payload));
+            return;
+        }
+
         if (e.Args.Any(argument => string.Equals(argument, "--remove-guardian", StringComparison.OrdinalIgnoreCase)))
         {
             Shutdown(ProtectionServiceManager.ExecuteInstallerCommand(install: false));
             return;
         }
 
-        bool guardianSession = e.Args.Any(argument => string.Equals(argument, "--guardian-session", StringComparison.OrdinalIgnoreCase));
-        _singleInstance = new SingleInstanceCoordinator(guardianSession ? "GuardianSession" : "ControlCenter");
+        if (e.Args.Any(argument => string.Equals(argument, "--stop-guardian", StringComparison.OrdinalIgnoreCase)))
+        {
+            Shutdown(ProtectionServiceManager.ExecuteAuthorizedStopCommand());
+            return;
+        }
+
+        bool guardianSession = e.Args.Any(argument =>
+            string.Equals(argument, "--guardian-session", StringComparison.OrdinalIgnoreCase));
+        bool directSessionRequested = e.Args.Any(argument =>
+            string.Equals(argument, "--session", StringComparison.OrdinalIgnoreCase));
+        bool postInstallControlCenter = e.Args.Any(argument =>
+            string.Equals(argument, "--post-install-control-center", StringComparison.OrdinalIgnoreCase)) &&
+            File.Exists(ProtectionServiceManager.PostInstallControlCenterPath);
+        bool pairManagerDeviceAfterInstall = postInstallControlCenter && e.Args.Any(argument =>
+            string.Equals(argument, "--pair-manager-device", StringComparison.OrdinalIgnoreCase));
+        _singleInstance = new SingleInstanceCoordinator(
+            guardianSession || directSessionRequested ? "GuardianSession" : "ControlCenter");
         if (!_singleInstance.IsPrimary)
         {
             _singleInstance.SignalPrimary();
@@ -98,7 +121,7 @@ public partial class App : System.Windows.Application
 
         if (!guardianSession && protectedPolicyAvailable && settings.Mode != ControlMode.Protected)
         {
-            RestoreProtectedSettingsToUserProfile();
+            await RestoreProtectedSettingsToUserProfileAsync();
         }
 
         if (protectedPolicyAvailable &&
@@ -197,7 +220,7 @@ public partial class App : System.Windows.Application
             // The control center will surface registry errors on the next explicit save.
         }
 
-        if (guardianSession || e.Args.Any(argument => string.Equals(argument, "--session", StringComparison.OrdinalIgnoreCase)))
+        if (guardianSession || directSessionRequested)
         {
             if (settings.RequiresGuardian && !settings.AdminPin.IsConfigured)
             {
@@ -215,8 +238,7 @@ public partial class App : System.Windows.Application
             CafeWindow sessionWindow = new(
                 isDirectSession: true,
                 requirePinToExit: settings.Mode == ControlMode.Protected,
-                returnToControlCenter: settings.Mode == ControlMode.Personal &&
-                    settings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded,
+                returnToControlCenter: settings.RequiresGuardian,
                 exitCredentialOverride: _guardianCredential,
                 viewModel: guardianSession ? new CafeViewModel(settingsStore) : null);
             sessionWindow.ControlCenterRequested += DirectSession_ControlCenterRequested;
@@ -226,11 +248,25 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
+        if (!TryClaimControlCenterWindow())
+        {
+            Shutdown();
+            return;
+        }
+
+        if (settings.Mode == ControlMode.Protected &&
+            settings.AdminPin.IsConfigured &&
+            !postInstallControlCenter)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(
                 pin => VerifyAdminPinAsync(pin, settings),
-                owner => RunRecoveryPinResetAsync(owner, settingsStore, settings, protectedPolicyAvailable));
+                owner => RunRecoveryPinResetAsync(owner, settingsStore, settings, protectedPolicyAvailable),
+                settings.Language == LanguagePreference.English
+                    ? "Control Center is locked"
+                    : "Kontrol Merkezi kilitli",
+                settings.Language == LanguagePreference.English
+                    ? "Enter the administrator PIN you created during setup to view or change protected Otium settings."
+                    : "Korumalı Otium ayarlarını görüntülemek veya değiştirmek için kurulumda oluşturduğun yönetici PIN'ini gir.");
             verification.ShowInTaskbar = true;
             verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             if (verification.ShowDialog() != true)
@@ -241,7 +277,7 @@ public partial class App : System.Windows.Application
 
             _guardianCredential = settings.AdminPin;
             string? verifiedPin = verification.ResultPin;
-            RestoreProtectedSettingsToUserProfile();
+            await RestoreProtectedSettingsToUserProfileAsync();
             MainWindow protectedManagementWindow = new(managementPin: verifiedPin);
             MainWindow = protectedManagementWindow;
             ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -249,7 +285,15 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        MainWindow managementWindow = new();
+        if (postInstallControlCenter &&
+            settings.Mode == ControlMode.Protected &&
+            settings.AdminPin.IsConfigured)
+        {
+            _guardianCredential = settings.AdminPin;
+            await RestoreProtectedSettingsToUserProfileAsync();
+        }
+
+        MainWindow managementWindow = new(openManagerDeviceOnLoad: pairManagerDeviceAfterInstall);
         MainWindow = managementWindow;
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         managementWindow.Show();
@@ -264,31 +308,58 @@ public partial class App : System.Windows.Application
             _singleInstance = null;
         }
 
+        ReleaseControlCenterWindow();
+
         _themeService.Dispose();
         base.OnExit(e);
     }
 
-    private void SingleInstance_ActivationRequested(object? sender, EventArgs e)
+    private async void SingleInstance_ActivationRequested(object? sender, EventArgs e)
     {
-        Dispatcher.InvokeAsync(() => OpenControlCenterFromExternalRequestAsync());
+        try
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                await OpenControlCenterFromExternalRequestAsync();
+            }
+            else
+            {
+                Task activation = await Dispatcher.InvokeAsync(
+                    () => OpenControlCenterFromExternalRequestAsync());
+                await activation;
+            }
+        }
+        catch (Exception exception)
+        {
+            ShowControlCenterActivationError(null, exception);
+        }
     }
 
-    private async Task OpenControlCenterFromExternalRequestAsync(string? verifiedPin = null)
+    private async Task OpenControlCenterFromExternalRequestAsync(
+        string? verifiedPin = null,
+        bool administratorVerified = false)
     {
-        if (MainWindow is MainWindow controlCenter)
+        if (MainWindow is MainWindow controlCenter && controlCenter.IsLoaded)
         {
             controlCenter.ActivateFromExternalRequest();
             return;
         }
 
-        if (_activatedControlCenter is not null)
+        if (_activatedControlCenter is not null && _activatedControlCenter.IsLoaded)
         {
             _activatedControlCenter.ActivateFromExternalRequest();
             return;
         }
 
-        if (MainWindow is not CafeWindow sessionWindow)
+        if (MainWindow is not CafeWindow sessionWindow || !sessionWindow.IsLoaded)
         {
+            await OpenRecoveredControlCenterAsync();
+            return;
+        }
+
+        if (!TryClaimControlCenterWindow())
+        {
+            sessionWindow.EnableControlCenterReturn();
             return;
         }
 
@@ -315,26 +386,32 @@ public partial class App : System.Windows.Application
             string? managementPin = null;
             if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
             {
-                if (!string.IsNullOrWhiteSpace(verifiedPin) && await VerifyAdminPinAsync(verifiedPin, settings))
+                if (administratorVerified && !string.IsNullOrWhiteSpace(verifiedPin))
                 {
                     managementPin = verifiedPin;
                 }
                 else
                 {
+                    bool recoveryGuardianAvailable =
+                        ProtectionServiceManager.GetState() == ProtectionServiceState.Running &&
+                        File.Exists(ProtectionServiceManager.ProtectedSettingsPath);
                     AdminPinWindow verification = AdminPinWindow.CreateVerification(
                         pin => VerifyAdminPinAsync(pin, settings),
                         owner => RunRecoveryPinResetAsync(
                             owner,
-                            File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
-                                ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
+                            recoveryGuardianAvailable
+                                ? new JsonSettingsStore(
+                                    ProtectionServiceManager.ProtectedSettingsPath,
+                                    readOnly: true)
                                 : new JsonSettingsStore(),
                             settings,
-                            ProtectionServiceManager.GetState() == ProtectionServiceState.Running));
+                            recoveryGuardianAvailable));
                     verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
                     verification.ShowInTaskbar = true;
                     verification.Topmost = true;
                     if (verification.ShowDialog() != true)
                     {
+                        ReleaseControlCenterWindow();
                         return;
                     }
 
@@ -342,24 +419,28 @@ public partial class App : System.Windows.Application
                 }
 
                 _guardianCredential = settings.AdminPin;
-                RestoreProtectedSettingsToUserProfile();
+                await RestoreProtectedSettingsToUserProfileAsync();
             }
 
             sessionWindow.EnableControlCenterReturn();
             _activatedControlCenter = new MainWindow(sessionWindow, managementPin);
-            if (sessionWindow.KeepsSessionBehindControlCenter)
-            {
-                _activatedControlCenter.Owner = sessionWindow;
-                _activatedControlCenter.Topmost = true;
-                _activatedControlCenter.WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            }
             _activatedControlCenter.Closed += (_, _) =>
             {
                 _activatedControlCenter = null;
+                ReleaseControlCenterWindow();
                 sessionWindow.ResumeFromControlCenter();
             };
             _activatedControlCenter.Show();
             _activatedControlCenter.Activate();
+        }
+        catch (Exception exception)
+        {
+            if (_activatedControlCenter is null)
+            {
+                ReleaseControlCenterWindow();
+            }
+            sessionWindow.ResumeFromControlCenter();
+            ShowControlCenterActivationError(sessionWindow, exception);
         }
         finally
         {
@@ -367,26 +448,193 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private void DirectSession_ControlCenterRequested(object? sender, ControlCenterRequestEventArgs e)
+    private bool TryClaimControlCenterWindow()
     {
-        Dispatcher.InvokeAsync(() => OpenControlCenterFromExternalRequestAsync(e.VerifiedPin));
+        if (_controlCenterWindowInstance?.IsPrimary == true)
+        {
+            return true;
+        }
+
+        _controlCenterWindowInstance?.Dispose();
+        SingleInstanceCoordinator candidate = new("ControlCenterWindow");
+        if (!candidate.IsPrimary)
+        {
+            candidate.SignalPrimary();
+            candidate.Dispose();
+            return false;
+        }
+
+        _controlCenterWindowInstance = candidate;
+        _controlCenterWindowInstance.ActivationRequested += SingleInstance_ActivationRequested;
+        return true;
     }
 
-    private static void RestoreProtectedSettingsToUserProfile()
+    private void ReleaseControlCenterWindow()
+    {
+        if (_controlCenterWindowInstance is null)
+        {
+            return;
+        }
+
+        _controlCenterWindowInstance.ActivationRequested -= SingleInstance_ActivationRequested;
+        _controlCenterWindowInstance.Dispose();
+        _controlCenterWindowInstance = null;
+    }
+
+    private async Task OpenRecoveredControlCenterAsync()
+    {
+        if (_controlCenterActivationInProgress)
+        {
+            return;
+        }
+
+        _controlCenterActivationInProgress = true;
+        try
+        {
+            bool protectedPolicyAvailable =
+                ProtectionServiceManager.GetState() == ProtectionServiceState.Running &&
+                File.Exists(ProtectionServiceManager.ProtectedSettingsPath);
+            JsonSettingsStore settingsStore = protectedPolicyAvailable
+                ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true)
+                : new JsonSettingsStore();
+            ControlSettings settings = await settingsStore.LoadAsync();
+            LocalizationService.SetLanguage(this, settings.Language);
+            _themeService.SetPreference(settings.Theme);
+
+            string? managementPin = null;
+            if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
+            {
+                AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                    pin => VerifyAdminPinAsync(pin, settings),
+                    owner => RunRecoveryPinResetAsync(owner, settingsStore, settings, protectedPolicyAvailable));
+                verification.ShowInTaskbar = true;
+                verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                verification.Topmost = true;
+                if (verification.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                managementPin = verification.ResultPin;
+                _guardianCredential = settings.AdminPin;
+                await RestoreProtectedSettingsToUserProfileAsync();
+            }
+
+            MainWindow recoveredControlCenter = new(managementPin: managementPin);
+            MainWindow = recoveredControlCenter;
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
+            recoveredControlCenter.Show();
+            recoveredControlCenter.ActivateFromExternalRequest();
+        }
+        catch (Exception exception)
+        {
+            System.Windows.MessageBox.Show(
+                $"Otium could not restore the control center.\n\n{exception.Message}",
+                "Otium · Startup recovery",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            _controlCenterActivationInProgress = false;
+        }
+    }
+
+    private async void DirectSession_ControlCenterRequested(object? sender, ControlCenterRequestEventArgs e)
+    {
+        try
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                await OpenControlCenterFromExternalRequestAsync(
+                    e.VerifiedPin,
+                    e.AdministratorVerified);
+            }
+            else
+            {
+                Task activation = await Dispatcher.InvokeAsync(
+                    () => OpenControlCenterFromExternalRequestAsync(
+                        e.VerifiedPin,
+                        e.AdministratorVerified));
+                await activation;
+            }
+        }
+        catch (Exception exception)
+        {
+            if (sender is CafeWindow sessionWindow)
+            {
+                sessionWindow.ResumeFromControlCenter();
+            }
+            ShowControlCenterActivationError(sender as Window, exception);
+        }
+    }
+
+    private static void ShowControlCenterActivationError(Window? owner, Exception exception)
+    {
+        string message = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? $"The control center could not be opened. Protection stayed active.\n\n{exception.Message}"
+            : $"Kontrol Merkezi açılamadı. Koruma açık kaldı.\n\n{exception.Message}";
+        if (owner is null)
+        {
+            System.Windows.MessageBox.Show(
+                message,
+                "Otium · Control Center",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return;
+        }
+
+        System.Windows.MessageBox.Show(
+            owner,
+            message,
+            "Otium · Control Center",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+    }
+
+    private static async Task RestoreProtectedSettingsToUserProfileAsync()
     {
         if (!File.Exists(ProtectionServiceManager.ProtectedSettingsPath))
         {
             return;
         }
 
-        string destination = new JsonSettingsStore().FilePath;
-        string? directory = Path.GetDirectoryName(destination);
-        if (!string.IsNullOrWhiteSpace(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
+        ControlSettings protectedSettings = await new JsonSettingsStore(
+            ProtectionServiceManager.ProtectedSettingsPath,
+            readOnly: true).LoadAsync();
+        await new JsonSettingsStore().SaveAsync(
+            ProtectionPolicyChannel.CreatePublicPolicy(protectedSettings));
+    }
 
-        File.Copy(ProtectionServiceManager.ProtectedSettingsPath, destination, overwrite: true);
+    internal async Task<string?> RunPinRecoveryForCurrentPolicyAsync(Window owner)
+    {
+        bool guardianAvailable =
+            ProtectionServiceManager.GetState() == ProtectionServiceState.Running &&
+            File.Exists(ProtectionServiceManager.ProtectedSettingsPath);
+        JsonSettingsStore settingsStore = guardianAvailable
+            ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true)
+            : new JsonSettingsStore();
+        try
+        {
+            ControlSettings settings = await settingsStore.LoadAsync();
+            return await RunRecoveryPinResetAsync(
+                owner,
+                settingsStore,
+                settings,
+                guardianAvailable);
+        }
+        catch (Exception exception)
+        {
+            System.Windows.MessageBox.Show(
+                owner,
+                LocalizationService.CurrentLanguage == LanguagePreference.English
+                    ? $"PIN recovery could not be started.\n\n{exception.Message}"
+                    : $"PIN kurtarma başlatılamadı.\n\n{exception.Message}",
+                LocalizationService.Get("ResetPinWithRecoveryCode"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return null;
+        }
     }
 
     private static async Task<string?> RunRecoveryPinResetAsync(
@@ -395,10 +643,86 @@ public partial class App : System.Windows.Application
         ControlSettings settings,
         bool guardianAvailable)
     {
-        if (settings.RecoveryCodes.All(code => code.UsedAtUtc is not null))
+        ManagerDeviceEnrollment? managerDevice = guardianAvailable
+            ? ManagerDeviceEnrollmentStore.Load()
+            : null;
+        bool hasUnusedRecoveryCode = settings.RecoveryCodes.Any(code => code.UsedAtUtc is null);
+        if (!hasUnusedRecoveryCode && managerDevice?.IsActive != true)
         {
+            System.Windows.MessageBox.Show(
+                owner,
+                LocalizationService.Get("PinRecoveryUnavailableDescription"),
+                LocalizationService.Get("PinRecoveryUnavailableTitle"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
             return null;
         }
+
+        Func<string, Task<bool>>? managerDeviceReset = managerDevice?.IsActive == true
+            ? async newPin =>
+            {
+                if (!await WindowsAdministratorVerificationService.RequestAsync("recovery.manager-device.consume"))
+                {
+                    return false;
+                }
+
+                try
+                {
+                    AdminCredential credential = AdminPinService.Create(newPin);
+                    RecoveryChallenge challenge = ManagerDeviceRecoveryService.CreatePinResetChallenge(
+                        managerDevice.DeviceId,
+                        credential,
+                        DateTimeOffset.UtcNow);
+                    ManagerDeviceApprovalWindow? approvalWindow = null;
+                    TaskCompletionSource<bool> authorizationResult = new(
+                        TaskCreationOptions.RunContinuationsAsynchronously);
+                    LocalRecoveryEndpoint endpoint = LocalRecoveryEndpoint.Start(
+                        managerDevice,
+                        challenge,
+                        async response =>
+                        {
+                            bool accepted = await ProtectionPolicyChannel.ResetPinWithManagerDeviceAsync(
+                                challenge,
+                                response,
+                                credential);
+                            authorizationResult.TrySetResult(accepted);
+                            approvalWindow?.Complete(accepted);
+                            return accepted;
+                        },
+                        DateTimeOffset.UtcNow);
+                    approvalWindow = new ManagerDeviceApprovalWindow(
+                        endpoint.RecoveryUri,
+                        challenge.ExpiresAtUtc,
+                        verificationCode: ManagerDeviceVerificationCode.ForRecoveryChallenge(challenge))
+                    {
+                        Owner = owner
+                    };
+                    bool acceptedByDialog = approvalWindow.ShowDialog() == true;
+                    await endpoint.DisposeAsync();
+                    bool accepted = acceptedByDialog ||
+                        authorizationResult.Task.IsCompletedSuccessfully && authorizationResult.Task.Result;
+                    if (accepted)
+                    {
+                        settings.AdminPin = credential;
+                        await RestoreProtectedSettingsToUserProfileAsync();
+                    }
+
+                    return accepted;
+                }
+                catch (Exception exception)
+                {
+                    System.Windows.MessageBox.Show(
+                        owner,
+                        LocalizationService.CurrentLanguage == LanguagePreference.English
+                            ? $"Could not start manager recovery: {exception.Message}"
+                            : $"Yönetici cihazı kurtarma sunucusu başlatılamadı: {exception.Message}",
+                        "Otium",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return false;
+                }
+            }
+        : null;
 
         RecoveryResetWindow recoveryWindow = new(async (code, newPin) =>
         {
@@ -428,12 +752,12 @@ public partial class App : System.Windows.Application
                 settings.AdminPin = credential;
                 if (guardianAvailable)
                 {
-                    RestoreProtectedSettingsToUserProfile();
+                    await RestoreProtectedSettingsToUserProfileAsync();
                 }
             }
 
             return reset;
-        })
+        }, managerDeviceReset, hasUnusedRecoveryCode, managerDevice?.DeviceName)
         {
             Owner = owner
         };
@@ -444,7 +768,7 @@ public partial class App : System.Windows.Application
     private async Task HandleUninstallRequestAsync()
     {
         JsonSettingsStore settingsStore = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
-            ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath)
+            ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true)
             : new JsonSettingsStore();
         ControlSettings settings;
         try
@@ -477,7 +801,12 @@ public partial class App : System.Windows.Application
         if (ProtectionServiceManager.RequiresPinForUninstall(settings))
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(
-                pin => VerifyAdminPinAsync(pin, settings));
+                pin => VerifyAdminPinAsync(pin, settings),
+                owner => RunRecoveryPinResetAsync(
+                    owner,
+                    settingsStore,
+                    settings,
+                    ProtectionServiceManager.GetState() == ProtectionServiceState.Running));
             verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             verification.ShowInTaskbar = true;
             if (verification.ShowDialog() != true)
@@ -533,6 +862,21 @@ public partial class App : System.Windows.Application
         try
         {
             await new SecurityAuditLog().AppendAsync(auditEvent!, "windows-admin-authorized");
+            if (auditEvent is "recovery.manager-device.enroll" or
+                "recovery.manager-device.transfer" or
+                "recovery.manager-device.consume")
+            {
+                bool firewallReady = await WindowsAdministratorVerificationService
+                    .EnsureLocalCompanionFirewallRuleAsync();
+                await new SecurityAuditLog().AppendAsync(
+                    auditEvent!,
+                    firewallReady ? "local-companion-firewall-ready" : "local-companion-firewall-failed");
+                if (!firewallReady)
+                {
+                    Shutdown(1);
+                    return;
+                }
+            }
             if (string.Equals(auditEvent, "recovery.installer.repair", StringComparison.Ordinal))
             {
                 bool repaired = await ProtectionServiceManager.RunProductRepairAsync(requestElevation: false);

@@ -12,12 +12,24 @@ Yerel, sakin ve hesap gerektirmeyen Windows ekran süresi yönetimi.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/veri-bu%20cihazda-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/sürüm-v1.0.0--alpha.1-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/sıradaki-Otium_Alpha_2-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/geliştirme-AI%20destekli-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
 
 > Otium, bilgisayar kullanımını cezalandırmak yerine zamanı görünür ve yönetilebilir hale getirir. Bulut hesabı istemez; planlar, kurallar ve kullanım geçmişi cihazda kalır.
+
+## Otium Alpha 2
+
+**Otium Alpha 2 sıradaki community prerelease olarak hazırlanıyor.** Bu yayın;
+güvenilir telefonla kurtarma akışı, çok daha sağlam Guardian ve yönetici çıkışı
+yaşam döngüsü, daha güvenli onarım/güncelleme davranışı ile çok sayıda kurucu ve
+oturum ekranı düzeltmesi getiriyor. Kullanıcıya görünen yayın adı **Otium Alpha
+2** olacak; dosya ve etiketlerde güvenli olması için `alpha-2` / `Alpha-2`
+kullanılacak, yayın `v1.0.0-alpha.2` adıyla sunulmayacak.
+
+Alpha 2 paketi ve checksum'ı eşleşen temiz release commit'inden yayımlanana kadar
+Alpha.1 indirilebilir en güncel paket olarak kalır.
 
 ## Alpha.1'i indir
 
@@ -109,11 +121,12 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 
 ## Güncel durum
 
-**v1.0.0-alpha.1 — saha testindeki community prerelease**
+**Otium Alpha 2 — release candidate hazırlığı**
 
 - Release community paketi development/test bypass içermiyor.
 - Yerel kalite kapıları ve eşleşen GitHub Actions build/package işleri geçiyor.
-- Setup EXE, MSI, checksum ve release manifesti `4dd94ca` kaynak commit'ine bağlı.
+- Yayındaki Alpha.1 Setup EXE, MSI, checksum ve release manifesti `4dd94ca` kaynak commit'ine bağlı.
+- Alpha 2; kurulum, güvenilir telefon, Guardian, yönetici çıkışı, oturum, onarım ve güç eylemleri için gerçek kullanım testlerini geçti; temiz commit paket kapısı kaldı.
 - Ayar migration'ı, recovery, Guardian iletişimi, uygulama kuralları ve oturum davranışı otomatik regresyon testlerine sahip.
 - Temel korumalı yüzey davranışı iki fiziksel monitör testini geçti.
 - Temiz kurulum, Guardian enrollment, süre dolması, repair ve uninstall ayrı bir Windows cihazında doğrulanıyor.
