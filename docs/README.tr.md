@@ -19,36 +19,29 @@ Yerel, sakin ve hesap gerektirmeyen Windows ekran süresi yönetimi.
 
 > Otium, bilgisayar kullanımını cezalandırmak yerine zamanı görünür ve yönetilebilir hale getirir. Bulut hesabı istemez; planlar, kurallar ve kullanım geçmişi cihazda kalır.
 
-## Otium Alpha 2
+## Otium Alpha 2'yi indir
 
-**Otium Alpha 2 sıradaki community prerelease olarak hazırlanıyor.** Bu yayın;
+[**Windows x64 için Otium Setup'ı indir**](https://github.com/Rel0adediso/Otium/releases/download/alpha-2/Otium-Setup-Alpha-2.exe)
+
+**Otium Alpha 2 güncel community prerelease'tir.** Bu yayın;
 güvenilir telefonla kurtarma akışı, çok daha sağlam Guardian ve yönetici çıkışı
 yaşam döngüsü, daha güvenli onarım/güncelleme davranışı ile çok sayıda kurucu ve
 oturum ekranı düzeltmesi getiriyor. Kullanıcıya görünen yayın adı **Otium Alpha
-2** olacak; dosya ve etiketlerde güvenli olması için `alpha-2` / `Alpha-2`
-kullanılacak, yayın `v1.0.0-alpha.2` adıyla sunulmayacak.
-
-Alpha 2 paketi ve checksum'ı eşleşen temiz release commit'inden yayımlanana kadar
-Alpha.1 indirilebilir en güncel paket olarak kalır.
-
-## Alpha.1'i indir
-
-[**Windows x64 için Otium Setup'ı indir**](https://github.com/Rel0adediso/Otium/releases/download/v1.0.0-alpha.1/Otium-Setup-1.0.0-alpha.1.exe)
-
-`v1.0.0-alpha.1`, gerçek cihaz testleri için hazırlanan ilk community
-prerelease'tir. Kurucu self-contained çalışır, Türkçe ve English destekler ve
+2**; dosya ve etiketlerde güvenli olması için `alpha-2` / `Alpha-2` kullanılıyor,
+yayın `v1.0.0-alpha.2` adıyla sunulmuyor. Kurucu self-contained çalışır, Türkçe
+ve English destekler ve
 .NET SDK gerektirmez. Paket bilerek imzalanmamıştır; bu nedenle Windows
 SmartScreen **Bilinmeyen yayıncı** uyarısı gösterebilir.
 
 Setup EXE'yi çalıştırmadan önce doğrulayın:
 
 ```text
-SHA-256: 8736c995fc3e7add6020c30fdc2fbf2d10d1aaaf1786cd64d9b10acfb3d76260
+SHA-256: 073bee551ce3d6a907eca67cbc76e237448a503eb4c4632b944127ad8ae1c090
 ```
 
 Bağımsız MSI, checksum dosyaları, release manifesti, ayrıntılı notlar ve bilinen
 sınırlar
-[v1.0.0-alpha.1 yayın sayfasında](https://github.com/Rel0adediso/Otium/releases/tag/v1.0.0-alpha.1) bulunur.
+[Otium Alpha 2 yayın sayfasında](https://github.com/Rel0adediso/Otium/releases/tag/alpha-2) bulunur.
 
 ## Neden Otium?
 
@@ -121,12 +114,12 @@ Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adın
 
 ## Güncel durum
 
-**Otium Alpha 2 — release candidate hazırlığı**
+**Otium Alpha 2 — community prerelease**
 
 - Release community paketi development/test bypass içermiyor.
 - Yerel kalite kapıları ve eşleşen GitHub Actions build/package işleri geçiyor.
-- Yayındaki Alpha.1 Setup EXE, MSI, checksum ve release manifesti `4dd94ca` kaynak commit'ine bağlı.
-- Alpha 2; kurulum, güvenilir telefon, Guardian, yönetici çıkışı, oturum, onarım ve güç eylemleri için gerçek kullanım testlerini geçti; temiz commit paket kapısı kaldı.
+- Alpha 2 Setup EXE, MSI, checksum ve release manifesti `ca2181c` kaynak commit'ine bağlı.
+- Alpha 2; kurulum, güvenilir telefon, Guardian, yönetici çıkışı, oturum, onarım ve güç eylemleri için gerçek kullanım testlerini yayın öncesinde geçti.
 - Ayar migration'ı, recovery, Guardian iletişimi, uygulama kuralları ve oturum davranışı otomatik regresyon testlerine sahip.
 - Temel korumalı yüzey davranışı iki fiziksel monitör testini geçti.
 - Temiz kurulum, Guardian enrollment, süre dolması, repair ve uninstall ayrı bir Windows cihazında doğrulanıyor.

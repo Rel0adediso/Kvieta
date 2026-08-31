@@ -2,11 +2,11 @@
 
 **Son güncelleme:** 31 Ağustos 2026
 
-**Mevcut yayın:** `v1.0.0-alpha.1` GitHub prerelease
+**Mevcut yayın:** **Otium Alpha 2** GitHub prerelease
 
-**Aktif hedef:** **Otium Alpha 2** temiz release commit'i ve community paket kapısı
+**Aktif hedef:** Alpha 2 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Otium v1.0.0-alpha.1 — First community prerelease](https://github.com/Rel0adediso/Otium/releases/tag/v1.0.0-alpha.1)
+**Yayın:** [Otium Alpha 2](https://github.com/Rel0adediso/Otium/releases/tag/alpha-2)
 
 Bu belge Otium'un bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
@@ -64,9 +64,9 @@ için `1.0.0` kalır.
 - [x] NuGet audit, format, dokümantasyon, Debug/Release build ve smoke testleri temiz geçti.
 - [x] Public-build bypass kontrolü ve companion web bundle üretimi geçti.
 - [x] `Alpha-2` community Setup EXE/MSI metadata, manifest ve SHA-256 kontrollerini geçti.
-- [ ] Release commit'inden temiz community paketi yeniden üretilmeli; manifest commit'i `alpha-2` tag'iyle eşleşmeli.
-- [ ] GitHub Release **Otium Alpha 2** başlığıyla prerelease olarak yayımlanmalı.
-- [ ] README indirme bağlantıları ve SHA-256 değeri yayımlanan son paketle güncellenmeli.
+- [x] Release commit'inden temiz community paketi yeniden üretildi; manifest commit'i `alpha-2` tag'iyle eşleşiyor.
+- [x] GitHub Release **Otium Alpha 2** başlığıyla prerelease olarak yayımlandı.
+- [x] README indirme bağlantıları ve SHA-256 değeri yayımlanan son paketle güncellendi.
 
 ## `v1.0.0-alpha.1` yayın arşivi
 

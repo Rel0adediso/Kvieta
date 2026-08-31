@@ -1,6 +1,6 @@
 # Otium release notes
 
-## Otium Alpha 2 — Release candidate
+## Otium Alpha 2 — Second community prerelease
 
 Otium Alpha 2 is the second community prerelease. The public name deliberately
 does not use `v1.0.0-alpha.2`; `alpha-2` is used only where a URL, Git tag, or
@@ -69,9 +69,9 @@ filename-safe identifier is required. The internal MSI product version remains
 
 - Hands-on setup, Guardian, trusted-phone, administrator-exit, session, repair,
   uninstall, and power-action regressions have been exercised on Windows devices.
-- The final Alpha 2 community package must still be rebuilt from the clean release
-  commit and pass the complete build, format, smoke, documentation, public-bypass,
-  package metadata, manifest, and SHA-256 gates before publication.
+- The final Alpha 2 community package was rebuilt from clean release commit
+  `ca2181c` and passed the complete build, format, smoke, documentation,
+  public-bypass, package metadata, manifest, and SHA-256 gates.
 - Alpha 2 remains an intentionally unsigned prerelease; Windows SmartScreen may
   display an unknown-publisher warning.
 

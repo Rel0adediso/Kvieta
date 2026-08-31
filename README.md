@@ -19,36 +19,30 @@ Calm, local-first screen-time management for Windows — no account required.
 
 > Otium makes computer time visible and manageable without turning it into punishment. Plans, rules, and usage history remain on the device; no cloud account is required.
 
-## Otium Alpha 2
+## Download Otium Alpha 2
 
-**Otium Alpha 2 is being prepared as the next community prerelease.** It adds a
+[**Download Otium Setup for Windows x64**](https://github.com/Rel0adediso/Otium/releases/download/alpha-2/Otium-Setup-Alpha-2.exe)
+
+**Otium Alpha 2 is the current community prerelease.** It adds a
 trusted-phone recovery flow, a substantially more reliable Guardian and
 administrator-exit lifecycle, safer repair/update handling, and many setup and
-session-surface fixes. The public release title will be **Otium Alpha 2**; its
-package-safe Git tag and installer label will use `alpha-2` / `Alpha-2` instead
+session-surface fixes. The public release title is **Otium Alpha 2**; its
+package-safe Git tag and installer label use `alpha-2` / `Alpha-2` instead
 of presenting the release as `v1.0.0-alpha.2`.
 
-Until the Alpha 2 package and checksum are published from the matching clean
-release commit, Alpha.1 remains the latest downloadable build.
-
-## Download Alpha.1
-
-[**Download Otium Setup for Windows x64**](https://github.com/Rel0adediso/Otium/releases/download/v1.0.0-alpha.1/Otium-Setup-1.0.0-alpha.1.exe)
-
-`v1.0.0-alpha.1` is the first community prerelease for real-device testing. The
-installer is self-contained, supports English and Turkish, and does not require
+The installer is self-contained, supports English and Turkish, and does not require
 the .NET SDK. It is intentionally unsigned, so Windows SmartScreen may show an
 **Unknown publisher** warning.
 
 Verify the Setup EXE before running it:
 
 ```text
-SHA-256: 8736c995fc3e7add6020c30fdc2fbf2d10d1aaaf1786cd64d9b10acfb3d76260
+SHA-256: 073bee551ce3d6a907eca67cbc76e237448a503eb4c4632b944127ad8ae1c090
 ```
 
 The standalone MSI, checksum files, release manifest, full notes, and known
 limitations are available on the
-[v1.0.0-alpha.1 release page](https://github.com/Rel0adediso/Otium/releases/tag/v1.0.0-alpha.1).
+[Otium Alpha 2 release page](https://github.com/Rel0adediso/Otium/releases/tag/alpha-2).
 
 ## Why Otium?
 
@@ -121,12 +115,12 @@ The solution, projects, assemblies, and namespaces consistently use the **Otium*
 
 ## Current status
 
-**Otium Alpha 2 — release candidate preparation**
+**Otium Alpha 2 — community prerelease**
 
 - The Release community package contains no development/test bypass.
 - Local quality gates and the matching GitHub Actions build/package jobs pass.
-- The currently published Alpha.1 Setup EXE, MSI, checksums, and release manifest are tied to source commit `4dd94ca`.
-- Alpha 2 has completed hands-on setup, trusted-phone, Guardian, administrator-exit, session, repair, and power-action testing; the clean-commit package gate remains.
+- The Alpha 2 Setup EXE, MSI, checksums, and release manifest are tied to source commit `ca2181c`.
+- Alpha 2 completed hands-on setup, trusted-phone, Guardian, administrator-exit, session, repair, and power-action testing before publication.
 - Settings migration, recovery, Guardian communication, application rules, and session behavior have automated regression coverage.
 - Basic protected-surface behavior passed a physical two-monitor test.
 - Clean install, Guardian enrollment, expiry behavior, repair, and uninstall are now being validated on a separate Windows device.
