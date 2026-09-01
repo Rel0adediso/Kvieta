@@ -55,13 +55,13 @@ Build an unsigned development installer for local testing (never for distributio
 .\scripts\build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel 1.0.0-alpha
 ```
 
-Build the unsigned **Kvieta Alpha 1** package in Release configuration, without
+Build the unsigned **Kvieta Alpha 1 Hotfix 1** package in Release configuration, without
 development/test bypasses:
 
 ```powershell
 .\scripts\build-test-installer.ps1 `
   -Version 1.0.0 `
-  -ReleaseLabel Alpha-1 `
+  -ReleaseLabel Alpha-1-Hotfix-1 `
   -CommunityRelease
 ```
 
@@ -94,9 +94,10 @@ choices, requests elevation only for the MSI transaction, saves settings only
 after a successful install, and launches the correct Kvieta surface. The standalone
 MSI remains beside it for managed and unattended deployment.
 
-For the first Kvieta-branded preview, the release title shown to people is
-**Kvieta Alpha 1**. The Git tag and package-safe label use `alpha-1` / `Alpha-1`,
-so the Setup filename is `Kvieta-Setup-Alpha-1.exe`. The numeric MSI version
+For the current Kvieta preview hotfix, the release title shown to people is
+**Kvieta Alpha 1 Hotfix 1**. The Git tag and package-safe label use
+`alpha-1-hotfix-1` / `Alpha-1-Hotfix-1`, so the Setup filename is
+`Kvieta-Setup-Alpha-1-Hotfix-1.exe`. The numeric MSI version
 remains `1.0.0` for Windows Installer compatibility and is not used as the public
 release name.
 Development packages explicitly allow reinstalling another build with the same

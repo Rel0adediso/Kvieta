@@ -118,7 +118,7 @@ public static class ProtectionServiceManager
         !string.IsNullOrWhiteSpace(actualHash) &&
         string.Equals(NormalizeHash(expectedHash), NormalizeHash(actualHash), StringComparison.OrdinalIgnoreCase) &&
         registeredVersion is not null &&
-        clientVersion == registeredVersion;
+        ProductVersionsEqual(clientVersion, registeredVersion);
 
     public static Version? ReadRegisteredVersionForIdentity() => ReadRegisteredVersion();
 
@@ -153,8 +153,8 @@ public static class ProtectionServiceManager
             return ProtectionVersionCompatibility.Unknown;
         }
 
-        return installedBinaryVersion != currentProcessVersion ||
-            registeredVersion is not null && installedBinaryVersion != registeredVersion
+        return !ProductVersionsEqual(installedBinaryVersion, currentProcessVersion) ||
+            registeredVersion is not null && !ProductVersionsEqual(installedBinaryVersion, registeredVersion)
                 ? ProtectionVersionCompatibility.Mismatch
                 : ProtectionVersionCompatibility.Compatible;
     }
@@ -1041,7 +1041,7 @@ public static class ProtectionServiceManager
 
     private static Version? ReadRegisteredVersion() =>
         ReadInstallerValue("InstalledVersion") is string value && Version.TryParse(value, out Version? version)
-            ? version
+            ? NormalizeProductVersion(version)
             : null;
 
     private static Version? ReadProductVersion(string? path)
@@ -1053,14 +1053,31 @@ public static class ProtectionServiceManager
                 return null;
             }
 
-            string? productVersion = FileVersionInfo.GetVersionInfo(path).ProductVersion?.Split('+')[0];
-            return Version.TryParse(productVersion, out Version? version) ? version : null;
+            FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(path);
+            string? fileVersion = versionInfo.FileVersion?.Split('+')[0];
+            if (Version.TryParse(fileVersion, out Version? numericFileVersion))
+            {
+                return NormalizeProductVersion(numericFileVersion);
+            }
+
+            string? productVersion = versionInfo.ProductVersion?.Split('+')[0];
+            return Version.TryParse(productVersion, out Version? numericProductVersion)
+                ? NormalizeProductVersion(numericProductVersion)
+                : null;
         }
         catch
         {
             return null;
         }
     }
+
+    private static bool ProductVersionsEqual(Version? left, Version? right) =>
+        NormalizeProductVersion(left) == NormalizeProductVersion(right);
+
+    private static Version? NormalizeProductVersion(Version? version) =>
+        version is null
+            ? null
+            : new Version(version.Major, version.Minor, Math.Max(0, version.Build));
 }
 
 public sealed record GuardianInstallRequest(string UserSid, string SettingsPath);

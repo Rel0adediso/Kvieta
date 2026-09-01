@@ -469,7 +469,7 @@ Assert(ProtectionServiceManager.IsCommunityClientIdentityValid(
         "AA BB",
         "aabb",
         new Version(1, 0, 0),
-        new Version(1, 0, 0)) &&
+        new Version(1, 0, 0, 0)) &&
     !ProtectionServiceManager.IsCommunityClientIdentityValid(
         "community",
         "aabb",
@@ -483,6 +483,10 @@ Assert(ProtectionServiceManager.IsCommunityClientIdentityValid(
         new Version(1, 0, 0),
         new Version(1, 0, 0)),
     "Community Guardian istemci kimliği hash ve paket türüyle doğrulanmadı.");
+Version? actualAppBinaryVersion = ProtectionServiceManager.ReadProductVersionForIdentity(
+    typeof(ProtectionServiceManager).Assembly.Location);
+Assert(actualAppBinaryVersion == new Version(1, 0, 0),
+    "Alpha release etiketi sayısal EXE/DLL dosya sürümünün okunmasını engelledi.");
 Assert(SessionSurfaceRecoveryPolicy.ShouldRecover(
         shouldShowSessionSurfaces: true,
         isSurfaceVisible: true,
@@ -655,9 +659,9 @@ Assert(!CafeViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionSta
     "Esnek kişisel uygulama kuralları manuel oturum durumuna bağlanmadı.");
 
 Assert(ProtectionServiceManager.EvaluateVersionCompatibility(
-        new Version(0, 17, 0), new Version(0, 17, 0), new Version(0, 17, 0)) ==
+        new Version(0, 17, 0, 0), new Version(0, 17, 0), new Version(0, 17, 0)) ==
     ProtectionVersionCompatibility.Compatible,
-    "Eşleşen uygulama, Guardian ve installer sürümleri uyumlu sayılmadı.");
+    "Üç ve dört parçalı eşleşen uygulama, Guardian ve installer sürümleri uyumlu sayılmadı.");
 Assert(ProtectionServiceManager.EvaluateVersionCompatibility(
         new Version(0, 17, 1), new Version(0, 17, 0), new Version(0, 17, 0)) ==
     ProtectionVersionCompatibility.Mismatch,

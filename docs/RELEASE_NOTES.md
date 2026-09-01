@@ -1,5 +1,24 @@
 # Kvieta release notes
 
+## Kvieta Alpha 1 Hotfix 1 — Guardian PIN authorization
+
+This hotfix corrects a public-package identity check that could make every valid
+administrator PIN appear incorrect in Protected mode.
+
+- Public builds use a human-readable product version such as
+  `Alpha-1+<source-commit>`, while Windows Installer registers the numeric version
+  `1.0.0` and the executable carries numeric file version `1.0.0.0`.
+- Guardian previously attempted to parse the human-readable product version as a
+  numeric `Version`. Parsing failed, so the otherwise valid, installer-managed,
+  SHA-256-matched client was rejected before PIN verification.
+- Guardian now reads the numeric file version and normalizes three- and four-part
+  Windows versions before comparing them.
+- Regression coverage now exercises real Kvieta assembly metadata and the
+  `1.0.0` / `1.0.0.0` equivalence used by community-package authorization.
+
+Existing Alpha 1 installations require this hotfix package; waiting, repairing
+the original package, or resetting the PIN cannot correct the affected binary.
+
 ## Kvieta Alpha 1 — First Kvieta-branded community preview
 
 Kvieta Alpha 1 is the first community preview under the Kvieta identity. The
