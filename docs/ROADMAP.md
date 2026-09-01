@@ -2,11 +2,11 @@
 
 **Son güncelleme:** 1 Eylül 2026
 
-**Mevcut durum:** **Kvieta Alpha 1** yayına hazırlanıyor; henüz Kvieta markalı binary yayımlanmadı
+**Mevcut yayın:** **Kvieta Alpha 1** GitHub prerelease
 
-**Aktif hedef:** Alpha 1 temiz release paketi ve final `v1.0.0` Windows doğrulama matrisi
+**Aktif hedef:** Alpha 1 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayınlar:** [GitHub Releases](https://github.com/Rel0adediso/Kvieta/releases)
+**Yayın:** [Kvieta Alpha 1](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1)
 
 Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
@@ -64,9 +64,9 @@ için `1.0.0` kalır.
 - [x] NuGet audit, format, dokümantasyon, Debug/Release build ve smoke testleri temiz geçti.
 - [x] Public-build bypass kontrolü ve companion web bundle üretimi geçti.
 - [x] Yerel `Alpha-1` community Setup EXE/MSI metadata, manifest ve SHA-256 kontrollerini geçti.
-- [ ] Release commit'inden temiz community paketi yeniden üretilecek; manifest commit'i `alpha-1` tag'iyle eşleştirilecek.
-- [ ] GitHub Release **Kvieta Alpha 1** başlığıyla prerelease olarak yayımlanacak.
-- [ ] README indirme bağlantıları ve SHA-256 değeri yalnızca yayımlanan paketle güncellenecek.
+- [x] Release commit'inden temiz community paketi yeniden üretildi; manifest commit'i `alpha-1` tag'iyle eşleştirildi.
+- [x] GitHub Release **Kvieta Alpha 1** başlığıyla prerelease olarak yayımlandı.
+- [x] README indirme bağlantıları ve SHA-256 değeri yayımlanan paketle güncellendi.
 
 ## `v1.0.0-alpha.1` yayın arşivi
 

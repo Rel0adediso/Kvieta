@@ -1,10 +1,10 @@
 # Kvieta release notes
 
-## Kvieta Alpha 1 — First Kvieta-branded preview (in preparation)
+## Kvieta Alpha 1 — First Kvieta-branded community preview
 
-Kvieta Alpha 1 is the first community preview under the Kvieta identity. It has
-not been published yet; the final installer, checksum, manifest, and source commit
-will be recorded here only after a clean release build and GitHub publication.
+Kvieta Alpha 1 is the first community preview under the Kvieta identity. The
+unsigned package was built from clean source commit `9e68876` and published as
+the `alpha-1` GitHub prerelease.
 
 ### Kvieta identity
 
@@ -28,8 +28,9 @@ will be recorded here only after a clean release build and GitHub publication.
 
 - Local Debug/Release builds, smoke tests, documentation validation, public-build
   bypass checks, and package verification are required before publication.
-- The community installer is intentionally unsigned and will be documented with
-  its exact SHA-256 after publication.
+- The community installer is intentionally unsigned. The published Setup EXE
+  SHA-256 is `a29169986307434d819e1d7dbb11c30d768058548ce1ef1a166978b93fc87871`;
+  the MSI SHA-256 is `29334604fec9f6f577bb830951446c7533bf6e7cb5493fa799ac075e18838fdb`.
 - The existing Alpha 2 entry below is retained as historical development context
   from before the Kvieta-branded release line.
 

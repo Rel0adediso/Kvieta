@@ -21,6 +21,21 @@ A calm, local-first way to understand and manage screen time on Windows.
 
 Kvieta helps make computer time visible and intentional without turning it into punishment. Schedules, rules, usage history, credentials, and recovery data stay on the Windows device. No Kvieta account is required.
 
+## Download Kvieta Alpha 1
+
+[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-1/Kvieta-Setup-Alpha-1.exe)
+
+The self-contained setup supports English and Turkish and does not require the
+.NET SDK. This community preview is intentionally unsigned, so Windows
+SmartScreen may show an **Unknown publisher** warning.
+
+```text
+SHA-256: a29169986307434d819e1d7dbb11c30d768058548ce1ef1a166978b93fc87871
+```
+
+The standalone MSI, checksum files, release manifest, detailed notes, and known
+limitations are on the [Kvieta Alpha 1 release page](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1).
+
 ## Choose the relationship you want with time
 
 | Mode | Designed for | Experience |
@@ -56,12 +71,12 @@ Kvieta has no required cloud account and does not send screen-time history to a 
 
 ## Project status
 
-**Kvieta Alpha 1 is the first Kvieta-branded community preview and is currently being prepared.**
+**Kvieta Alpha 1 is the current community preview.**
 
 - The source is usable today and the Windows package pipeline is in place.
 - Debug and Release builds, smoke tests, documentation checks, and public-build bypass checks run as quality gates.
 - Community installers are intentionally unsigned, so Windows SmartScreen may show an **Unknown publisher** warning.
-- No Kvieta Alpha 1 binary has been published yet. When it is ready, it will appear on the [GitHub Releases page](https://github.com/Rel0adediso/Kvieta/releases).
+- The published Setup EXE, MSI, checksums, and manifest are tied to source commit `9e68876`.
 - The broader installer, DPI, Guardian, escape-path, and Windows lifecycle matrix remains open before final `v1.0.0`.
 
 See the [roadmap](docs/ROADMAP.md) for the remaining validation work and [release notes](docs/RELEASE_NOTES.md) for the detailed history.

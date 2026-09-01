@@ -34,8 +34,10 @@ $turkishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/KULLAN
 $requiredText = @(
     @{ Name = 'English README Alpha 1 status'; Text = $englishReadme; Pattern = 'Kvieta Alpha 1' }
     @{ Name = 'Turkish README Alpha 1 status'; Text = $turkishReadme; Pattern = 'Kvieta Alpha 1' }
-    @{ Name = 'English unpublished status'; Text = $englishReadme; Pattern = 'No Kvieta Alpha 1 binary has been published yet' }
-    @{ Name = 'Turkish unpublished status'; Text = $turkishReadme; Pattern = "Henüz Kvieta Alpha 1 binary'si yayımlanmadı" }
+    @{ Name = 'English Alpha 1 download'; Text = $englishReadme; Pattern = 'releases/download/alpha-1/Kvieta-Setup-Alpha-1\.exe' }
+    @{ Name = 'Turkish Alpha 1 download'; Text = $turkishReadme; Pattern = 'releases/download/alpha-1/Kvieta-Setup-Alpha-1\.exe' }
+    @{ Name = 'English Alpha 1 checksum'; Text = $englishReadme; Pattern = 'a29169986307434d819e1d7dbb11c30d768058548ce1ef1a166978b93fc87871' }
+    @{ Name = 'Turkish Alpha 1 checksum'; Text = $turkishReadme; Pattern = 'a29169986307434d819e1d7dbb11c30d768058548ce1ef1a166978b93fc87871' }
     @{ Name = 'English tracking mode'; Text = $englishReadme; Pattern = 'Tracking only' }
     @{ Name = 'Turkish tracking mode'; Text = $turkishReadme; Pattern = 'Sadece takip' }
     @{ Name = 'English usage update guidance'; Text = $englishGuide; Pattern = 'Installation and update' }

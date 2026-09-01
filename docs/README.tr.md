@@ -21,6 +21,21 @@ Windows'ta ekran süresini anlamanın ve yönetmenin sakin, yerel yolu.
 
 Kvieta, bilgisayar kullanımını cezaya çevirmeden zamanı görünür ve bilinçli hale getirir. Planlar, kurallar, kullanım geçmişi, kimlik bilgileri ve kurtarma verileri Windows cihazında kalır. Kvieta hesabı gerekmez.
 
+## Kvieta Alpha 1'i indir
+
+[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-1/Kvieta-Setup-Alpha-1.exe)
+
+Self-contained kurucu Türkçe ve English destekler; .NET SDK gerektirmez. Bu
+community preview bilerek imzasızdır, bu nedenle Windows SmartScreen
+**Bilinmeyen yayıncı** uyarısı gösterebilir.
+
+```text
+SHA-256: a29169986307434d819e1d7dbb11c30d768058548ce1ef1a166978b93fc87871
+```
+
+Bağımsız MSI, checksum dosyaları, release manifesti, ayrıntılı notlar ve bilinen
+sınırlar [Kvieta Alpha 1 yayın sayfasında](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1) bulunur.
+
 ## Zamanla nasıl bir ilişki kuracağını seç
 
 | Biçim | Kime göre? | Deneyim |
@@ -56,12 +71,12 @@ Kvieta zorunlu bulut hesabı kullanmaz ve ekran süresi geçmişini bir Kvieta s
 
 ## Projenin durumu
 
-**Kvieta Alpha 1, Kvieta adını taşıyan ilk community preview'dur ve şu anda yayına hazırlanmaktadır.**
+**Kvieta Alpha 1 güncel community preview'dur.**
 
 - Kaynak kod bugün çalıştırılabilir; Windows paket hattı hazırdır.
 - Debug ve Release derlemeleri, smoke testleri, belge kontrolleri ve public-build bypass kontrolleri kalite kapısı olarak çalışır.
 - Community kurucular bilerek imzasızdır; Windows SmartScreen **Bilinmeyen yayıncı** uyarısı gösterebilir.
-- Henüz Kvieta Alpha 1 binary'si yayımlanmadı. Hazır olduğunda [GitHub Releases sayfasında](https://github.com/Rel0adediso/Kvieta/releases) yer alacak.
+- Yayımlanan Setup EXE, MSI, checksum ve manifest `9e68876` kaynak commit'ine bağlıdır.
 - Geniş kurucu, DPI, Guardian, kaçış yolu ve Windows yaşam döngüsü matrisi final `v1.0.0` öncesinde açıktır.
 
 Kalan doğrulamalar için [yol haritasına](ROADMAP.md), ayrıntılı geçmiş için [sürüm notlarına](RELEASE_NOTES.md) bakın.
