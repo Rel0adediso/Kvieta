@@ -14,27 +14,29 @@ A calm, local-first way to understand and manage screen time on Windows.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=292B26)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=292B26)
 ![Privacy](https://img.shields.io/badge/privacy-local--first-87946B?style=flat-square&labelColor=292B26)
-![Status](https://img.shields.io/badge/status-Alpha_1_preview-C9B98E?style=flat-square&labelColor=292B26)
+![Status](https://img.shields.io/badge/status-Alpha_1_Hotfix_1-C9B98E?style=flat-square&labelColor=292B26)
 ![License](https://img.shields.io/badge/license-MIT-87946B?style=flat-square&labelColor=292B26)
 
 </div>
 
 Kvieta helps make computer time visible and intentional without turning it into punishment. Schedules, rules, usage history, credentials, and recovery data stay on the Windows device. No Kvieta account is required.
 
-## Download Kvieta Alpha 1
+## Download Kvieta Alpha 1 Hotfix 1
 
-[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-1/Kvieta-Setup-Alpha-1.exe)
+[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-1-hotfix-1/Kvieta-Setup-Alpha-1-Hotfix-1.exe)
 
 The self-contained setup supports English and Turkish and does not require the
 .NET SDK. This community preview is intentionally unsigned, so Windows
 SmartScreen may show an **Unknown publisher** warning.
 
 ```text
-SHA-256: a29169986307434d819e1d7dbb11c30d768058548ce1ef1a166978b93fc87871
+SHA-256: e13297d9713acdcae13ec67473749aebb03b864c9f27544a3d5cfb3ac0b8f13b
 ```
 
 The standalone MSI, checksum files, release manifest, detailed notes, and known
-limitations are on the [Kvieta Alpha 1 release page](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1).
+limitations are on the [Kvieta Alpha 1 Hotfix 1 release page](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1-hotfix-1).
+
+> **Important:** The original Alpha 1 package could reject every valid Protected-mode PIN before verification. Install Hotfix 1 over it; your existing settings and protected policy are preserved.
 
 ## Choose the relationship you want with time
 
@@ -71,12 +73,12 @@ Kvieta has no required cloud account and does not send screen-time history to a 
 
 ## Project status
 
-**Kvieta Alpha 1 is the current community preview.**
+**Kvieta Alpha 1 Hotfix 1 is the current community preview.**
 
 - The source is usable today and the Windows package pipeline is in place.
 - Debug and Release builds, smoke tests, documentation checks, and public-build bypass checks run as quality gates.
 - Community installers are intentionally unsigned, so Windows SmartScreen may show an **Unknown publisher** warning.
-- The published Setup EXE, MSI, checksums, and manifest are tied to source commit `9e68876`.
+- The published Setup EXE, MSI, checksums, and manifest are tied to source commit `4ed3210`.
 - The broader installer, DPI, Guardian, escape-path, and Windows lifecycle matrix remains open before final `v1.0.0`.
 
 See the [roadmap](docs/ROADMAP.md) for the remaining validation work and [release notes](docs/RELEASE_NOTES.md) for the detailed history.

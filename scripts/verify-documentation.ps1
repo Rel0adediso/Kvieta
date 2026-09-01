@@ -34,10 +34,10 @@ $turkishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/KULLAN
 $requiredText = @(
     @{ Name = 'English README Alpha 1 status'; Text = $englishReadme; Pattern = 'Kvieta Alpha 1' }
     @{ Name = 'Turkish README Alpha 1 status'; Text = $turkishReadme; Pattern = 'Kvieta Alpha 1' }
-    @{ Name = 'English Alpha 1 download'; Text = $englishReadme; Pattern = 'releases/download/alpha-1/Kvieta-Setup-Alpha-1\.exe' }
-    @{ Name = 'Turkish Alpha 1 download'; Text = $turkishReadme; Pattern = 'releases/download/alpha-1/Kvieta-Setup-Alpha-1\.exe' }
-    @{ Name = 'English Alpha 1 checksum'; Text = $englishReadme; Pattern = 'a29169986307434d819e1d7dbb11c30d768058548ce1ef1a166978b93fc87871' }
-    @{ Name = 'Turkish Alpha 1 checksum'; Text = $turkishReadme; Pattern = 'a29169986307434d819e1d7dbb11c30d768058548ce1ef1a166978b93fc87871' }
+    @{ Name = 'English Alpha 1 hotfix download'; Text = $englishReadme; Pattern = 'releases/download/alpha-1-hotfix-1/Kvieta-Setup-Alpha-1-Hotfix-1\.exe' }
+    @{ Name = 'Turkish Alpha 1 hotfix download'; Text = $turkishReadme; Pattern = 'releases/download/alpha-1-hotfix-1/Kvieta-Setup-Alpha-1-Hotfix-1\.exe' }
+    @{ Name = 'English Alpha 1 hotfix checksum'; Text = $englishReadme; Pattern = 'e13297d9713acdcae13ec67473749aebb03b864c9f27544a3d5cfb3ac0b8f13b' }
+    @{ Name = 'Turkish Alpha 1 hotfix checksum'; Text = $turkishReadme; Pattern = 'e13297d9713acdcae13ec67473749aebb03b864c9f27544a3d5cfb3ac0b8f13b' }
     @{ Name = 'English tracking mode'; Text = $englishReadme; Pattern = 'Tracking only' }
     @{ Name = 'Turkish tracking mode'; Text = $turkishReadme; Pattern = 'Sadece takip' }
     @{ Name = 'English usage update guidance'; Text = $englishGuide; Pattern = 'Installation and update' }

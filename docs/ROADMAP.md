@@ -2,11 +2,11 @@
 
 **Son güncelleme:** 1 Eylül 2026
 
-**Mevcut yayın:** **Kvieta Alpha 1** GitHub prerelease
+**Mevcut yayın:** **Kvieta Alpha 1 Hotfix 1** GitHub prerelease
 
 **Aktif hedef:** Alpha 1 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Kvieta Alpha 1](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1)
+**Yayın:** [Kvieta Alpha 1 Hotfix 1](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1-hotfix-1)
 
 Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa

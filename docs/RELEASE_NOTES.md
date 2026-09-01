@@ -5,6 +5,10 @@
 This hotfix corrects a public-package identity check that could make every valid
 administrator PIN appear incorrect in Protected mode.
 
+The unsigned package was built from clean source commit `4ed3210` and published
+as the `alpha-1-hotfix-1` GitHub prerelease. Setup EXE SHA-256:
+`e13297d9713acdcae13ec67473749aebb03b864c9f27544a3d5cfb3ac0b8f13b`.
+
 - Public builds use a human-readable product version such as
   `Alpha-1+<source-commit>`, while Windows Installer registers the numeric version
   `1.0.0` and the executable carries numeric file version `1.0.0.0`.
