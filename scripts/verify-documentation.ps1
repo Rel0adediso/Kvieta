@@ -32,8 +32,10 @@ $englishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/USAGE.
 $turkishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/KULLANIM.tr.md') -Raw
 
 $requiredText = @(
-    @{ Name = 'English README Alpha 2 status'; Text = $englishReadme; Pattern = 'Kvieta Alpha 2' }
-    @{ Name = 'Turkish README Alpha 2 status'; Text = $turkishReadme; Pattern = 'Kvieta Alpha 2' }
+    @{ Name = 'English README Alpha 1 status'; Text = $englishReadme; Pattern = 'Kvieta Alpha 1' }
+    @{ Name = 'Turkish README Alpha 1 status'; Text = $turkishReadme; Pattern = 'Kvieta Alpha 1' }
+    @{ Name = 'English unpublished status'; Text = $englishReadme; Pattern = 'No Kvieta Alpha 1 binary has been published yet' }
+    @{ Name = 'Turkish unpublished status'; Text = $turkishReadme; Pattern = "Henüz Kvieta Alpha 1 binary'si yayımlanmadı" }
     @{ Name = 'English tracking mode'; Text = $englishReadme; Pattern = 'Tracking only' }
     @{ Name = 'Turkish tracking mode'; Text = $turkishReadme; Pattern = 'Sadece takip' }
     @{ Name = 'English usage update guidance'; Text = $englishGuide; Pattern = 'Installation and update' }

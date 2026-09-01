@@ -1,134 +1,70 @@
 <div align="center">
 
-<img src="assets/branding/kvieta-mark.svg" alt="Kvieta" width="150" />
-
-**English** · [Türkçe](docs/README.tr.md)
+<img src="assets/branding/kvieta-mark.svg" alt="Kvieta logo" width="132" />
 
 # Kvieta
 
 ### All in good time.
 
-Calm, local-first screen-time management for Windows — no account required.
+A calm, local-first way to understand and manage screen time on Windows.
 
-![Windows](https://img.shields.io/badge/Windows-native-87946B?style=flat-square&labelColor=3F4437)
-![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
-![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
-![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/next-Kvieta_Alpha_2-C9B98E?style=flat-square&labelColor=3F4437)
-![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
+[**Türkçe**](docs/README.tr.md)
+
+![Windows](https://img.shields.io/badge/Windows-native-87946B?style=flat-square&labelColor=292B26)
+![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=292B26)
+![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=292B26)
+![Privacy](https://img.shields.io/badge/privacy-local--first-87946B?style=flat-square&labelColor=292B26)
+![Status](https://img.shields.io/badge/status-Alpha_1_preview-C9B98E?style=flat-square&labelColor=292B26)
+![License](https://img.shields.io/badge/license-MIT-87946B?style=flat-square&labelColor=292B26)
 
 </div>
 
-> Kvieta makes computer time visible and manageable without turning it into punishment. Plans, rules, and usage history remain on the device; no cloud account is required.
+Kvieta helps make computer time visible and intentional without turning it into punishment. Schedules, rules, usage history, credentials, and recovery data stay on the Windows device. No Kvieta account is required.
 
-## Download Kvieta Alpha 2
+## Choose the relationship you want with time
 
-[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-2/Kvieta-Setup-Alpha-2.exe)
-
-**Kvieta Alpha 2 is the current community prerelease.** It adds a
-trusted-phone recovery flow, a substantially more reliable Guardian and
-administrator-exit lifecycle, safer repair/update handling, and many setup and
-session-surface fixes. The public release title is **Kvieta Alpha 2**; its
-package-safe Git tag and installer label use `alpha-2` / `Alpha-2` instead
-of presenting the release as `v1.0.0-alpha.2`.
-
-The installer is self-contained, supports English and Turkish, and does not require
-the .NET SDK. It is intentionally unsigned, so Windows SmartScreen may show an
-**Unknown publisher** warning.
-
-Verify the Setup EXE before running it:
-
-```text
-SHA-256: 073bee551ce3d6a907eca67cbc76e237448a503eb4c4632b944127ad8ae1c090
-```
-
-The standalone MSI, checksum files, release manifest, full notes, and known
-limitations are available on the
-[Kvieta Alpha 2 release page](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-2).
-
-## Why Kvieta?
-
-Kvieta offers three ways to use the same local-first foundation:
-
-| Mode | Best for | What it does |
+| Mode | Designed for | Experience |
 |---|---|---|
-| **Tracking only** | Understanding computer habits | Measures configured app usage locally without applying restrictions. |
-| **For myself** | Building a personal routine | Adds schedules, limits, breaks, and an optional Balanced session surface without requiring an administrator PIN. |
-| **For someone I manage** | A standard Windows account managed by another administrator | Protects policy with an administrator PIN and Guardian, and restores the protected session after common termination attempts. |
+| **Tracking only** | Understanding your habits | Records configured app usage locally without restricting anything. |
+| **For myself** | Building a routine of your own | Adds schedules, limits, breaks, focus sessions, and optional personal protection. |
+| **For someone I manage** | A standard Windows account managed by another administrator | Protects policy with an administrator PIN and the Kvieta Guardian service. |
 
-## Highlights
+## What Kvieta can do
 
-### Time and schedules
-
-- Per-day time windows and daily usage limits
-- A controlled **Break** state after Win+L instead of automatic resume
-- Date-specific temporary allowances that leave the weekly plan unchanged
-- Administrator-approved extra time for the current day
-- A timer that does not mistake watching or reading for inactivity
-
-### Rhythm and history
-
-- Daily and weekly views covering the last seven days
-- Weekly total, daily average, and most-used configured application
-- Break, limit, extra-time, and policy-change activity
-- Ninety days of on-device history
-- Personal progress, reclaimed-time, and opt-in foreground-app insights
-
-### Application rules
-
-- Blocked, limited, and unlimited application policies
-- Per-application daily counters and termination at the configured limit
-- Awareness tracking for configured unlimited applications
-- Publisher, original filename, optional hash, package family, and launcher/child-process identification
-
-### Security and data resilience
-
-- Salted PBKDF2 administrator PIN verification
-- Service-managed authoritative policy copy for Protected mode
-- Progressive delay after failed PIN attempts
-- Detection of clock rollback beyond five minutes
-- Cross-process data-file locking
-- Validated atomic JSON writes with a last-known-good `.bak` snapshot
-- Automatic recovery from a corrupted primary file
-- Loss-resistant merging of concurrent counters and history events
-
-## Visual language
-
-Kvieta combines warm cream and khaki surfaces with an olive-graphite dark theme in a compact Windows interface.
-
-- System / Light / Dark appearance
-- Live Turkish / English switching
-- Thin custom title bar
-- Collapsible, optically aligned navigation
-- Compact seven-day schedule
-- Theme-aware custom tray menu
-- Information-dense but calm screens without oversized dashboard cards
-
-## Project structure
-
-| Component | Responsibility |
+| | |
 |---|---|
-| `Kvieta.Core` | Scheduling, sessions, policies, models, and resilient local persistence |
-| `Kvieta.App` | WPF Control Center, session surface, tray, and Windows integrations |
-| `Kvieta.Core.SmokeTests` | Core behavior, security regressions, and real-process checks |
-| Guardian | Windows service supervising the protected session and authoritative policy area |
+| **Plan time** | Weekly schedules, daily limits, controlled breaks, temporary allowances, and administrator-approved extra time. |
+| **Manage apps** | Blocked, limited, or unlimited rules with daily counters and resilient process identification. |
+| **Show the rhythm** | Seven-day insights, a 90-day local history, weekly totals, daily averages, and activity events. |
+| **Stay recoverable** | Offline recovery codes plus optional trusted-phone enrollment, QR transfer, revocation, and local PIN-reset approval. |
+| **Protect policy** | Guardian-backed supervision, protected policy storage, health checks, repair paths, and verified administrator exit. |
+| **Survive real life** | Atomic saves, last-known-good backups, corruption recovery, clock-rollback detection, and concurrent-write protection. |
 
-The solution, projects, assemblies, and namespaces consistently use the **Kvieta** name.
+## New in the Kvieta Alpha 1 preview
 
-## Current status
+- A complete **Kvieta** identity across the app, setup experience, Windows icon, tray, and documentation.
+- Crisp vector branding inside the app and installer, with a multi-resolution Windows icon for the executable.
+- Optional **trusted-phone recovery** using short-lived signed requests on the local network; the PIN and recovery codes never leave the PC.
+- QR-based trusted-device enrollment and transfer, one active device at a time, explicit revocation, comparison codes, expiry, and replay protection.
+- A more reliable Guardian lifecycle covering startup, repair, policy handoff, administrator exit, and duplicate-window prevention.
+- Safer install, update, repair, reconfiguration, rollback, and removal flows with package and manifest verification.
+- Stabilized session behavior, application rules, Windows-lock transitions, power actions, focus handling, and bilingual error states.
 
-**Kvieta Alpha 2 — community prerelease**
+## Private by design
 
-- The Release community package contains no development/test bypass.
-- Local quality gates and the matching GitHub Actions build/package jobs pass.
-- The Alpha 2 Setup EXE, MSI, checksums, and release manifest are tied to source commit `ca2181c`.
-- Alpha 2 completed hands-on setup, trusted-phone, Guardian, administrator-exit, session, repair, and power-action testing before publication.
-- Settings migration, recovery, Guardian communication, application rules, and session behavior have automated regression coverage.
-- Basic protected-surface behavior passed a physical two-monitor test.
-- Clean install, Guardian enrollment, expiry behavior, repair, and uninstall are now being validated on a separate Windows device.
-- The wider Windows lifecycle, escape-path, DPI, and installer matrix remains open before final `v1.0.0`.
+Kvieta has no required cloud account and does not send screen-time history to a Kvieta service. The optional phone companion is served by the PC and currently requires the phone to reach that PC on the local network. Approval messages are signed, short-lived, origin-checked, rate-limited, and contain neither the administrator PIN nor recovery codes.
 
-See the [current roadmap](docs/ROADMAP.md) for the remaining v1.0 validation and post-release goals, and the [release notes](docs/RELEASE_NOTES.md) for changes between versions.
+## Project status
+
+**Kvieta Alpha 1 is the first Kvieta-branded community preview and is currently being prepared.**
+
+- The source is usable today and the Windows package pipeline is in place.
+- Debug and Release builds, smoke tests, documentation checks, and public-build bypass checks run as quality gates.
+- Community installers are intentionally unsigned, so Windows SmartScreen may show an **Unknown publisher** warning.
+- No Kvieta Alpha 1 binary has been published yet. When it is ready, it will appear on the [GitHub Releases page](https://github.com/Rel0adediso/Kvieta/releases).
+- The broader installer, DPI, Guardian, escape-path, and Windows lifecycle matrix remains open before final `v1.0.0`.
+
+See the [roadmap](docs/ROADMAP.md) for the remaining validation work and [release notes](docs/RELEASE_NOTES.md) for the detailed history.
 
 ## Run from source
 
@@ -138,38 +74,47 @@ Requirements: Windows and the .NET 10 SDK.
 dotnet run --project src/Kvieta.App/Kvieta.App.csproj
 ```
 
-Open the protected session surface directly:
+Open the session surface directly:
 
 ```powershell
 dotnet run --project src/Kvieta.App/Kvieta.App.csproj -- --session
 ```
 
-## Checks
+Run the main quality checks:
 
 ```powershell
 dotnet build Kvieta.slnx -c Release
 dotnet run --project tests/Kvieta.Core.SmokeTests/Kvieta.Core.SmokeTests.csproj -c Release
 ```
 
+<details>
+<summary><strong>Project structure</strong></summary>
+
+| Component | Responsibility |
+|---|---|
+| `Kvieta.Core` | Scheduling, sessions, policies, models, and resilient local persistence |
+| `Kvieta.App` | WPF Control Center, session surface, tray, and Windows integrations |
+| Guardian service | Windows service supervising protected sessions and authoritative policy |
+| `Kvieta.SetupApp` | Bilingual setup, update, repair, configuration, and removal experience |
+| `Kvieta.Core.SmokeTests` | Core behavior, security regressions, and real-process checks |
+
+</details>
+
 ## Security boundary
 
-Protected mode is primarily designed for a **standard Windows account** managed through a separate administrator account. No desktop application can guarantee absolute resistance against someone with physical access and Windows administrator privileges.
+Protected mode is designed primarily for a **standard Windows account** managed through a separate administrator account. No desktop application can guarantee absolute resistance against someone with physical access and Windows administrator privileges. Development-only test gates are not compiled into Public builds. Read the [security model and limitations](docs/SECURITY.md) before relying on protected mode.
 
-Development-only test gates are not compiled into Public builds. See the [security boundaries](docs/SECURITY.md) for details.
+## Documentation
 
-See the [English user guide](docs/USAGE.md) or [Turkish user guide](docs/KULLANIM.tr.md) for installation, first-use, update, recovery, and removal steps. For help or a bug report, see [Support](.github/SUPPORT.md).
+- [English user guide](docs/USAGE.md) · [Türkçe kullanım rehberi](docs/KULLANIM.tr.md)
+- [Roadmap](docs/ROADMAP.md) · [Release notes](docs/RELEASE_NOTES.md)
+- [Support](.github/SUPPORT.md) · [Contributing](.github/CONTRIBUTING.md)
 
 ## Development approach
 
-**AI-assisted development · Human-directed product.**
+**Human-directed product · AI-assisted development.** Product direction, UX decisions, and hands-on testing are led by [Rel0adediso](https://github.com/Rel0adediso). Architecture, implementation, and test development are carried out collaboratively with OpenAI Codex.
 
-Product vision, direction, UX decisions, and hands-on testing are led by **Rel0adediso**. Architecture, implementation, and test development are carried out collaboratively with **OpenAI Codex**.
-
-Rather than claiming “100% AI made,” Kvieta is documented accurately as a human-directed, AI-assisted product.
-
-## License
-
-Kvieta is open-source software released under the [MIT License](LICENSE). Security boundaries and platform limitations still apply; the license is not a promise that Protected mode is impossible to bypass.
+Kvieta is open-source software released under the [MIT License](LICENSE).
 
 ---
 

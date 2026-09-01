@@ -1,5 +1,38 @@
 # Kvieta release notes
 
+## Kvieta Alpha 1 — First Kvieta-branded preview (in preparation)
+
+Kvieta Alpha 1 is the first community preview under the Kvieta identity. It has
+not been published yet; the final installer, checksum, manifest, and source commit
+will be recorded here only after a clean release build and GitHub publication.
+
+### Kvieta identity
+
+- Renamed the solution, projects, assemblies, namespaces, services, installer,
+  storage locations, protocol identifiers, documentation, and repository identity.
+- Added the asymmetric Kvieta mark across the application, setup flow, tray,
+  executable, MSI registration, and project documentation.
+- Replaced scaled bitmap branding in WPF surfaces with vector templates and added
+  a multi-resolution Windows icon for crisp rendering at common system sizes.
+
+### Product baseline
+
+- Carries forward the three usage modes, schedules, limits, breaks, focus sessions,
+  app rules, local insights, trusted-phone recovery, and Guardian protection.
+- Includes the setup, update, repair, policy handoff, administrator-exit, session,
+  recovery, and power-action reliability work completed during the earlier preview cycle.
+- Remains local-first and account-free; trusted-phone approval runs over the local
+  network and never sends the administrator PIN or recovery codes to the phone.
+
+### Release gate
+
+- Local Debug/Release builds, smoke tests, documentation validation, public-build
+  bypass checks, and package verification are required before publication.
+- The community installer is intentionally unsigned and will be documented with
+  its exact SHA-256 after publication.
+- The existing Alpha 2 entry below is retained as historical development context
+  from before the Kvieta-branded release line.
+
 ## Kvieta Alpha 2 — Second community prerelease
 
 Kvieta Alpha 2 is the second community prerelease. The public name deliberately

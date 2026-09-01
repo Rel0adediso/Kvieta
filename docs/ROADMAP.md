@@ -1,12 +1,12 @@
 # Kvieta — Ürün ve Release Yol Haritası
 
-**Son güncelleme:** 31 Ağustos 2026
+**Son güncelleme:** 1 Eylül 2026
 
-**Mevcut yayın:** **Kvieta Alpha 2** GitHub prerelease
+**Mevcut durum:** **Kvieta Alpha 1** yayına hazırlanıyor; henüz Kvieta markalı binary yayımlanmadı
 
-**Aktif hedef:** Alpha 2 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
+**Aktif hedef:** Alpha 1 temiz release paketi ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Kvieta Alpha 2](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-2)
+**Yayınlar:** [GitHub Releases](https://github.com/Rel0adediso/Kvieta/releases)
 
 Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
@@ -42,14 +42,14 @@ Bu sonuçlar çekirdek ve kaynak build sağlığını doğrular. Gerçek Windows
 döngüsü, Guardian, installer ve ekran davranışlarının tamamının doğrulandığı
 anlamına gelmez.
 
-## Kvieta Alpha 2 yayın planı
+## Kvieta Alpha 1 yayın planı
 
-İkinci community prerelease kullanıcıya **Kvieta Alpha 2** adıyla sunulur. Git tag
-`alpha-2`, paket etiketi `Alpha-2` olur; `v1.0.0-alpha.2` kullanıcıya görünen yayın
+İlk Kvieta markalı community preview kullanıcıya **Kvieta Alpha 1** adıyla sunulur. Git tag
+`alpha-1`, paket etiketi `Alpha-1` olur; `v1.0.0-alpha.1` kullanıcıya görünen yayın
 adı olarak kullanılmaz. Windows Installer ürün sürümü yükseltme/onarım uyumluluğu
 için `1.0.0` kalır.
 
-### Alpha 2 kapsamı
+### Alpha 1 kapsamı
 
 - İsteğe bağlı güvenilir telefon eşleştirme, QR aktarımı ve telefonla PIN kurtarma.
 - Yönetici çıkışı, Control Center/session tekilleştirme ve Guardian geçiş düzeltmeleri.
@@ -58,15 +58,15 @@ için `1.0.0` kalır.
 - Kurulum PIN akışı, açıklamalar, hata durumları ve Kvieta teması iyileştirmeleri.
 - Uygulama kuralları, oturum ekranı ve güç menüsü regresyon düzeltmeleri.
 
-### Alpha 2 yayın kapısı
+### Alpha 1 yayın kapısı
 
 - [x] Çalışma ağacında geçici çıktı, sır veya yanlışlıkla eklenen makineye özel dosya bulunmadığı doğrulandı.
 - [x] NuGet audit, format, dokümantasyon, Debug/Release build ve smoke testleri temiz geçti.
 - [x] Public-build bypass kontrolü ve companion web bundle üretimi geçti.
-- [x] `Alpha-2` community Setup EXE/MSI metadata, manifest ve SHA-256 kontrollerini geçti.
-- [x] Release commit'inden temiz community paketi yeniden üretildi; manifest commit'i `alpha-2` tag'iyle eşleşiyor.
-- [x] GitHub Release **Kvieta Alpha 2** başlığıyla prerelease olarak yayımlandı.
-- [x] README indirme bağlantıları ve SHA-256 değeri yayımlanan son paketle güncellendi.
+- [x] Yerel `Alpha-1` community Setup EXE/MSI metadata, manifest ve SHA-256 kontrollerini geçti.
+- [ ] Release commit'inden temiz community paketi yeniden üretilecek; manifest commit'i `alpha-1` tag'iyle eşleştirilecek.
+- [ ] GitHub Release **Kvieta Alpha 1** başlığıyla prerelease olarak yayımlanacak.
+- [ ] README indirme bağlantıları ve SHA-256 değeri yalnızca yayımlanan paketle güncellenecek.
 
 ## `v1.0.0-alpha.1` yayın arşivi
 
@@ -442,17 +442,17 @@ Final sürüm ancak aşağıdaki koşulların tamamı sağlandığında yayınla
 
 ## Önerilen uygulama sırası
 
-1. Alpha 2 release notes, iki dilli durum metinleri ve yayın adını kesinleştir.
+1. Alpha 1 release notes, iki dilli durum metinleri ve yayın adını kesinleştir.
 2. Çalışma ağacında gizli, geçici veya makineye özel dosya olmadığını doğrula.
 3. Build, smoke, format, NuGet audit, dokümantasyon ve public bypass kapılarını
-   çalıştır; `Alpha-2` etiketli community paket hattını sınama amacıyla doğrula.
+   çalıştır; `Alpha-1` etiketli community paket hattını sınama amacıyla doğrula.
 4. Değişiklikleri tek release commit'inde birleştir.
 5. Community Setup EXE'yi temiz commit'ten yeniden üret; manifest, SHA-256 ve
    kaynak commit eşleşmesini doğrula.
-6. `alpha-2` annotated tag'ini oluştur ve **Kvieta Alpha 2** GitHub prerelease'ini
+6. `alpha-1` annotated tag'ini oluştur ve **Kvieta Alpha 1** GitHub prerelease'ini
    paket varlıkları, imzasız yayın uyarısı ve bilinen sınırlarla yayınla.
 7. README indirme bağlantısı ile SHA-256 değerini yayımlanan paketle eşitle.
-8. Alpha 2 geri bildirimlerinden sonra kalan Windows yaşam döngüsü, DPI,
+8. Alpha 1 geri bildirimlerinden sonra kalan Windows yaşam döngüsü, DPI,
    kaçış-yolu ve installer matrisini tamamlayıp final `v1.0.0` kapısına devam et.
 
 ## v1 sonrası plan
