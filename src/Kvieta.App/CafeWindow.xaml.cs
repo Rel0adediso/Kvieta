@@ -197,10 +197,9 @@ public partial class CafeWindow : Window
 
         if (credential.IsConfigured)
         {
-            AdminPinWindow verification = AdminPinWindow.CreateVerification(
+            AdminPinWindow verification = PrepareSessionModal(AdminPinWindow.CreateVerification(
                 pin => VerifyExitPinAsync(pin, credential),
-                RecoverExitPinAsync);
-            verification.Owner = this;
+                RecoverExitPinAsync));
             _modalDialogOpen = true;
             try
             {
@@ -215,7 +214,7 @@ public partial class CafeWindow : Window
             }
         }
 
-        BonusTimeWindow selector = new() { Owner = this };
+        BonusTimeWindow selector = PrepareSessionModal(new BonusTimeWindow());
         _modalDialogOpen = true;
         try
         {
@@ -716,7 +715,7 @@ public partial class CafeWindow : Window
                     return;
                 }
 
-                AdminPinWindow verification = AdminPinWindow.CreateVerification(
+                AdminPinWindow verification = PrepareSessionModal(AdminPinWindow.CreateVerification(
                     pin => VerifyExitPinAsync(pin, credential),
                     RecoverExitPinAsync,
                     LocalizationService.CurrentLanguage == LanguagePreference.English
@@ -724,8 +723,7 @@ public partial class CafeWindow : Window
                         : "Kontrol Merkezi'ni aç",
                     LocalizationService.CurrentLanguage == LanguagePreference.English
                         ? "Enter the administrator PIN to leave the session screen and manage Kvieta. Guardian protection will remain active."
-                        : "Oturum ekranından çıkıp Kvieta'yı yönetmek için yönetici PIN'ini gir. Guardian koruması açık kalacak.");
-                verification.Owner = this;
+                        : "Oturum ekranından çıkıp Kvieta'yı yönetmek için yönetici PIN'ini gir. Guardian koruması açık kalacak."));
                 bool verified;
                 _modalDialogOpen = true;
                 try
@@ -795,6 +793,18 @@ public partial class CafeWindow : Window
     }
 
     public event EventHandler<ControlCenterRequestEventArgs>? ControlCenterRequested;
+
+    private T PrepareSessionModal<T>(T dialog) where T : Window
+    {
+        dialog.Owner = this;
+        dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        dialog.ShowInTaskbar = false;
+        // The protected session surface is itself topmost. An owned WPF window
+        // does not reliably join that z-order group on every Windows build, so a
+        // focused PIN dialog can otherwise exist invisibly behind its owner.
+        dialog.Topmost = Topmost;
+        return dialog;
+    }
 
     private void SuspendForControlCenter()
     {

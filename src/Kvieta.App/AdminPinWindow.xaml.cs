@@ -110,7 +110,17 @@ public partial class AdminPinWindow : Window
         }
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e) => PinBox.Focus();
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (Owner?.Topmost == true)
+        {
+            Topmost = true;
+        }
+
+        Activate();
+        PinBox.Focus();
+        Keyboard.Focus(PinBox);
+    }
 
     private void TogglePinVisibility_Click(object sender, RoutedEventArgs e)
     {

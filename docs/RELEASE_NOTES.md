@@ -1,5 +1,17 @@
 # Kvieta release notes
 
+## Kvieta Alpha 1 Hotfix 2 — Visible administrator dialogs
+
+This hotfix keeps administrator PIN and bonus-time dialogs visibly above the
+protected full-screen session surface.
+
+- Session-owned WPF dialogs now inherit the topmost z-order required by the
+  protected surface instead of relying on ownership alone.
+- Administrator PIN dialogs explicitly activate and focus the PIN field after
+  loading while preserving modal-dialog focus recovery protections.
+- The change covers administrator exit and extra-time approval without weakening
+  the full-screen session surface or exposing the desktop.
+
 ## Kvieta Alpha 1 Hotfix 1 — Guardian PIN authorization
 
 This hotfix corrects a public-package identity check that could make every valid
