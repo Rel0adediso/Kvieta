@@ -308,7 +308,12 @@ public static class ProtectionServiceManager
             }
         }
 
-        if (state == ProtectionServiceState.Running && !HasLiveGuardianSession())
+        // Setup deliberately keeps the management window open before Guardian takes
+        // the desktop back. That short hand-off is healthy, not a missing watchdog.
+        bool sessionIntentionallyDeferred = File.Exists(PostInstallControlCenterPath);
+        if (state == ProtectionServiceState.Running &&
+            !sessionIntentionallyDeferred &&
+            !HasLiveGuardianSession())
         {
             issues.Add(ProtectionHealthIssue.GuardianSessionMissing);
         }

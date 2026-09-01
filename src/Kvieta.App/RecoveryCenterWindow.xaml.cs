@@ -50,8 +50,11 @@ public partial class RecoveryCenterWindow : Window
     {
         System.Drawing.Rectangle area = System.Windows.Forms.Screen.FromHandle(
             new System.Windows.Interop.WindowInteropHelper(this).Handle).WorkingArea;
-        MaxWidth = Math.Max(MinWidth, area.Width);
-        MaxHeight = Math.Max(MinHeight, area.Height);
+        DpiScale dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+        double availableWidth = area.Width / dpi.DpiScaleX;
+        double availableHeight = area.Height / dpi.DpiScaleY;
+        MaxWidth = Math.Max(MinWidth, availableWidth);
+        MaxHeight = Math.Max(MinHeight, availableHeight);
         Width = Math.Min(Width, MaxWidth);
         Height = Math.Min(Height, MaxHeight);
     }

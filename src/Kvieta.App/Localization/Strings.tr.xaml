@@ -45,11 +45,15 @@
     <sys:String x:Key="GuardianVersionMismatchDescription">Uygulama ve Guardian sürümleri eşleşmiyor. Koruma güvenliği için Kvieta kurulumunu onar veya güncelle.</sys:String>
     <sys:String x:Key="DevelopmentTestBuild">Development/Test paketi</sys:String>
     <sys:String x:Key="PublicReleaseBuild">Public Release</sys:String>
-    <sys:String x:Key="RecoveryCodes">Kurtarma kodları</sys:String>
+    <sys:String x:Key="RecoveryCodes">Yeni kurtarma kodları</sys:String>
     <sys:String x:Key="ManagerDevice">Yönetici cihazı</sys:String>
     <sys:String x:Key="RecoveryCodesTitle">Tek kullanımlık kurtarma kodları</sys:String>
     <sys:String x:Key="RecoveryCodesDescription">Bu kodları güvenli bir yerde sakla. Her kod yalnız bir kez çalışır ve tekrar gösterilmez.</sys:String>
     <sys:String x:Key="CopyRecoveryCodes">Kodları kopyala</sys:String>
+    <sys:String x:Key="SaveRecoveryCodes">Dosyaya kaydet</sys:String>
+    <sys:String x:Key="RecoveryCodesSaveFailed">Kurtarma kodları dosyaya kaydedilemedi.</sys:String>
+    <sys:String x:Key="RecoveryCodesReplaceTitle">Eski kodlar geçersiz olacak</sys:String>
+    <sys:String x:Key="RecoveryCodesReplaceWarning">Yeni bir kod seti oluşturmak, daha önce kaydettiğin kullanılmamış kurtarma kodlarının tamamını anında geçersiz kılar. Yeni kodlar oluşturulsun mu?</sys:String>
     <sys:String x:Key="Done">Tamam</sys:String>
     <sys:String x:Key="RecoveryCodesRequirePin">Kurtarma kodu oluşturmadan önce yönetici PIN'i oluştur.</sys:String>
     <sys:String x:Key="WindowsAdminVerificationFailed">Windows yönetici doğrulaması iptal edildi veya başarısız oldu.</sys:String>

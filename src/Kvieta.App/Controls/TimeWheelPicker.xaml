@@ -1,0 +1,17 @@
+<UserControl x:Class="Kvieta.App.Controls.TimeWheelPicker"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             Focusable="False">
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <ComboBox x:Name="HourInput" Width="41" Height="30" Padding="5,3"
+                  ItemsSource="{Binding Hours, ElementName=Root}"
+                  SelectionChanged="TimePart_SelectionChanged"
+                  PreviewMouseWheel="TimePart_PreviewMouseWheel" />
+        <TextBlock Text=":" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="3,0" />
+        <ComboBox x:Name="MinuteInput" Width="41" Height="30" Padding="5,3"
+                  ItemsSource="{Binding Minutes, ElementName=Root}"
+                  SelectionChanged="TimePart_SelectionChanged"
+                  PreviewMouseWheel="TimePart_PreviewMouseWheel" />
+    </StackPanel>
+</UserControl>

@@ -228,8 +228,8 @@
                                             <ItemsControl Grid.Row="1" ItemsSource="{Binding ScheduleRows}"><ItemsControl.ItemTemplate><DataTemplate>
                                                 <Border Height="46" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56" /><ColumnDefinition Width="*" /><ColumnDefinition Width="96" /><ColumnDefinition Width="96" /><ColumnDefinition Width="116" /></Grid.ColumnDefinitions>
                                                     <CheckBox IsChecked="{Binding IsEnabled}" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding DayName}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                                    <TextBox Grid.Column="2" Style="{StaticResource PlanInputStyle}" Text="{Binding AllowedFrom, UpdateSourceTrigger=PropertyChanged}" Width="76" VerticalAlignment="Center" />
-                                                    <TextBox Grid.Column="3" Style="{StaticResource PlanInputStyle}" Text="{Binding AllowedUntil, UpdateSourceTrigger=PropertyChanged}" Width="76" VerticalAlignment="Center" />
+                                                    <controls:TimeWheelPicker Grid.Column="2" TimeText="{Binding AllowedFrom, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" />
+                                                    <controls:TimeWheelPicker Grid.Column="3" TimeText="{Binding AllowedUntil, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" />
                                                     <TextBox Grid.Column="4" Style="{StaticResource PlanInputStyle}" Text="{Binding DailyLimitMinutes, UpdateSourceTrigger=LostFocus}" Width="76" VerticalAlignment="Center" />
                                                 </Grid></Border>
                                             </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>

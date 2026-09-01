@@ -19,8 +19,8 @@ public partial class TemporaryAllowanceWindow : Window
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         if (DateInput.SelectedDate is not DateTime date || date.Date < DateTime.Today ||
-            !TimeOnly.TryParseExact(StartInput.Text.Trim(), "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly from) ||
-            !TimeOnly.TryParseExact(EndInput.Text.Trim(), "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly until) ||
+            !TimeOnly.TryParseExact(StartInput.TimeText, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly from) ||
+            !TimeOnly.TryParseExact(EndInput.TimeText, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly until) ||
             !int.TryParse(MinutesInput.Text.Trim(), out int minutes) || minutes is < 1 or > 1440)
         {
             ErrorText.Text = LocalizationService.CurrentLanguage == LanguagePreference.English

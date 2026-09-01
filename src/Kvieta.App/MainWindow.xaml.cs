@@ -776,6 +776,18 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (_viewModel.UnusedRecoveryCodeCount > 0 &&
+            System.Windows.MessageBox.Show(
+                this,
+                LocalizationService.Get("RecoveryCodesReplaceWarning"),
+                LocalizationService.Get("RecoveryCodesReplaceTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No) != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
         AdminPinWindow verification = AdminPinWindow.CreateVerification(
             _viewModel.VerifyAdminPinAsync,
             RecoverAdminPinAsync,
@@ -983,7 +995,7 @@ public partial class MainWindow : Window
                 release,
                 identity.Compatibility == ProtectionVersionCompatibility.Compatible ? (english ? "Versions matched" : "Sürümler eşleşiyor") : (english ? "Needs attention" : "Kontrol gerekli"),
                 identity.InstalledBinaryVersion?.ToString(3) ?? "—",
-                health.IsHealthy ? (english ? "Healthy" : "Sağlıklı") : $"{health.Issues.Count} {(english ? "issue(s)" : "sorun")}",
+                health.IsHealthy ? (english ? "Healthy" : "Sağlıklı") : BuildProtectionHealthDetails(health),
                 english ? "Settings + usage" : "Ayarlar + kullanım",
                 _viewModel.LocalDataHealthText))
             {

@@ -828,6 +828,8 @@ public sealed class MainViewModel : ObservableObject
         return codes;
     }
 
+    public int UnusedRecoveryCodeCount => _settings.RecoveryCodes.Count(code => code.UsedAtUtc is null);
+
     public Task SetControlModeAsync(ControlMode mode, string? newPin = null) =>
         SetControlModeAsync(
             mode,

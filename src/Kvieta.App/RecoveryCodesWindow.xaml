@@ -7,6 +7,6 @@
         <TextBlock Text="{DynamicResource RecoveryCodesTitle}" FontSize="22" FontWeight="SemiBold" />
         <TextBlock Grid.Row="1" Text="{DynamicResource RecoveryCodesDescription}" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" Margin="0,8,0,16" />
         <TextBox x:Name="CodesTextBox" Grid.Row="2" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" FontSize="14" Padding="14" VerticalScrollBarVisibility="Auto" />
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0"><Button Content="{DynamicResource CopyRecoveryCodes}" Style="{StaticResource SecondaryButtonStyle}" Click="Copy_Click" Margin="0,0,8,0" /><Button Content="{DynamicResource Done}" Style="{StaticResource PrimaryButtonStyle}" Click="Done_Click" /></StackPanel>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0"><Button Content="{DynamicResource CopyRecoveryCodes}" Style="{StaticResource SecondaryButtonStyle}" Click="Copy_Click" Margin="0,0,8,0" /><Button x:Name="SaveButton" Content="{DynamicResource SaveRecoveryCodes}" Style="{StaticResource SecondaryButtonStyle}" Click="Save_Click" Margin="0,0,8,0" /><Button Content="{DynamicResource Done}" Style="{StaticResource PrimaryButtonStyle}" Click="Done_Click" /></StackPanel>
     </Grid>
 </Window>

@@ -45,11 +45,15 @@
     <sys:String x:Key="GuardianVersionMismatchDescription">The app and Guardian versions do not match. Repair or update Kvieta to keep protection safe.</sys:String>
     <sys:String x:Key="DevelopmentTestBuild">Development/Test build</sys:String>
     <sys:String x:Key="PublicReleaseBuild">Public Release</sys:String>
-    <sys:String x:Key="RecoveryCodes">Recovery codes</sys:String>
+    <sys:String x:Key="RecoveryCodes">New recovery codes</sys:String>
     <sys:String x:Key="ManagerDevice">Manager device</sys:String>
     <sys:String x:Key="RecoveryCodesTitle">One-time recovery codes</sys:String>
     <sys:String x:Key="RecoveryCodesDescription">Store these codes somewhere safe. Each code works once and will not be shown again.</sys:String>
     <sys:String x:Key="CopyRecoveryCodes">Copy codes</sys:String>
+    <sys:String x:Key="SaveRecoveryCodes">Save to file</sys:String>
+    <sys:String x:Key="RecoveryCodesSaveFailed">Recovery codes could not be saved to the file.</sys:String>
+    <sys:String x:Key="RecoveryCodesReplaceTitle">Old codes will become invalid</sys:String>
+    <sys:String x:Key="RecoveryCodesReplaceWarning">Creating a new set immediately invalidates every unused recovery code you saved earlier. Create new codes?</sys:String>
     <sys:String x:Key="Done">Done</sys:String>
     <sys:String x:Key="RecoveryCodesRequirePin">Create an administrator PIN before generating recovery codes.</sys:String>
     <sys:String x:Key="WindowsAdminVerificationFailed">Windows administrator verification was cancelled or failed.</sys:String>
