@@ -26,7 +26,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Otium.Core/Otium.Core.csproj" />
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.11" />
     <PackageReference Include="System.Management" Version="10.0.0" />
     <PackageReference Include="QRCoder" Version="1.8.0" />
     <AssemblyMetadata Include="RepositoryCommit" Value="$(RepositoryCommit)" Condition="'$(RepositoryCommit)' != ''" />
