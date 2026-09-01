@@ -5,6 +5,10 @@
 This hotfix keeps administrator PIN and bonus-time dialogs visibly above the
 protected full-screen session surface.
 
+The unsigned package was built from clean source commit `56c2462` and published
+as the `alpha-1-hotfix-2` GitHub prerelease. Setup EXE SHA-256:
+`0c9a974072929e47369efdd951bdc42341a836814aa447f48d8299fbf70e5f72`.
+
 - Session-owned WPF dialogs now inherit the topmost z-order required by the
   protected surface instead of relying on ownership alone.
 - Administrator PIN dialogs explicitly activate and focus the PIN field after

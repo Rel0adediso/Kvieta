@@ -14,29 +14,29 @@ Windows'ta ekran süresini anlamanın ve yönetmenin sakin, yerel yolu.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=292B26)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=292B26)
 ![Privacy](https://img.shields.io/badge/gizlilik-yerel--öncelikli-87946B?style=flat-square&labelColor=292B26)
-![Status](https://img.shields.io/badge/durum-Alpha_1_Hotfix_1-C9B98E?style=flat-square&labelColor=292B26)
+![Status](https://img.shields.io/badge/durum-Alpha_1_Hotfix_2-C9B98E?style=flat-square&labelColor=292B26)
 ![License](https://img.shields.io/badge/lisans-MIT-87946B?style=flat-square&labelColor=292B26)
 
 </div>
 
 Kvieta, bilgisayar kullanımını cezaya çevirmeden zamanı görünür ve bilinçli hale getirir. Planlar, kurallar, kullanım geçmişi, kimlik bilgileri ve kurtarma verileri Windows cihazında kalır. Kvieta hesabı gerekmez.
 
-## Kvieta Alpha 1 Hotfix 1'i indir
+## Kvieta Alpha 1 Hotfix 2'yi indir
 
-[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-1-hotfix-1/Kvieta-Setup-Alpha-1-Hotfix-1.exe)
+[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-1-hotfix-2/Kvieta-Setup-Alpha-1-Hotfix-2.exe)
 
 Self-contained kurucu Türkçe ve English destekler; .NET SDK gerektirmez. Bu
 community preview bilerek imzasızdır, bu nedenle Windows SmartScreen
 **Bilinmeyen yayıncı** uyarısı gösterebilir.
 
 ```text
-SHA-256: e13297d9713acdcae13ec67473749aebb03b864c9f27544a3d5cfb3ac0b8f13b
+SHA-256: 0c9a974072929e47369efdd951bdc42341a836814aa447f48d8299fbf70e5f72
 ```
 
 Bağımsız MSI, checksum dosyaları, release manifesti, ayrıntılı notlar ve bilinen
-sınırlar [Kvieta Alpha 1 Hotfix 1 yayın sayfasında](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1-hotfix-1) bulunur.
+sınırlar [Kvieta Alpha 1 Hotfix 2 yayın sayfasında](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1-hotfix-2) bulunur.
 
-> **Önemli:** İlk Alpha 1 paketi, Korumalı moddaki doğru PIN'leri doğrulamaya gelmeden reddedebiliyordu. Hotfix 1'i mevcut kurulumun üzerine kurun; ayarlar ve korunan policy korunur.
+> **Önemli:** Hotfix 2, Hotfix 1'deki Guardian PIN düzeltmesini içerir ve yönetici pencerelerini korumalı oturum yüzeyinin üzerinde görünür tutar. Herhangi bir eski Alpha 1 paketinin üzerine kurulabilir; ayarlar ve korunan policy korunur.
 
 ## Zamanla nasıl bir ilişki kuracağını seç
 
@@ -73,12 +73,12 @@ Kvieta zorunlu bulut hesabı kullanmaz ve ekran süresi geçmişini bir Kvieta s
 
 ## Projenin durumu
 
-**Kvieta Alpha 1 Hotfix 1 güncel community preview'dur.**
+**Kvieta Alpha 1 Hotfix 2 güncel community preview'dur.**
 
 - Kaynak kod bugün çalıştırılabilir; Windows paket hattı hazırdır.
 - Debug ve Release derlemeleri, smoke testleri, belge kontrolleri ve public-build bypass kontrolleri kalite kapısı olarak çalışır.
 - Community kurucular bilerek imzasızdır; Windows SmartScreen **Bilinmeyen yayıncı** uyarısı gösterebilir.
-- Yayımlanan Setup EXE, MSI, checksum ve manifest `4ed3210` kaynak commit'ine bağlıdır.
+- Yayımlanan Setup EXE, MSI, checksum ve manifest `56c2462` kaynak commit'ine bağlıdır.
 - Geniş kurucu, DPI, Guardian, kaçış yolu ve Windows yaşam döngüsü matrisi final `v1.0.0` öncesinde açıktır.
 
 Kalan doğrulamalar için [yol haritasına](ROADMAP.md), ayrıntılı geçmiş için [sürüm notlarına](RELEASE_NOTES.md) bakın.
