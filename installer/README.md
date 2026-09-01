@@ -1,7 +1,7 @@
-# Otium installer
+# Kvieta installer
 
 The installer is an x64, per-machine MSI built with the WiX Toolset. It installs
-Otium under `Program Files\Otium`, creates a Start menu shortcut, and lets Windows
+Kvieta under `Program Files\Kvieta`, creates a Start menu shortcut, and lets Windows
 Installer own the Guardian service lifecycle.
 
 Build a release package from the repository root:
@@ -55,7 +55,7 @@ Build an unsigned development installer for local testing (never for distributio
 .\scripts\build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel 1.0.0-alpha
 ```
 
-Build the unsigned **Otium Alpha 2** package in Release configuration, without
+Build the unsigned **Kvieta Alpha 2** package in Release configuration, without
 development/test bypasses:
 
 ```powershell
@@ -87,32 +87,32 @@ and MSI. Validate it without installing anything:
   -ExpectedPackageKind test
 ```
 
-The user-facing `Otium-Setup-<release-label>.exe` is a self-contained, bilingual WPF
+The user-facing `Kvieta-Setup-<release-label>.exe` is a self-contained, bilingual WPF
 setup experience with the MSI embedded inside it. It follows the Windows app
-theme, explains Otium, detects existing settings, collects mode-specific first-run
+theme, explains Kvieta, detects existing settings, collects mode-specific first-run
 choices, requests elevation only for the MSI transaction, saves settings only
-after a successful install, and launches the correct Otium surface. The standalone
+after a successful install, and launches the correct Kvieta surface. The standalone
 MSI remains beside it for managed and unattended deployment.
 
-For Alpha 2, the release title shown to people is **Otium Alpha 2**. The Git tag
+For Alpha 2, the release title shown to people is **Kvieta Alpha 2**. The Git tag
 and package-safe label use `alpha-2` / `Alpha-2`, so the Setup filename is
-`Otium-Setup-Alpha-2.exe`. The numeric MSI version remains `1.0.0` for Windows
+`Kvieta-Setup-Alpha-2.exe`. The numeric MSI version remains `1.0.0` for Windows
 Installer compatibility and is not used as the public release name.
 Development packages explicitly allow reinstalling another build with the same
 numeric MSI version, so alpha iterations do not pretend to be patch releases.
 Signed public builds keep same-version upgrades disabled.
 
 On an interactive first install, the completion page offers a checked-by-default
-option to launch Otium. The launch action runs as the installing user and is not
+option to launch Kvieta. The launch action runs as the installing user and is not
 scheduled for repair, uninstall, upgrade, or unattended installation.
 
 The desktop shortcut is disabled by default and can be selected from the MSI's
 feature screen. It can also be enabled in an unattended install with:
 
 ```powershell
-msiexec /i Otium-1.0.0-win-x64.msi ADDLOCAL=MainFeature,DesktopShortcutFeature
+msiexec /i Kvieta-1.0.0-win-x64.msi ADDLOCAL=MainFeature,DesktopShortcutFeature
 ```
 
 User settings and usage history remain under the user's local application-data
-directory. Protected policy data remains under `ProgramData\Otium`; neither area
+directory. Protected policy data remains under `ProgramData\Kvieta`; neither area
 is owned or removed by the MSI during an upgrade.

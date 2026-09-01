@@ -1,8 +1,8 @@
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 
-const config = window.__OTIUM_CONFIG__;
-const stateKey = "otium-manager-device-v1";
+const config = window.__KVIETA_CONFIG__;
+const stateKey = "kvieta-manager-device-v1";
 const textEncoder = new TextEncoder();
 
 const $ = (selector) => document.querySelector(selector);
@@ -94,7 +94,7 @@ function signContent(content, privateKey) {
 
 function recoverySignedContent(challenge) {
   return [
-    "otium-manager-recovery-v1",
+    "kvieta-manager-recovery-v1",
     encodeField(challenge.ChallengeId),
     encodeField(challenge.DeviceId),
     encodeField(unixSeconds(challenge.ExpiresAtUtc)),
@@ -106,7 +106,7 @@ function recoverySignedContent(challenge) {
 
 function transferSignedContent(transfer) {
   return [
-    "otium-manager-transfer-v1",
+    "kvieta-manager-transfer-v1",
     encodeField(transfer.CurrentDeviceId),
     encodeField(transfer.NewDeviceId),
     encodeField(transfer.NewDevicePublicKeyHashBase64),
@@ -128,7 +128,7 @@ async function api(method, body) {
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!response.ok) throw new Error(`Otium isteği reddetti (${response.status}).`);
+  if (!response.ok) throw new Error(`Kvieta isteği reddetti (${response.status}).`);
   return response.json();
 }
 
@@ -156,7 +156,7 @@ async function approveEnrollment(endpoint) {
     RevokedAtUtc: null,
   };
   const proof = [
-    "otium-manager-enrollment-v1",
+    "kvieta-manager-enrollment-v1",
     encodeField(enrollment.DeviceId),
     encodeField(enrollment.DeviceName),
     encodeField(enrollment.PublicKeyPem),
@@ -171,7 +171,7 @@ async function approveEnrollment(endpoint) {
 async function approveRecovery(endpoint) {
   const identity = loadState();
   if (!identity?.privateKeyBase64 || !identity?.deviceId) {
-    throw new Error("Bu tarayıcıda kayıtlı Otium yönetici anahtarı yok.");
+    throw new Error("Bu tarayıcıda kayıtlı Kvieta yönetici anahtarı yok.");
   }
   const challenge = endpoint.challenge;
   if (challenge.DeviceId !== identity.deviceId) {
@@ -231,11 +231,11 @@ async function approveTransfer(endpoint) {
 async function start() {
   try {
     const endpoint = await api("GET");
-    const enrollment = endpoint.service === "otium-enrollment";
-    const recovery = endpoint.service === "otium-recovery";
-    const transferNew = endpoint.service === "otium-transfer-new";
-    const transferCurrent = endpoint.service === "otium-transfer-current";
-    if (!enrollment && !recovery && !transferNew && !transferCurrent) throw new Error("Geçersiz Otium endpoint'i.");
+    const enrollment = endpoint.service === "kvieta-enrollment";
+    const recovery = endpoint.service === "kvieta-recovery";
+    const transferNew = endpoint.service === "kvieta-transfer-new";
+    const transferCurrent = endpoint.service === "kvieta-transfer-current";
+    if (!enrollment && !recovery && !transferNew && !transferCurrent) throw new Error("Geçersiz Kvieta endpoint'i.");
     const code = recovery
       ? verificationCode(recoverySignedContent(endpoint.challenge))
       : endpoint.verificationCode;
@@ -285,7 +285,7 @@ async function start() {
     $("#app").hidden = false;
     $("#loading").hidden = true;
   } catch (error) {
-    $("#loading").textContent = error.message || "Otium bilgisayarına bağlanılamadı.";
+    $("#loading").textContent = error.message || "Kvieta bilgisayarına bağlanılamadı.";
     $("#loading").className = "loading error";
   }
 }

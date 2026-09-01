@@ -1,0 +1,19 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <Platform>x64</Platform>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <KvietaVersion Condition="'$(KvietaVersion)' == ''">1.0.0</KvietaVersion>
+    <KvietaReleaseLabel Condition="'$(KvietaReleaseLabel)' == ''">$(KvietaVersion)</KvietaReleaseLabel>
+    <KvietaPublishDir Condition="'$(KvietaPublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\win-x64</KvietaPublishDir>
+    <KvietaSignerThumbprint Condition="'$(KvietaSignerThumbprint)' == ''">UNSIGNED-DEVELOPMENT-BUILD</KvietaSignerThumbprint>
+    <KvietaPackageKind Condition="'$(KvietaPackageKind)' == ''">test</KvietaPackageKind>
+    <KvietaExecutableSha256 Condition="'$(KvietaExecutableSha256)' == ''">UNAVAILABLE</KvietaExecutableSha256>
+    <KvietaAllowSameVersionUpgrades Condition="'$(KvietaAllowSameVersionUpgrades)' == ''">no</KvietaAllowSameVersionUpgrades>
+    <DefineConstants>KvietaVersion=$(KvietaVersion);KvietaReleaseLabel=$(KvietaReleaseLabel);KvietaPublishDir=$(KvietaPublishDir);KvietaSignerThumbprint=$(KvietaSignerThumbprint);KvietaPackageKind=$(KvietaPackageKind);KvietaExecutableSha256=$(KvietaExecutableSha256);KvietaAllowSameVersionUpgrades=$(KvietaAllowSameVersionUpgrades)</DefineConstants>
+    <OutputName>Kvieta-$(KvietaVersion)-win-x64</OutputName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

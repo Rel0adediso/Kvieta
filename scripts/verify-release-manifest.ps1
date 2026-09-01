@@ -9,7 +9,7 @@ $ErrorActionPreference = 'Stop'
 $manifestFile = Get-Item -LiteralPath $ManifestPath -ErrorAction Stop
 $manifest = Get-Content -LiteralPath $manifestFile.FullName -Raw | ConvertFrom-Json
 
-if ($manifest.schemaVersion -ne 2 -or $manifest.product -ne 'Otium' -or $manifest.architecture -ne 'win-x64') {
+if ($manifest.schemaVersion -ne 2 -or $manifest.product -ne 'Kvieta' -or $manifest.architecture -ne 'win-x64') {
     throw 'Release manifest identity or schema is invalid.'
 }
 if ($ExpectedCommit -and $manifest.commit -ne $ExpectedCommit) {

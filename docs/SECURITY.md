@@ -1,16 +1,16 @@
-# Otium security boundaries
+# Kvieta security boundaries
 
 ## Protected scenario
 
 Protected mode is designed to resist common bypasses on a standard Windows account managed by a separate administrator account. Guardian keeps the authoritative protected policy, restores the session surface, and communicates with the app over authenticated IPC.
 
-Windows service recovery and Guardian supervision handle Task Manager-like termination of the service or protected session. If Guardian is unhealthy at Protected startup, Otium does not continue unprotected: it requests repair or exits safely.
+Windows service recovery and Guardian supervision handle Task Manager-like termination of the service or protected session. If Guardian is unhealthy at Protected startup, Kvieta does not continue unprotected: it requests repair or exits safely.
 
 ## Not guaranteed
 
 - There is no absolute protection against someone with Windows administrator rights, physical disk access, or offline operating-system access.
 - Safe Mode, alternate boot media, firmware/boot changes, and kernel-level tooling are out of scope.
-- Otium is not a replacement for enterprise EDR, AppLocker, or WDAC.
+- Kvieta is not a replacement for enterprise EDR, AppLocker, or WDAC.
 - Unsigned Development output is not a release package. The current Public Guardian path expects an installed client under Program Files with an Authenticode signer pinned by the installer. A separate unsigned community identity model is open V1 work and will not reuse the Development bypass.
 
 ## Stored data

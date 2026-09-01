@@ -16,9 +16,9 @@ $buildConfiguration = if ($CommunityRelease) { 'Release' } else { 'Debug' }
 $artifactKind = if ($CommunityRelease) { 'community' } else { 'test' }
 $publishedArtifactDirectory = Join-Path $repositoryRoot "artifacts\publish-$artifactKind\win-x64"
 $installerOutputDirectory = Join-Path $repositoryRoot "artifacts\installer-$artifactKind\$Version"
-$applicationProject = Join-Path $repositoryRoot 'src\Otium.App\Otium.App.csproj'
-$setupProject = Join-Path $repositoryRoot 'src\Otium.SetupApp\Otium.SetupApp.csproj'
-$installerProject = Join-Path $repositoryRoot 'installer\Otium.Setup\Otium.Setup.wixproj'
+$applicationProject = Join-Path $repositoryRoot 'src\Kvieta.App\Kvieta.App.csproj'
+$setupProject = Join-Path $repositoryRoot 'src\Kvieta.SetupApp\Kvieta.SetupApp.csproj'
+$installerProject = Join-Path $repositoryRoot 'installer\Kvieta.Setup\Kvieta.Setup.wixproj'
 $dotnetCommand = Get-Command 'dotnet.exe' -ErrorAction SilentlyContinue
 $dotnet = if ($null -ne $dotnetCommand) {
     $dotnetCommand.Source
@@ -26,12 +26,12 @@ $dotnet = if ($null -ne $dotnetCommand) {
     Join-Path $env:ProgramFiles 'dotnet\dotnet.exe'
 }
 if (-not (Test-Path -LiteralPath $dotnet)) {
-    throw 'dotnet.exe was not found. Install the .NET SDK before building Otium.'
+    throw 'dotnet.exe was not found. Install the .NET SDK before building Kvieta.'
 }
 
 # Native Windows cabinet tooling is not Unicode-safe for every temporary path.
-$cabinetTempDirectory = Join-Path $env:PUBLIC 'OtiumBuildTemp'
-$wixStagingDirectory = Join-Path $env:PUBLIC "OtiumBuildStaging\$artifactKind\$Version"
+$cabinetTempDirectory = Join-Path $env:PUBLIC 'KvietaBuildTemp'
+$wixStagingDirectory = Join-Path $env:PUBLIC "KvietaBuildStaging\$artifactKind\$Version"
 $publishDirectory = Join-Path $wixStagingDirectory 'publish'
 $wixIntermediateDirectory = Join-Path $wixStagingDirectory 'obj\'
 $wixOutputDirectory = Join-Path $wixStagingDirectory 'installer\'
@@ -58,34 +58,34 @@ $repositoryDirty = @(& git -C $repositoryRoot status --porcelain --untracked-fil
     -p:PublishSingleFile=true `
     -p:PublishDir="$publishDirectory\"
 if ($LASTEXITCODE -ne 0) {
-    throw "Otium development publish failed with exit code $LASTEXITCODE."
+    throw "Kvieta development publish failed with exit code $LASTEXITCODE."
 }
-Copy-Item -LiteralPath (Join-Path $publishDirectory 'Otium.exe') `
-    -Destination (Join-Path $publishedArtifactDirectory 'Otium.exe') -Force
-$publishedExecutableHash = (Get-FileHash -LiteralPath (Join-Path $publishDirectory 'Otium.exe') -Algorithm SHA256).Hash
+Copy-Item -LiteralPath (Join-Path $publishDirectory 'Kvieta.exe') `
+    -Destination (Join-Path $publishedArtifactDirectory 'Kvieta.exe') -Force
+$publishedExecutableHash = (Get-FileHash -LiteralPath (Join-Path $publishDirectory 'Kvieta.exe') -Algorithm SHA256).Hash
 
 & $dotnet build $installerProject `
     -c Release `
-    -p:OtiumVersion=$Version `
-    -p:OtiumReleaseLabel=$ReleaseLabel `
-    -p:OtiumPublishDir="$publishDirectory" `
-    -p:OtiumSignerThumbprint=$(if ($CommunityRelease) { 'UNSIGNED-COMMUNITY-BUILD' } else { 'UNSIGNED-DEVELOPMENT-BUILD' }) `
-    -p:OtiumPackageKind=$packageKind `
-    -p:OtiumExecutableSha256=$publishedExecutableHash `
-    -p:OtiumAllowSameVersionUpgrades=yes `
+    -p:KvietaVersion=$Version `
+    -p:KvietaReleaseLabel=$ReleaseLabel `
+    -p:KvietaPublishDir="$publishDirectory" `
+    -p:KvietaSignerThumbprint=$(if ($CommunityRelease) { 'UNSIGNED-COMMUNITY-BUILD' } else { 'UNSIGNED-DEVELOPMENT-BUILD' }) `
+    -p:KvietaPackageKind=$packageKind `
+    -p:KvietaExecutableSha256=$publishedExecutableHash `
+    -p:KvietaAllowSameVersionUpgrades=yes `
     -p:SuppressSpecificWarnings=1076 `
     -p:BaseIntermediateOutputPath="$wixIntermediateDirectory" `
     -p:OutputPath="$wixOutputDirectory"
 if ($LASTEXITCODE -ne 0) {
-    throw "Otium test installer build failed with exit code $LASTEXITCODE."
+    throw "Kvieta test installer build failed with exit code $LASTEXITCODE."
 }
 
-$stagedInstaller = Join-Path $wixOutputDirectory "Otium-$Version-win-x64.msi"
+$stagedInstaller = Join-Path $wixOutputDirectory "Kvieta-$Version-win-x64.msi"
 if (-not (Test-Path -LiteralPath $stagedInstaller)) {
     throw "Test installer staging output was not found: $stagedInstaller"
 }
 
-$installer = Join-Path $installerOutputDirectory "Otium-$Version-win-x64.msi"
+$installer = Join-Path $installerOutputDirectory "Kvieta-$Version-win-x64.msi"
 Copy-Item -LiteralPath $stagedInstaller -Destination $installer -Force
 if (-not (Test-Path -LiteralPath $installer)) {
     throw "Test installer output was not found: $installer"
@@ -102,14 +102,14 @@ Set-Content -LiteralPath "$installer.sha256" `
     --self-contained true `
     -p:Version=$Version `
     -p:InformationalVersion=$ReleaseLabel `
-    -p:OtiumInstallerPath="$stagedInstaller" `
+    -p:KvietaInstallerPath="$stagedInstaller" `
     -p:PublishDir="$setupPublishDirectory\"
 if ($LASTEXITCODE -ne 0) {
-    throw "Otium setup application publish failed with exit code $LASTEXITCODE."
+    throw "Kvieta setup application publish failed with exit code $LASTEXITCODE."
 }
 
-$publishedSetup = Join-Path $setupPublishDirectory 'Otium.Setup.exe'
-$setup = Join-Path $installerOutputDirectory "Otium-Setup-$ReleaseLabel.exe"
+$publishedSetup = Join-Path $setupPublishDirectory 'Kvieta.Setup.exe'
+$setup = Join-Path $installerOutputDirectory "Kvieta-Setup-$ReleaseLabel.exe"
 Copy-Item -LiteralPath $publishedSetup -Destination $setup -Force
 $setupHash = Get-FileHash -LiteralPath $setup -Algorithm SHA256
 Set-Content -LiteralPath "$setup.sha256" `

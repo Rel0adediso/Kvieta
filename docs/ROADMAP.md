@@ -1,21 +1,21 @@
-# Otium — Ürün ve Release Yol Haritası
+# Kvieta — Ürün ve Release Yol Haritası
 
 **Son güncelleme:** 31 Ağustos 2026
 
-**Mevcut yayın:** **Otium Alpha 2** GitHub prerelease
+**Mevcut yayın:** **Kvieta Alpha 2** GitHub prerelease
 
 **Aktif hedef:** Alpha 2 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Otium Alpha 2](https://github.com/Rel0adediso/Otium/releases/tag/alpha-2)
+**Yayın:** [Kvieta Alpha 2](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-2)
 
-Bu belge Otium'un bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
+Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
 bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği için
 öncelikle **Aktif çalışma planı** bölümü esas alınır.
 
 ## Ürün ilkeleri
 
-- Otium hesap veya bulut zorunluluğu olmadan yerel çalışır.
+- Kvieta hesap veya bulut zorunluluğu olmadan yerel çalışır.
 - Kullanım verisi, planlar, kurallar ve tanılama kayıtları varsayılan olarak cihazda kalır.
 - **Sadece takip** hiçbir kısıtlama uygulamadan kullanım farkındalığı sağlar.
 - **Kendim için** kullanıcıyı cezalandırmadan kendi kararına sadık kalmasına yardım eder.
@@ -42,9 +42,9 @@ Bu sonuçlar çekirdek ve kaynak build sağlığını doğrular. Gerçek Windows
 döngüsü, Guardian, installer ve ekran davranışlarının tamamının doğrulandığı
 anlamına gelmez.
 
-## Otium Alpha 2 yayın planı
+## Kvieta Alpha 2 yayın planı
 
-İkinci community prerelease kullanıcıya **Otium Alpha 2** adıyla sunulur. Git tag
+İkinci community prerelease kullanıcıya **Kvieta Alpha 2** adıyla sunulur. Git tag
 `alpha-2`, paket etiketi `Alpha-2` olur; `v1.0.0-alpha.2` kullanıcıya görünen yayın
 adı olarak kullanılmaz. Windows Installer ürün sürümü yükseltme/onarım uyumluluğu
 için `1.0.0` kalır.
@@ -55,7 +55,7 @@ için `1.0.0` kalır.
 - Yönetici çıkışı, Control Center/session tekilleştirme ve Guardian geçiş düzeltmeleri.
 - Eski Alpha kurulumunu güncelleme, onarma, yeniden yapılandırma ve kaldırma akışları.
 - Guardian başlatma/onarım, protected policy aktarımı, dosya kilidi ve recovery düzeltmeleri.
-- Kurulum PIN akışı, açıklamalar, hata durumları ve Otium teması iyileştirmeleri.
+- Kurulum PIN akışı, açıklamalar, hata durumları ve Kvieta teması iyileştirmeleri.
 - Uygulama kuralları, oturum ekranı ve güç menüsü regresyon düzeltmeleri.
 
 ### Alpha 2 yayın kapısı
@@ -65,7 +65,7 @@ için `1.0.0` kalır.
 - [x] Public-build bypass kontrolü ve companion web bundle üretimi geçti.
 - [x] `Alpha-2` community Setup EXE/MSI metadata, manifest ve SHA-256 kontrollerini geçti.
 - [x] Release commit'inden temiz community paketi yeniden üretildi; manifest commit'i `alpha-2` tag'iyle eşleşiyor.
-- [x] GitHub Release **Otium Alpha 2** başlığıyla prerelease olarak yayımlandı.
+- [x] GitHub Release **Kvieta Alpha 2** başlığıyla prerelease olarak yayımlandı.
 - [x] README indirme bağlantıları ve SHA-256 değeri yayımlanan son paketle güncellendi.
 
 ## `v1.0.0-alpha.1` yayın arşivi
@@ -201,8 +201,8 @@ takma/çıkarma kombinasyonları ayrıca kanıtlanacaktır.
 
 Bekleyen fiziksel test:
 
-- Birincil ekranda normal Otium kontrollerinin kalması.
-- İkincil ekranların masaüstü ve görev çubuğunu göstermeyen Otium kalkanıyla kaplanması.
+- Birincil ekranda normal Kvieta kontrollerinin kalması.
+- İkincil ekranların masaüstü ve görev çubuğunu göstermeyen Kvieta kalkanıyla kaplanması.
 - Monitör çalışma sırasında takıldığında kalkanın otomatik oluşması.
 - Monitör çıkarıldığında yardımcı pencerenin temizlenmesi ve yeniden bağlandığında geri gelmesi.
 - Farklı DPI, çözünürlük, ekran yönü ve negatif koordinat yerleşimlerinin doğrulanması.
@@ -237,7 +237,7 @@ dizinine alınarak paketleme yaklaşık dokuz saniyede tamamlandı. Dağıtıma 
 Debug geçitli imzasız MSI için ayrı `build-test-installer.ps1` komutu eklendi;
 üretilen paket ve SHA-256 çıktısı release artifact'lerinden ayrıldı.
 Ardından son kullanıcı için MSI'yı içinde taşıyan self-contained
-`Otium-Setup-<version>.exe` üretimi eklendi; bağımsız MSI sessiz ve yönetilen
+`Kvieta-Setup-<version>.exe` üretimi eklendi; bağımsız MSI sessiz ve yönetilen
 dağıtımlar için korunmaya devam ediyor.
 
 27 Ağustos 2026'da Debug test paketinden teknik olarak ayrı, development bypass
@@ -269,13 +269,13 @@ Kabul kriteri:
 
 26 Ağustos 2026'da Windows açık/koyu uygulama temasını canlı izleyen, ilk adımda
 Türkçe/English seçtiren ve bütün sonraki metinleri seçilen dilde gösteren markalı
-WPF kurucu tamamlandı. Kurucu Otium'u ve yerel veri sınırını açıklar; mevcut ayarı
+WPF kurucu tamamlandı. Kurucu Kvieta'yı ve yerel veri sınırını açıklar; mevcut ayarı
 algılar; korumasız kullanıcıya mevcut ayarları koruma veya yeniden yapılandırma
 seçeneği sunar; Guardian politikasının kurucu üzerinden gevşetilmesini engeller.
 Yeni yapılandırmada üç kullanım biçimi, kişisel koruma seviyesi, cihaz adı, günlük
 süre, yerel ölçüm, Windows başlangıcı, masaüstü kısayolu ve gerektiğinde yönetici
 PIN'i alınır. Özet onayından sonra yönetici izni yalnız MSI işlemi için istenir,
-ayarlar yalnız başarılı kurulumdan sonra atomik olarak kaydedilir ve Otium seçilen
+ayarlar yalnız başarılı kurulumdan sonra atomik olarak kaydedilir ve Kvieta seçilen
 modun doğru başlangıç yüzeyiyle açılır.
 
 Kurucu artık Windows Installer tarafından kaydedilmiş mevcut sürümü başlangıçta
@@ -346,7 +346,7 @@ Zorunlu senaryolar:
 
 - Standart kullanıcı ve ayrı yönetici hesabı.
 - Guardian service stop, kill, crash ve recovery.
-- Otium süreç kill/crash ve korunan oturumun geri gelmesi.
+- Kvieta süreç kill/crash ve korunan oturumun geri gelmesi.
 - Reboot, `Win+L`, uyku, hibernation ve güç kesintisi sonrası açılış.
 - Explorer restart, kullanıcı değiştirme ve Remote Desktop.
 - Tek/çoklu monitör, ekran takma/çıkarma, DPI ve çözünürlük değişimi.
@@ -449,7 +449,7 @@ Final sürüm ancak aşağıdaki koşulların tamamı sağlandığında yayınla
 4. Değişiklikleri tek release commit'inde birleştir.
 5. Community Setup EXE'yi temiz commit'ten yeniden üret; manifest, SHA-256 ve
    kaynak commit eşleşmesini doğrula.
-6. `alpha-2` annotated tag'ini oluştur ve **Otium Alpha 2** GitHub prerelease'ini
+6. `alpha-2` annotated tag'ini oluştur ve **Kvieta Alpha 2** GitHub prerelease'ini
    paket varlıkları, imzasız yayın uyarısı ve bilinen sınırlarla yayınla.
 7. README indirme bağlantısı ile SHA-256 değerini yayımlanan paketle eşitle.
 8. Alpha 2 geri bildirimlerinden sonra kalan Windows yaşam döngüsü, DPI,

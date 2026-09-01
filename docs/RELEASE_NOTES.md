@@ -1,8 +1,8 @@
-# Otium release notes
+# Kvieta release notes
 
-## Otium Alpha 2 — Second community prerelease
+## Kvieta Alpha 2 — Second community prerelease
 
-Otium Alpha 2 is the second community prerelease. The public name deliberately
+Kvieta Alpha 2 is the second community prerelease. The public name deliberately
 does not use `v1.0.0-alpha.2`; `alpha-2` is used only where a URL, Git tag, or
 filename-safe identifier is required. The internal MSI product version remains
 `1.0.0` so Windows Installer can service existing Alpha installations.
@@ -52,12 +52,12 @@ filename-safe identifier is required. The internal MSI product version remains
 - Made trusted-phone enrollment optional without reporting a cancelled enrollment
   as successful.
 - Improved PIN dialogs, recovery screens, compact-window layouts, error messages,
-  progress states, icons, and the Otium light/dark visual language.
+  progress states, icons, and the Kvieta light/dark visual language.
 - Fixed session-surface power actions and confirmation-dialog focus handling.
 
 ### Local-first boundary
 
-- The Alpha 2 companion flow is served by the Windows device and stores no Otium
+- The Alpha 2 companion flow is served by the Windows device and stores no Kvieta
   usage data in a cloud account.
 - Enrollment and approval payloads are signed, short-lived, origin-checked, and
   rate-limited; PINs and recovery codes are never sent to the phone.

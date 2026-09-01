@@ -18,9 +18,9 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $publishedArtifactDirectory = Join-Path $repositoryRoot 'artifacts\publish\win-x64'
 $installerOutputDirectory = Join-Path $repositoryRoot "artifacts\installer\$Version"
-$applicationProject = Join-Path $repositoryRoot 'src\Otium.App\Otium.App.csproj'
-$setupProject = Join-Path $repositoryRoot 'src\Otium.SetupApp\Otium.SetupApp.csproj'
-$installerProject = Join-Path $repositoryRoot 'installer\Otium.Setup\Otium.Setup.wixproj'
+$applicationProject = Join-Path $repositoryRoot 'src\Kvieta.App\Kvieta.App.csproj'
+$setupProject = Join-Path $repositoryRoot 'src\Kvieta.SetupApp\Kvieta.SetupApp.csproj'
+$installerProject = Join-Path $repositoryRoot 'installer\Kvieta.Setup\Kvieta.Setup.wixproj'
 $normalizedThumbprint = ($SigningCertificateThumbprint -replace '\s', '').ToUpperInvariant()
 $dotnetCommand = Get-Command 'dotnet.exe' -ErrorAction SilentlyContinue
 $dotnet = if ($null -ne $dotnetCommand) {
@@ -29,13 +29,13 @@ $dotnet = if ($null -ne $dotnetCommand) {
     Join-Path $env:ProgramFiles 'dotnet\dotnet.exe'
 }
 if (-not (Test-Path -LiteralPath $dotnet)) {
-    throw 'dotnet.exe was not found. Install the .NET SDK before building Otium.'
+    throw 'dotnet.exe was not found. Install the .NET SDK before building Kvieta.'
 }
 
 # makecab/smartcab can misread Turkish characters in the user TEMP path. Keep the
 # override local to this PowerShell process and use a writable ASCII path.
-$cabinetTempDirectory = Join-Path $env:PUBLIC 'OtiumBuildTemp'
-$wixStagingDirectory = Join-Path $env:PUBLIC "OtiumBuildStaging\release\$Version"
+$cabinetTempDirectory = Join-Path $env:PUBLIC 'KvietaBuildTemp'
+$wixStagingDirectory = Join-Path $env:PUBLIC "KvietaBuildStaging\release\$Version"
 $publishDirectory = Join-Path $wixStagingDirectory 'publish'
 $wixIntermediateDirectory = Join-Path $wixStagingDirectory 'obj\'
 $wixOutputDirectory = Join-Path $wixStagingDirectory 'installer\'
@@ -116,35 +116,35 @@ New-Item -ItemType Directory -Path $installerOutputDirectory -Force | Out-Null
     -p:PublishSingleFile=true `
     -p:PublishDir="$publishDirectory\"
 if ($LASTEXITCODE -ne 0) {
-    throw "Otium publish failed with exit code $LASTEXITCODE."
+    throw "Kvieta publish failed with exit code $LASTEXITCODE."
 }
 
-$publishedExecutable = Join-Path $publishDirectory 'Otium.exe'
+$publishedExecutable = Join-Path $publishDirectory 'Kvieta.exe'
 Invoke-BinarySigning $publishedExecutable $signTool $normalizedThumbprint $certificateUsesMachineStore
 Assert-ValidSignature $publishedExecutable $normalizedThumbprint
 $publishedExecutableHash = (Get-FileHash -LiteralPath $publishedExecutable -Algorithm SHA256).Hash
 Copy-Item -LiteralPath $publishedExecutable `
-    -Destination (Join-Path $publishedArtifactDirectory 'Otium.exe') -Force
+    -Destination (Join-Path $publishedArtifactDirectory 'Kvieta.exe') -Force
 
 & $dotnet build $installerProject `
     -c $Configuration `
-    -p:OtiumVersion=$Version `
-    -p:OtiumPublishDir="$publishDirectory" `
-    -p:OtiumSignerThumbprint=$normalizedThumbprint `
-    -p:OtiumPackageKind=public `
-    -p:OtiumExecutableSha256=$publishedExecutableHash `
+    -p:KvietaVersion=$Version `
+    -p:KvietaPublishDir="$publishDirectory" `
+    -p:KvietaSignerThumbprint=$normalizedThumbprint `
+    -p:KvietaPackageKind=public `
+    -p:KvietaExecutableSha256=$publishedExecutableHash `
     -p:BaseIntermediateOutputPath="$wixIntermediateDirectory" `
     -p:OutputPath="$wixOutputDirectory"
 if ($LASTEXITCODE -ne 0) {
-    throw "Otium installer build failed with exit code $LASTEXITCODE."
+    throw "Kvieta installer build failed with exit code $LASTEXITCODE."
 }
 
-$stagedInstaller = Join-Path $wixOutputDirectory "Otium-$Version-win-x64.msi"
+$stagedInstaller = Join-Path $wixOutputDirectory "Kvieta-$Version-win-x64.msi"
 if (-not (Test-Path -LiteralPath $stagedInstaller)) {
     throw "Installer staging output was not found: $stagedInstaller"
 }
 
-$installer = Join-Path $installerOutputDirectory "Otium-$Version-win-x64.msi"
+$installer = Join-Path $installerOutputDirectory "Kvieta-$Version-win-x64.msi"
 Copy-Item -LiteralPath $stagedInstaller -Destination $installer -Force
 if (-not (Test-Path -LiteralPath $installer)) {
     throw "Installer output was not found: $installer"
@@ -159,14 +159,14 @@ Assert-ValidSignature $installer $normalizedThumbprint
     --self-contained true `
     -p:Version=$Version `
     -p:InformationalVersion=$Version `
-    -p:OtiumInstallerPath="$installer" `
+    -p:KvietaInstallerPath="$installer" `
     -p:PublishDir="$setupPublishDirectory\"
 if ($LASTEXITCODE -ne 0) {
-    throw "Otium setup application publish failed with exit code $LASTEXITCODE."
+    throw "Kvieta setup application publish failed with exit code $LASTEXITCODE."
 }
 
-$publishedSetup = Join-Path $setupPublishDirectory 'Otium.Setup.exe'
-$setup = Join-Path $installerOutputDirectory "Otium-Setup-$Version.exe"
+$publishedSetup = Join-Path $setupPublishDirectory 'Kvieta.Setup.exe'
+$setup = Join-Path $installerOutputDirectory "Kvieta-Setup-$Version.exe"
 Copy-Item -LiteralPath $publishedSetup -Destination $setup -Force
 Invoke-BinarySigning $setup $signTool $normalizedThumbprint $certificateUsesMachineStore
 Assert-ValidSignature $setup $normalizedThumbprint

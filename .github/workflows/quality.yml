@@ -33,11 +33,11 @@ jobs:
 
       - name: Restore and audit dependencies
         shell: pwsh
-        run: dotnet restore Otium.slnx -p:NuGetAudit=true -p:NuGetAuditMode=all
+        run: dotnet restore Kvieta.slnx -p:NuGetAudit=true -p:NuGetAuditMode=all
 
       - name: Verify formatting
         shell: pwsh
-        run: dotnet format Otium.slnx --verify-no-changes --no-restore
+        run: dotnet format Kvieta.slnx --verify-no-changes --no-restore
 
       - name: Verify documentation consistency
         shell: pwsh
@@ -45,19 +45,19 @@ jobs:
 
       - name: Build Debug
         shell: pwsh
-        run: dotnet build Otium.slnx -c Debug --no-restore
+        run: dotnet build Kvieta.slnx -c Debug --no-restore
 
       - name: Run development smoke tests
         shell: pwsh
-        run: dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Debug --no-build
+        run: dotnet run --project tests/Kvieta.Core.SmokeTests/Kvieta.Core.SmokeTests.csproj -c Debug --no-build
 
       - name: Build public Release
         shell: pwsh
-        run: dotnet build Otium.slnx -c Release --no-restore
+        run: dotnet build Kvieta.slnx -c Release --no-restore
 
       - name: Run public-build smoke tests
         shell: pwsh
-        run: dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Release --no-build
+        run: dotnet run --project tests/Kvieta.Core.SmokeTests/Kvieta.Core.SmokeTests.csproj -c Release --no-build
 
       - name: Verify development bypasses are absent
         shell: pwsh
@@ -66,18 +66,18 @@ jobs:
       - name: Publish public single-file executable
         shell: pwsh
         run: |
-          dotnet publish src/Otium.App/Otium.App.csproj `
+          dotnet publish src/Kvieta.App/Kvieta.App.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
             --no-restore `
             -p:Version=1.0.0 `
             -p:PublishSingleFile=true `
-            -p:PublishDir='${{ runner.temp }}\otium-public\'
+            -p:PublishDir='${{ runner.temp }}\kvieta-public\'
 
       - name: Verify public publish output
         shell: pwsh
-        run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\otium-public' -ExpectedVersion 1.0.0
+        run: ./scripts/verify-publish-output.ps1 -PublishDirectory '${{ runner.temp }}\kvieta-public' -ExpectedVersion 1.0.0
 
   package:
     name: Package community alpha installer
@@ -112,7 +112,7 @@ jobs:
       - name: Upload test package
         uses: actions/upload-artifact@v4
         with:
-          name: Otium-Alpha-2-community
+          name: Kvieta-Alpha-2-community
           path: artifacts/installer-community/1.0.0/
           if-no-files-found: error
           retention-days: 7

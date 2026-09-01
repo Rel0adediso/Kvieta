@@ -1,12 +1,12 @@
-# Otium support
+# Kvieta support
 
-Otium is an early, personal open-source project. Support is best-effort and currently handled through GitHub.
+Kvieta is an early, personal open-source project. Support is best-effort and currently handled through GitHub.
 
 ## Bug reports
 
 Use the repository's **Bug report** issue template. Include:
 
-- the exact Otium version, package label, and source commit shown in Settings;
+- the exact Kvieta version, package label, and source commit shown in Settings;
 - Windows version and whether the account is standard or administrator;
 - selected usage and protection mode;
 - clear reproduction steps, expected behavior, and actual behavior;

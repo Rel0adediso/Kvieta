@@ -1,16 +1,16 @@
-# Otium kullanım ve kurtarma rehberi
+# Kvieta kullanım ve kurtarma rehberi
 
 > Mevcut durum: `v1.0.0-alpha`. Test paketleri imzasızdır, yalnız yerel geliştirme ve doğrulama içindir; final public sürüm değildir.
 
 ## Kurulum ve güncelleme
 
 1. Yalnız bu deponun GitHub Releases sayfasından veya kendi kaynak checkout'unuzdan ürettiğiniz paketi kullanın.
-2. `Otium-Setup-<sürüm>.exe` dosyasını açın ve Türkçe ya da English seçin.
+2. `Kvieta-Setup-<sürüm>.exe` dosyasını açın ve Türkçe ya da English seçin.
 3. Temiz kurulumda sihirbaz kullanım biçimi, koruma seviyesi, cihaz adı, günlük süre, Windows başlangıcı ve masaüstü kısayolunu sorar.
-4. Otium zaten kuruluysa kurucu doğrudan **Güncelle/Onar** ekranına gider. Daha yeni paket yükseltme yapar; aynı sürüm onarım sunar; eski paket downgrade'i engeller.
+4. Kvieta zaten kuruluysa kurucu doğrudan **Güncelle/Onar** ekranına gider. Daha yeni paket yükseltme yapar; aynı sürüm onarım sunar; eski paket downgrade'i engeller.
 5. Yönetici izni yalnız Windows Installer işlemi gerektiğinde istenir. Kurulum başarısız olursa yeni ilk kullanım ayarları kaydedilmez.
 
-Otium varsayılan olarak `C:\Program Files\Otium` altına kurulur. Kullanıcı ayarları ve geçmiş `%LOCALAPPDATA%\Otium`, korunan policy ile Guardian durumu `%ProgramData%\Otium` altında tutulur. Güncelleme ve onarım bu alanları korur.
+Kvieta varsayılan olarak `C:\Program Files\Kvieta` altına kurulur. Kullanıcı ayarları ve geçmiş `%LOCALAPPDATA%\Kvieta`, korunan policy ile Guardian durumu `%ProgramData%\Kvieta` altında tutulur. Güncelleme ve onarım bu alanları korur.
 
 ## İlk kullanım biçimleri
 
@@ -40,7 +40,7 @@ Guardian eksik veya bozuksa korunan kullanım sessizce korumasız devam etmez. O
 
 ## Kaldırma
 
-Otium'u kaldırmak için uygulamada **Ayarlar > Uygulamayı kaldır** yolunu kullanın veya Windows **Yüklü uygulamalar** listesinden Otium'u seçin. Windows Installer yönetici onayı isteyebilir.
+Kvieta'yı kaldırmak için uygulamada **Ayarlar > Uygulamayı kaldır** yolunu kullanın veya Windows **Yüklü uygulamalar** listesinden Kvieta'yı seçin. Windows Installer yönetici onayı isteyebilir.
 
 Kaldırma, yeniden kurulum veya yükseltme sırasında yerel ayarların ve geçmişin korunması amaçlanır. Verileri de silmek isterseniz önce gerekli dışa aktarımı alın; alpha sürümünde veri temizliğini ayrıca ve dikkatle yapın.
 

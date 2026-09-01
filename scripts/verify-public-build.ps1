@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$AssemblyPath = 'src\Otium.App\bin\Release\net10.0-windows\Otium.dll'
+    [string]$AssemblyPath = 'src\Kvieta.App\bin\Release\net10.0-windows\Kvieta.dll'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,7 +22,7 @@ $forbiddenMarkers = @(
     'ForceApplyPendingForTestingAsync',
     'Test bypass',
     'Test atlaması',
-    'OTIUM_DEVELOPMENT_BUILD'
+    'KVIETA_DEVELOPMENT_BUILD'
 )
 
 foreach ($marker in $forbiddenMarkers) {

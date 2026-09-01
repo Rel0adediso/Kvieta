@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package
+    Name="Kvieta"
+    Manufacturer="Kvieta"
+    Version="$(var.KvietaVersion)"
+    UpgradeCode="3F9EED83-720B-4D5F-8E91-F1A9113CD812"
+    Language="1033"
+    Codepage="65001"
+    Scope="perMachine">
+
+    <SummaryInformation Description="Kvieta local screen-time awareness and control" />
+    <MajorUpgrade
+      AllowSameVersionUpgrades="$(var.KvietaAllowSameVersionUpgrades)"
+      DowngradeErrorMessage="A newer version of Kvieta is already installed." />
+    <!-- Kvieta.exe is already a compressed single-file bundle. MSZIP keeps the MSI
+         self-contained without applying the much slower default LZX recompression. -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="mszip" />
+
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Icon Id="KvietaProductIcon" SourceFile="$(sys.SOURCEFILEDIR)..\..\assets\branding\kvieta.ico" />
+    <Property Id="ARPPRODUCTICON" Value="KvietaProductIcon" />
+    <Property
+      Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT"
+      Value="Kurulum bitince Kvieta'yı aç" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+
+    <CustomAction
+      Id="LaunchKvietaAfterInstall"
+      FileRef="KvietaExecutable"
+      ExeCommand=""
+      Execute="immediate"
+      Impersonate="yes"
+      Return="asyncNoWait" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Kvieta" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="MainFeature" Title="Kvieta" Level="1">
+      <ComponentRef Id="KvietaExecutableComponent" />
+    </Feature>
+    <Feature
+      Id="DesktopShortcutFeature"
+      Title="Desktop shortcut"
+      Description="Create an Kvieta shortcut on the desktop"
+      Level="2">
+      <ComponentRef Id="DesktopShortcutComponent" />
+    </Feature>
+
+    <ui:WixUI Id="WixUI_FeatureTree" />
+    <UI>
+      <Publish
+        Dialog="ExitDialog"
+        Control="Finish"
+        Event="DoAction"
+        Value="LaunchKvietaAfterInstall"
+        Order="1"
+        Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+
+    <Component Id="KvietaExecutableComponent" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="KvietaExecutable" Source="$(var.KvietaPublishDir)\Kvieta.exe" KeyPath="yes">
+        <Shortcut
+          Id="StartMenuShortcut"
+          Directory="ProgramMenuFolder"
+          Name="Kvieta"
+          Description="Kvieta"
+          WorkingDirectory="INSTALLFOLDER"
+          Advertise="yes" />
+        <Shortcut
+          Id="UninstallShortcut"
+          Directory="ProgramMenuFolder"
+          Name="Kvieta'yı Kaldır"
+          Description="Kvieta'yı güvenli biçimde kaldır"
+          Arguments="--uninstall"
+          WorkingDirectory="INSTALLFOLDER"
+          Advertise="yes" />
+      </File>
+      <ServiceInstall
+        Id="GuardianServiceInstall"
+        Name="KvietaGuardian"
+        DisplayName="Kvieta Protection"
+        Description="Kvieta protected-session watchdog"
+        Type="ownProcess"
+        Start="auto"
+        ErrorControl="normal"
+        Arguments="--guardian-service" />
+      <ServiceControl
+        Id="GuardianServiceControl"
+        Name="KvietaGuardian"
+        Stop="both"
+        Remove="uninstall"
+        Wait="yes" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Kvieta"
+        Name="InstallerManaged"
+        Type="integer"
+        Value="1" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Kvieta"
+        Name="ProductCode"
+        Type="string"
+        Value="[ProductCode]" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Kvieta"
+        Name="InstalledVersion"
+        Type="string"
+        Value="[ProductVersion]" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Kvieta"
+        Name="InstalledReleaseLabel"
+        Type="string"
+        Value="$(var.KvietaReleaseLabel)" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Kvieta"
+        Name="SignerThumbprint"
+        Type="string"
+        Value="$(var.KvietaSignerThumbprint)" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Kvieta"
+        Name="PackageKind"
+        Type="string"
+        Value="$(var.KvietaPackageKind)" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\Kvieta"
+        Name="ExecutableSha256"
+        Type="string"
+        Value="$(var.KvietaExecutableSha256)" />
+    </Component>
+
+    <Component
+      Id="DesktopShortcutComponent"
+      Directory="INSTALLFOLDER"
+      Guid="*">
+      <Shortcut
+        Id="DesktopShortcut"
+        Directory="DesktopFolder"
+        Name="Kvieta"
+        Description="Kvieta"
+        Target="[INSTALLFOLDER]Kvieta.exe"
+        WorkingDirectory="INSTALLFOLDER" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Kvieta"
+        Name="DesktopShortcut"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+  </Package>
+</Wix>

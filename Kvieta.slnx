@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/Kvieta.Core/Kvieta.Core.csproj" />
+  <Project Path="src/Kvieta.App/Kvieta.App.csproj" />
+  <Project Path="src/Kvieta.SetupApp/Kvieta.SetupApp.csproj" />
+  <Project Path="tests/Kvieta.Core.SmokeTests/Kvieta.Core.SmokeTests.csproj" />
+</Solution>

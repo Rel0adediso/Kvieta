@@ -1,16 +1,16 @@
-# Otium usage and recovery guide
+# Kvieta usage and recovery guide
 
 > Current status: `v1.0.0-alpha`. Test packages are unsigned and intended only for local development and validation; they are not final public releases.
 
 ## Installation and update
 
 1. Use only a package from this repository's GitHub Releases page or one built from your own source checkout.
-2. Open `Otium-Setup-<version>.exe` and select English or Turkish.
+2. Open `Kvieta-Setup-<version>.exe` and select English or Turkish.
 3. On a clean install, the wizard asks for the usage mode, protection level, device name, daily limit, Windows startup, and desktop shortcut preferences.
-4. If Otium is already installed, setup opens the **Update/Repair** screen directly. A newer package upgrades, the same version offers repair, and an older package is blocked from downgrading the installation.
+4. If Kvieta is already installed, setup opens the **Update/Repair** screen directly. A newer package upgrades, the same version offers repair, and an older package is blocked from downgrading the installation.
 5. Administrator approval is requested only when Windows Installer needs it. New first-use settings are not saved if installation fails.
 
-Otium is installed under `C:\Program Files\Otium` by default. User settings and history are stored under `%LOCALAPPDATA%\Otium`; protected policy and Guardian state are stored under `%ProgramData%\Otium`. Update and repair are designed to preserve these areas.
+Kvieta is installed under `C:\Program Files\Kvieta` by default. User settings and history are stored under `%LOCALAPPDATA%\Kvieta`; protected policy and Guardian state are stored under `%ProgramData%\Kvieta`. Update and repair are designed to preserve these areas.
 
 ## First-use modes
 
@@ -25,7 +25,7 @@ Review the weekly schedule, daily limit, and application rules, then select **Sa
 - **Always blocked:** Terminates the identified application and related child processes when found running.
 - **Timed:** Counts daily use and closes the application when its configured limit is reached.
 - **Unlimited:** Does not block; when local measurement is enabled, usage can still appear for awareness.
-- **Remove:** Removes only the Otium rule; it does not uninstall the program from Windows.
+- **Remove:** Removes only the Kvieta rule; it does not uninstall the program from Windows.
 
 ## System Health and Recovery Center
 
@@ -40,7 +40,7 @@ If Guardian is missing or unhealthy, protected use does not silently continue wi
 
 ## Uninstall
 
-Use **Settings > Uninstall Otium** inside the app, or select Otium from Windows **Installed apps**. Windows Installer may request administrator approval.
+Use **Settings > Uninstall Kvieta** inside the app, or select Kvieta from Windows **Installed apps**. Windows Installer may request administrator approval.
 
 Local settings and history are intended to survive uninstall, reinstall, and upgrade. Export anything you need before removing local data manually; data cleanup remains a separate, deliberate action during alpha.
 

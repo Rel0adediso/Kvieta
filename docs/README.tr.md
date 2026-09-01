@@ -1,8 +1,10 @@
 <div align="center">
 
+<img src="../assets/branding/kvieta-mark.svg" alt="Kvieta" width="150" />
+
 [English](../README.md) · **Türkçe**
 
-# Otium
+# Kvieta
 
 ### Her şeyin bir zamanı var.
 
@@ -12,21 +14,21 @@ Yerel, sakin ve hesap gerektirmeyen Windows ekran süresi yönetimi.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/veri-bu%20cihazda-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/sıradaki-Otium_Alpha_2-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/sıradaki-Kvieta_Alpha_2-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/geliştirme-AI%20destekli-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
 
-> Otium, bilgisayar kullanımını cezalandırmak yerine zamanı görünür ve yönetilebilir hale getirir. Bulut hesabı istemez; planlar, kurallar ve kullanım geçmişi cihazda kalır.
+> Kvieta, bilgisayar kullanımını cezalandırmak yerine zamanı görünür ve yönetilebilir hale getirir. Bulut hesabı istemez; planlar, kurallar ve kullanım geçmişi cihazda kalır.
 
-## Otium Alpha 2'yi indir
+## Kvieta Alpha 2'yi indir
 
-[**Windows x64 için Otium Setup'ı indir**](https://github.com/Rel0adediso/Otium/releases/download/alpha-2/Otium-Setup-Alpha-2.exe)
+[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-2/Kvieta-Setup-Alpha-2.exe)
 
-**Otium Alpha 2 güncel community prerelease'tir.** Bu yayın;
+**Kvieta Alpha 2 güncel community prerelease'tir.** Bu yayın;
 güvenilir telefonla kurtarma akışı, çok daha sağlam Guardian ve yönetici çıkışı
 yaşam döngüsü, daha güvenli onarım/güncelleme davranışı ile çok sayıda kurucu ve
-oturum ekranı düzeltmesi getiriyor. Kullanıcıya görünen yayın adı **Otium Alpha
+oturum ekranı düzeltmesi getiriyor. Kullanıcıya görünen yayın adı **Kvieta Alpha
 2**; dosya ve etiketlerde güvenli olması için `alpha-2` / `Alpha-2` kullanılıyor,
 yayın `v1.0.0-alpha.2` adıyla sunulmuyor. Kurucu self-contained çalışır, Türkçe
 ve English destekler ve
@@ -41,11 +43,11 @@ SHA-256: 073bee551ce3d6a907eca67cbc76e237448a503eb4c4632b944127ad8ae1c090
 
 Bağımsız MSI, checksum dosyaları, release manifesti, ayrıntılı notlar ve bilinen
 sınırlar
-[Otium Alpha 2 yayın sayfasında](https://github.com/Rel0adediso/Otium/releases/tag/alpha-2) bulunur.
+[Kvieta Alpha 2 yayın sayfasında](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-2) bulunur.
 
-## Neden Otium?
+## Neden Kvieta?
 
-Otium aynı yerel temeli üç kullanım biçiminde sunar:
+Kvieta aynı yerel temeli üç kullanım biçiminde sunar:
 
 | Biçim | Kime uygun? | Ne yapar? |
 |---|---|---|
@@ -91,7 +93,7 @@ Otium aynı yerel temeli üç kullanım biçiminde sunar:
 
 ## Tasarım dili
 
-Otium, sıcak krem ve haki tonlarını zeytin-grafit koyu temayla birleştiren kompakt bir Windows arayüzü kullanır.
+Kvieta, sıcak krem ve haki tonlarını zeytin-grafit koyu temayla birleştiren kompakt bir Windows arayüzü kullanır.
 
 - Sistem / Açık / Koyu tema
 - Canlı Türkçe / English değişimi
@@ -105,16 +107,16 @@ Otium, sıcak krem ve haki tonlarını zeytin-grafit koyu temayla birleştiren k
 
 | Parça | Sorumluluk |
 |---|---|
-| `Otium.Core` | Plan, oturum, policy, model ve dayanıklı yerel veri katmanı |
-| `Otium.App` | WPF Kontrol Merkezi, oturum yüzü, tray ve Windows entegrasyonları |
-| `Otium.Core.SmokeTests` | Çekirdek davranış, güvenlik regresyonu ve gerçek süreç testleri |
+| `Kvieta.Core` | Plan, oturum, policy, model ve dayanıklı yerel veri katmanı |
+| `Kvieta.App` | WPF Kontrol Merkezi, oturum yüzü, tray ve Windows entegrasyonları |
+| `Kvieta.Core.SmokeTests` | Çekirdek davranış, güvenlik regresyonu ve gerçek süreç testleri |
 | Guardian | Korumalı modda oturum sürecini ve otoriter policy alanını gözeten Windows servisi |
 
-Solution, proje, assembly ve namespace adları tutarlı biçimde **Otium** adını kullanır.
+Solution, proje, assembly ve namespace adları tutarlı biçimde **Kvieta** adını kullanır.
 
 ## Güncel durum
 
-**Otium Alpha 2 — community prerelease**
+**Kvieta Alpha 2 — community prerelease**
 
 - Release community paketi development/test bypass içermiyor.
 - Yerel kalite kapıları ve eşleşen GitHub Actions build/package işleri geçiyor.
@@ -132,25 +134,25 @@ Kalan v1.0 doğrulamaları ve sonraki hedefler için [güncel yol haritasına](R
 Gereksinim: Windows ve .NET 10 SDK.
 
 ```powershell
-dotnet run --project src/Otium.App/Otium.App.csproj
+dotnet run --project src/Kvieta.App/Kvieta.App.csproj
 ```
 
 Korumalı oturum yüzünü doğrudan açmak için:
 
 ```powershell
-dotnet run --project src/Otium.App/Otium.App.csproj -- --session
+dotnet run --project src/Kvieta.App/Kvieta.App.csproj -- --session
 ```
 
 ## Kontroller
 
 ```powershell
-dotnet build Otium.slnx -c Release
-dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Release
+dotnet build Kvieta.slnx -c Release
+dotnet run --project tests/Kvieta.Core.SmokeTests/Kvieta.Core.SmokeTests.csproj -c Release
 ```
 
 ## Güvenlik sınırı
 
-Otium'un korumalı modu esas olarak ayrı bir yönetici hesabı tarafından yönetilen **standart Windows kullanıcısı** için tasarlanır. Fiziksel erişimi ve Windows yönetici yetkisi bulunan bir kişiye karşı hiçbir masaüstü uygulaması mutlak kaldırılamazlık garanti edemez.
+Kvieta'nın korumalı modu esas olarak ayrı bir yönetici hesabı tarafından yönetilen **standart Windows kullanıcısı** için tasarlanır. Fiziksel erişimi ve Windows yönetici yetkisi bulunan bir kişiye karşı hiçbir masaüstü uygulaması mutlak kaldırılamazlık garanti edemez.
 
 Development paketlerindeki test geçitleri public sürümde derlenmez. Ayrıntılar için [güvenlik sınırları belgesine](SECURITY.tr.md) bakın.
 
@@ -166,12 +168,12 @@ Bu nedenle projeyi “%100 AI made” diye tanımlamak yerine, insan tarafından
 
 ## Lisans
 
-Otium, [MIT Lisansı](../LICENSE) altında yayımlanan açık kaynak bir yazılımdır. Güvenlik sınırları ve platform kısıtları geçerliliğini korur; lisans, Protected modun hiçbir koşulda aşılamayacağı anlamına gelmez.
+Kvieta, [MIT Lisansı](../LICENSE) altında yayımlanan açık kaynak bir yazılımdır. Güvenlik sınırları ve platform kısıtları geçerliliğini korur; lisans, Protected modun hiçbir koşulda aşılamayacağı anlamına gelmez.
 
 ---
 
 <div align="center">
 
-**Otium** · *All in good time.*
+**Kvieta** · *All in good time.*
 
 </div>

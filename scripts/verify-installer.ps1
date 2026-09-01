@@ -30,8 +30,8 @@ $trustedSigner = Get-VerificationSignerThumbprint
 $resolvedManifestPath = (Resolve-Path -LiteralPath $ManifestPath).Path
 $manifest = Get-Content -LiteralPath $resolvedManifestPath -Raw | ConvertFrom-Json
 
-if ($manifest.schemaVersion -ne 1 -or $manifest.product -ne 'Otium') {
-    throw 'The release manifest is not a supported Otium manifest.'
+if ($manifest.schemaVersion -ne 1 -or $manifest.product -ne 'Kvieta') {
+    throw 'The release manifest is not a supported Kvieta manifest.'
 }
 
 if ($manifest.version -notmatch '^\d+\.\d+\.\d+$' -or $manifest.architecture -ne 'win-x64') {
@@ -39,7 +39,7 @@ if ($manifest.version -notmatch '^\d+\.\d+\.\d+$' -or $manifest.architecture -ne
 }
 
 $manifestDirectory = Split-Path -Parent $resolvedManifestPath
-$expectedPackageName = "Otium-$($manifest.version)-win-x64.msi"
+$expectedPackageName = "Kvieta-$($manifest.version)-win-x64.msi"
 if ([string]$manifest.package -cne $expectedPackageName) {
     throw 'The installer filename does not match the release manifest.'
 }
@@ -63,13 +63,13 @@ if ($actualHash -ne ([string]$manifest.sha256).ToLowerInvariant()) {
 
 if ([string]::IsNullOrWhiteSpace([string]$manifest.signerThumbprint) -or
     (Get-NormalizedThumbprint ([string]$manifest.signerThumbprint)) -ne $trustedSigner) {
-    throw 'The release manifest signer does not match the trusted Otium signer.'
+    throw 'The release manifest signer does not match the trusted Kvieta signer.'
 }
 
 $packageSignature = Get-AuthenticodeSignature -LiteralPath $resolvedPackagePath
 if ($packageSignature.Status -ne 'Valid' -or $null -eq $packageSignature.SignerCertificate -or
     (Get-NormalizedThumbprint $packageSignature.SignerCertificate.Thumbprint) -ne $trustedSigner) {
-    throw 'The installer does not have a valid signature from the trusted Otium signer.'
+    throw 'The installer does not have a valid signature from the trusted Kvieta signer.'
 }
 
 [pscustomobject]@{

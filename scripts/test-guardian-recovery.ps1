@@ -7,9 +7,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$serviceName = 'OtiumGuardian'
-$installedExecutable = Join-Path $env:ProgramFiles 'Otium\Otium.exe'
-$processStatePath = Join-Path $env:ProgramData 'Otium\guardian-process.json'
+$serviceName = 'KvietaGuardian'
+$installedExecutable = Join-Path $env:ProgramFiles 'Kvieta\Kvieta.exe'
+$processStatePath = Join-Path $env:ProgramData 'Kvieta\guardian-process.json'
 
 function Get-GuardianState {
     if (-not (Test-Path -LiteralPath $processStatePath)) {
@@ -61,10 +61,10 @@ function Wait-ForCurrentGuardianProcess {
 
 $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 if ($null -eq $service -or $service.Status -ne 'Running') {
-    throw 'OtiumGuardian must be installed and running before this test.'
+    throw 'KvietaGuardian must be installed and running before this test.'
 }
 if (-not (Test-Path -LiteralPath $installedExecutable)) {
-    throw "Installed Otium executable was not found: $installedExecutable"
+    throw "Installed Kvieta executable was not found: $installedExecutable"
 }
 
 $initialState = Wait-ForCurrentGuardianProcess

@@ -24,7 +24,7 @@ function Get-NormalizedThumbprint([string]$Thumbprint) {
 function Get-CurrentScriptSigner {
     $signature = Get-AuthenticodeSignature -LiteralPath $PSCommandPath
     if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate) {
-        throw 'The Otium updater does not have a valid Authenticode signature.'
+        throw 'The Kvieta updater does not have a valid Authenticode signature.'
     }
 
     return Get-NormalizedThumbprint $signature.SignerCertificate.Thumbprint
@@ -34,7 +34,7 @@ function Assert-TrustedScriptSignature([string]$Path, [string]$TrustedSigner) {
     $signature = Get-AuthenticodeSignature -LiteralPath $Path
     if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate -or
         (Get-NormalizedThumbprint $signature.SignerCertificate.Thumbprint) -ne $TrustedSigner) {
-        throw 'The installer verification script does not have a valid signature from the trusted Otium signer.'
+        throw 'The installer verification script does not have a valid signature from the trusted Kvieta signer.'
     }
 }
 
@@ -43,9 +43,9 @@ function Get-VerifiedRelease([string]$Path, [string]$TrustedSigner) {
     return & $verifyScript -ManifestPath $Path -TrustedSignerThumbprint $TrustedSigner
 }
 
-function Get-InstalledOtium {
+function Get-InstalledKvieta {
     try {
-        $key = Get-ItemProperty -LiteralPath 'HKLM:\Software\Otium' -ErrorAction Stop
+        $key = Get-ItemProperty -LiteralPath 'HKLM:\Software\Kvieta' -ErrorAction Stop
         if (-not $key.ProductCode -or -not $key.InstalledVersion) {
             return $null
         }
@@ -65,10 +65,10 @@ function Get-InstalledOtium {
     }
 }
 
-function Test-OtiumHealth([version]$ExpectedVersion) {
-    $installed = Get-InstalledOtium
-    $executable = 'C:\Program Files\Otium\Otium.exe'
-    $service = Get-Service -Name OtiumGuardian -ErrorAction SilentlyContinue
+function Test-KvietaHealth([version]$ExpectedVersion) {
+    $installed = Get-InstalledKvieta
+    $executable = 'C:\Program Files\Kvieta\Kvieta.exe'
+    $service = Get-Service -Name KvietaGuardian -ErrorAction SilentlyContinue
     if ($null -eq $installed -or $installed.Version -ne $ExpectedVersion -or
         -not (Test-Path -LiteralPath $executable) -or
         $null -eq $service -or $service.Status -ne 'Running') {
@@ -85,7 +85,7 @@ function Test-OtiumHealth([version]$ExpectedVersion) {
 }
 
 function Invoke-Msi([string]$Action, [string]$Target, [string]$LogName, [string[]]$Properties = @()) {
-    $logDirectory = Join-Path $env:ProgramData 'Otium\UpdateLogs'
+    $logDirectory = Join-Path $env:ProgramData 'Kvieta\UpdateLogs'
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
     $logPath = Join-Path $logDirectory $LogName
     $propertyText = if ($Properties.Count -eq 0) { '' } else { ' ' + ($Properties -join ' ') }
@@ -96,7 +96,7 @@ function Invoke-Msi([string]$Action, [string]$Target, [string]$LogName, [string[
 }
 
 function Invoke-Rollback($RollbackRelease, [version]$RollbackVersion, [bool]$KeepDesktopShortcut) {
-    $current = Get-InstalledOtium
+    $current = Get-InstalledKvieta
     if ($null -ne $current) {
         $removeExitCode = Invoke-Msi '/x' $current.ProductCode "rollback-remove-$($current.Version).log"
         if ($removeExitCode -ne 0) {
@@ -106,8 +106,8 @@ function Invoke-Rollback($RollbackRelease, [version]$RollbackVersion, [bool]$Kee
 
     $properties = if ($KeepDesktopShortcut) { @('ADDLOCAL=MainFeature,DesktopShortcutFeature') } else { @() }
     $installExitCode = Invoke-Msi '/i' $RollbackRelease.PackagePath "rollback-install-$RollbackVersion.log" $properties
-    if ($installExitCode -ne 0 -or -not (Test-OtiumHealth $RollbackVersion)) {
-        throw "Rollback could not restore Otium $RollbackVersion (MSI $installExitCode)."
+    if ($installExitCode -ne 0 -or -not (Test-KvietaHealth $RollbackVersion)) {
+        throw "Rollback could not restore Kvieta $RollbackVersion (MSI $installExitCode)."
     }
 }
 
@@ -119,7 +119,7 @@ $resolvedRollbackManifestPath = if ([string]::IsNullOrWhiteSpace($RollbackManife
 }
 
 $updaterSigner = Get-CurrentScriptSigner
-$preflightInstalled = Get-InstalledOtium
+$preflightInstalled = Get-InstalledKvieta
 $trustedSigner = if ($null -ne $preflightInstalled -and
     -not [string]::IsNullOrWhiteSpace($preflightInstalled.SignerThumbprint)) {
     $preflightInstalled.SignerThumbprint
@@ -127,7 +127,7 @@ $trustedSigner = if ($null -ne $preflightInstalled -and
     $updaterSigner
 }
 if ($updaterSigner -ne $trustedSigner) {
-    throw 'The updater signer does not match the signer pinned by the installed Otium release.'
+    throw 'The updater signer does not match the signer pinned by the installed Kvieta release.'
 }
 
 # Verify once before elevation so invalid packages never trigger a UAC prompt.
@@ -138,10 +138,10 @@ if ($null -ne $resolvedRollbackManifestPath) {
 }
 
 if ($null -ne $preflightInstalled -and [version]$preflightTarget.Version -le $preflightInstalled.Version) {
-    throw "Otium $($preflightTarget.Version) is not newer than installed version $($preflightInstalled.Version)."
+    throw "Kvieta $($preflightTarget.Version) is not newer than installed version $($preflightInstalled.Version)."
 }
 if ($null -ne $preflightInstalled -and $null -eq $preflightRollback) {
-    throw 'A verified rollback manifest is required when updating an installed Otium version.'
+    throw 'A verified rollback manifest is required when updating an installed Kvieta version.'
 }
 if ($null -ne $preflightInstalled -and [version]$preflightRollback.Version -ne $preflightInstalled.Version) {
     throw "Rollback package $($preflightRollback.Version) does not match installed version $($preflightInstalled.Version)."
@@ -168,11 +168,11 @@ if (-not (Test-Administrator)) {
 }
 
 # Verify again after elevation to narrow the package replacement window.
-$installedAfterElevation = Get-InstalledOtium
+$installedAfterElevation = Get-InstalledKvieta
 if ($null -ne $installedAfterElevation -and
     -not [string]::IsNullOrWhiteSpace($installedAfterElevation.SignerThumbprint) -and
     $installedAfterElevation.SignerThumbprint -ne $trustedSigner) {
-    throw 'The installed Otium signer changed while the update was awaiting elevation.'
+    throw 'The installed Kvieta signer changed while the update was awaiting elevation.'
 }
 
 $targetRelease = Get-VerifiedRelease $resolvedManifestPath $trustedSigner
@@ -182,16 +182,16 @@ $rollbackRelease = if ($null -eq $resolvedRollbackManifestPath) {
 } else {
     Get-VerifiedRelease $resolvedRollbackManifestPath $trustedSigner
 }
-$installedBefore = Get-InstalledOtium
-$keepDesktopShortcut = Test-Path -LiteralPath 'C:\Users\Public\Desktop\Otium.lnk'
+$installedBefore = Get-InstalledKvieta
+$keepDesktopShortcut = Test-Path -LiteralPath 'C:\Users\Public\Desktop\Kvieta.lnk'
 
 if ($null -ne $installedBefore -and $targetVersion -le $installedBefore.Version) {
-    throw "Otium $targetVersion is not newer than installed version $($installedBefore.Version)."
+    throw "Kvieta $targetVersion is not newer than installed version $($installedBefore.Version)."
 }
 
 if ($null -ne $installedBefore) {
     if ($null -eq $rollbackRelease) {
-        throw 'A verified rollback manifest is required when updating an installed Otium version.'
+        throw 'A verified rollback manifest is required when updating an installed Kvieta version.'
     }
 
     if ([version]$rollbackRelease.Version -ne $installedBefore.Version) {
@@ -203,7 +203,7 @@ $updateProperties = if ($keepDesktopShortcut) { @('ADDLOCAL=MainFeature,DesktopS
 $updateExitCode = Invoke-Msi '/i' $targetRelease.PackagePath "update-$targetVersion.log" $updateProperties
 $targetHealthy = $updateExitCode -eq 0 -and
     -not $ForceRollbackForTesting -and
-    (Test-OtiumHealth $targetVersion)
+    (Test-KvietaHealth $targetVersion)
 if ($targetHealthy) {
     [pscustomobject]@{
         Status = 'Updated'
@@ -214,15 +214,15 @@ if ($targetHealthy) {
 }
 
 if ($null -eq $installedBefore) {
-    $failedInstall = Get-InstalledOtium
+    $failedInstall = Get-InstalledKvieta
     if ($null -ne $failedInstall) {
         $null = Invoke-Msi '/x' $failedInstall.ProductCode "failed-install-remove-$($failedInstall.Version).log"
     }
-    throw "Otium $targetVersion failed its post-install health check (MSI $updateExitCode)."
+    throw "Kvieta $targetVersion failed its post-install health check (MSI $updateExitCode)."
 }
 
-if (Test-OtiumHealth $installedBefore.Version) {
-    throw "Otium $targetVersion was not installed; version $($installedBefore.Version) remains healthy (MSI $updateExitCode)."
+if (Test-KvietaHealth $installedBefore.Version) {
+    throw "Kvieta $targetVersion was not installed; version $($installedBefore.Version) remains healthy (MSI $updateExitCode)."
 }
 
 Invoke-Rollback $rollbackRelease $installedBefore.Version $keepDesktopShortcut
@@ -233,5 +233,5 @@ Invoke-Rollback $rollbackRelease $installedBefore.Version $keepDesktopShortcut
 }
 
 if (-not $ForceRollbackForTesting) {
-    throw "Otium $targetVersion failed its health check and $($installedBefore.Version) was restored."
+    throw "Kvieta $targetVersion failed its health check and $($installedBefore.Version) was restored."
 }

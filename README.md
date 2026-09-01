@@ -1,8 +1,10 @@
 <div align="center">
 
+<img src="assets/branding/kvieta-mark.svg" alt="Kvieta" width="150" />
+
 **English** · [Türkçe](docs/README.tr.md)
 
-# Otium
+# Kvieta
 
 ### All in good time.
 
@@ -12,21 +14,21 @@ Calm, local-first screen-time management for Windows — no account required.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=3F4437)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=3F4437)
 ![Privacy](https://img.shields.io/badge/data-on%20device-87946B?style=flat-square&labelColor=3F4437)
-![Status](https://img.shields.io/badge/next-Otium_Alpha_2-C9B98E?style=flat-square&labelColor=3F4437)
+![Status](https://img.shields.io/badge/next-Kvieta_Alpha_2-C9B98E?style=flat-square&labelColor=3F4437)
 ![AI assisted](https://img.shields.io/badge/development-AI%20assisted-87946B?style=flat-square&labelColor=3F4437)
 
 </div>
 
-> Otium makes computer time visible and manageable without turning it into punishment. Plans, rules, and usage history remain on the device; no cloud account is required.
+> Kvieta makes computer time visible and manageable without turning it into punishment. Plans, rules, and usage history remain on the device; no cloud account is required.
 
-## Download Otium Alpha 2
+## Download Kvieta Alpha 2
 
-[**Download Otium Setup for Windows x64**](https://github.com/Rel0adediso/Otium/releases/download/alpha-2/Otium-Setup-Alpha-2.exe)
+[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-2/Kvieta-Setup-Alpha-2.exe)
 
-**Otium Alpha 2 is the current community prerelease.** It adds a
+**Kvieta Alpha 2 is the current community prerelease.** It adds a
 trusted-phone recovery flow, a substantially more reliable Guardian and
 administrator-exit lifecycle, safer repair/update handling, and many setup and
-session-surface fixes. The public release title is **Otium Alpha 2**; its
+session-surface fixes. The public release title is **Kvieta Alpha 2**; its
 package-safe Git tag and installer label use `alpha-2` / `Alpha-2` instead
 of presenting the release as `v1.0.0-alpha.2`.
 
@@ -42,11 +44,11 @@ SHA-256: 073bee551ce3d6a907eca67cbc76e237448a503eb4c4632b944127ad8ae1c090
 
 The standalone MSI, checksum files, release manifest, full notes, and known
 limitations are available on the
-[Otium Alpha 2 release page](https://github.com/Rel0adediso/Otium/releases/tag/alpha-2).
+[Kvieta Alpha 2 release page](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-2).
 
-## Why Otium?
+## Why Kvieta?
 
-Otium offers three ways to use the same local-first foundation:
+Kvieta offers three ways to use the same local-first foundation:
 
 | Mode | Best for | What it does |
 |---|---|---|
@@ -92,7 +94,7 @@ Otium offers three ways to use the same local-first foundation:
 
 ## Visual language
 
-Otium combines warm cream and khaki surfaces with an olive-graphite dark theme in a compact Windows interface.
+Kvieta combines warm cream and khaki surfaces with an olive-graphite dark theme in a compact Windows interface.
 
 - System / Light / Dark appearance
 - Live Turkish / English switching
@@ -106,16 +108,16 @@ Otium combines warm cream and khaki surfaces with an olive-graphite dark theme i
 
 | Component | Responsibility |
 |---|---|
-| `Otium.Core` | Scheduling, sessions, policies, models, and resilient local persistence |
-| `Otium.App` | WPF Control Center, session surface, tray, and Windows integrations |
-| `Otium.Core.SmokeTests` | Core behavior, security regressions, and real-process checks |
+| `Kvieta.Core` | Scheduling, sessions, policies, models, and resilient local persistence |
+| `Kvieta.App` | WPF Control Center, session surface, tray, and Windows integrations |
+| `Kvieta.Core.SmokeTests` | Core behavior, security regressions, and real-process checks |
 | Guardian | Windows service supervising the protected session and authoritative policy area |
 
-The solution, projects, assemblies, and namespaces consistently use the **Otium** name.
+The solution, projects, assemblies, and namespaces consistently use the **Kvieta** name.
 
 ## Current status
 
-**Otium Alpha 2 — community prerelease**
+**Kvieta Alpha 2 — community prerelease**
 
 - The Release community package contains no development/test bypass.
 - Local quality gates and the matching GitHub Actions build/package jobs pass.
@@ -133,20 +135,20 @@ See the [current roadmap](docs/ROADMAP.md) for the remaining v1.0 validation and
 Requirements: Windows and the .NET 10 SDK.
 
 ```powershell
-dotnet run --project src/Otium.App/Otium.App.csproj
+dotnet run --project src/Kvieta.App/Kvieta.App.csproj
 ```
 
 Open the protected session surface directly:
 
 ```powershell
-dotnet run --project src/Otium.App/Otium.App.csproj -- --session
+dotnet run --project src/Kvieta.App/Kvieta.App.csproj -- --session
 ```
 
 ## Checks
 
 ```powershell
-dotnet build Otium.slnx -c Release
-dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Release
+dotnet build Kvieta.slnx -c Release
+dotnet run --project tests/Kvieta.Core.SmokeTests/Kvieta.Core.SmokeTests.csproj -c Release
 ```
 
 ## Security boundary
@@ -163,16 +165,16 @@ See the [English user guide](docs/USAGE.md) or [Turkish user guide](docs/KULLANI
 
 Product vision, direction, UX decisions, and hands-on testing are led by **Rel0adediso**. Architecture, implementation, and test development are carried out collaboratively with **OpenAI Codex**.
 
-Rather than claiming “100% AI made,” Otium is documented accurately as a human-directed, AI-assisted product.
+Rather than claiming “100% AI made,” Kvieta is documented accurately as a human-directed, AI-assisted product.
 
 ## License
 
-Otium is open-source software released under the [MIT License](LICENSE). Security boundaries and platform limitations still apply; the license is not a promise that Protected mode is impossible to bypass.
+Kvieta is open-source software released under the [MIT License](LICENSE). Security boundaries and platform limitations still apply; the license is not a promise that Protected mode is impossible to bypass.
 
 ---
 
 <div align="center">
 
-**Otium** · *All in good time.*
+**Kvieta** · *All in good time.*
 
 </div>

@@ -23,7 +23,7 @@ $artifacts = @(
 
 $manifest = [ordered]@{
     schemaVersion = 2
-    product = 'Otium'
+    product = 'Kvieta'
     version = $Version
     releaseLabel = $ReleaseLabel
     architecture = 'win-x64'

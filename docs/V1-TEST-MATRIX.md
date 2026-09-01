@@ -1,4 +1,4 @@
-# Otium v1 Windows test matrisi
+# Kvieta v1 Windows test matrisi
 
 Her koşuda sürüm, commit, Setup SHA-256, Windows build'i, gerçek sonuç ve kanıt
 kaydedilir. PIN, kurtarma kodu, kullanıcı adı veya özel ekran içeriği eklenmez.
@@ -31,7 +31,7 @@ yüzeyinde Debug kısayoluna güvenilmez.
 |---|---|---|---|
 | LIFE-01 | `Alt+Tab`, `Win+D`, görev çubuğu | İzin verilmeyen masaüstü erişimi oluşmaz | |
 | LIFE-02 | Kontrol Merkezi isteği | Tek yönetim penceresi öne gelir | |
-| LIFE-03 | Otium sürecini kapatma | Guardian gerekli modda yüzeyi geri getirir | |
+| LIFE-03 | Kvieta sürecini kapatma | Guardian gerekli modda yüzeyi geri getirir | |
 | LIFE-04 | Explorer restart | Korumasız boşluk kalmaz | |
 | LIFE-05 | `Win+L`, uyku ve yeniden başlatma | Sayaç ve yüzey doğru geri gelir | Fiziksel test kullanıcı isteğiyle sonraki doğrulama turuna ertelendi; sıralı lifecycle policy ve otomatik regresyonları hazır. |
 | SUPPORT-01 | Sistem Sağlığı ve Tanılama Merkezi | Uygulama, installer, Guardian ve yerel veri durumları doğru gösterilir; rapor dışa aktarılır | Kullanıcı isteğiyle final doğrulama turuna ertelendi. |

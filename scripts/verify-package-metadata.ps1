@@ -59,15 +59,15 @@ try {
         Get-MsiScalar $database "SELECT ``Value`` FROM ``Property`` WHERE ``Property``='$name'"
     }
 
-    Assert-Equal 'ProductName' (& $property 'ProductName') 'Otium'
-    Assert-Equal 'Manufacturer' (& $property 'Manufacturer') 'Otium'
+    Assert-Equal 'ProductName' (& $property 'ProductName') 'Kvieta'
+    Assert-Equal 'Manufacturer' (& $property 'Manufacturer') 'Kvieta'
     Assert-Equal 'ProductVersion' (& $property 'ProductVersion') $ExpectedVersion
-    Assert-Equal 'UpgradeCode' (& $property 'UpgradeCode') '{B7DB180A-83DE-4B93-A8FB-453734F91C10}'
+    Assert-Equal 'UpgradeCode' (& $property 'UpgradeCode') '{3F9EED83-720B-4D5F-8E91-F1A9113CD812}'
     if (-not [string]::IsNullOrWhiteSpace((& $property 'ARPNOREMOVE'))) {
         throw 'ARPNOREMOVE must be absent so a damaged installation can still be removed from Windows Installed apps.'
     }
     Assert-Equal 'ARPNOMODIFY' (& $property 'ARPNOMODIFY') '1'
-    Assert-Equal 'Guardian service' (Get-MsiScalar $database "SELECT ``Name`` FROM ``ServiceInstall`` WHERE ``Name``='OtiumGuardian'") 'OtiumGuardian'
+    Assert-Equal 'Guardian service' (Get-MsiScalar $database "SELECT ``Name`` FROM ``ServiceInstall`` WHERE ``Name``='KvietaGuardian'") 'KvietaGuardian'
     Assert-Equal 'Uninstall entry point' (Get-MsiScalar $database "SELECT ``Arguments`` FROM ``Shortcut`` WHERE ``Arguments``='--uninstall'") '--uninstall'
     Assert-Equal 'Embedded cabinet' (Get-MsiScalar $database "SELECT ``Cabinet`` FROM ``Media`` WHERE ``DiskId``=1") '#cab1.cab'
     $packageKind = Get-MsiScalar $database "SELECT ``Value`` FROM ``Registry`` WHERE ``Name``='PackageKind'"
@@ -89,7 +89,7 @@ try {
 }
 
 $setupInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Resolve-Path $SetupPath).Path)
-Assert-Equal 'Setup product name' $setupInfo.ProductName 'Otium Setup'
+Assert-Equal 'Setup product name' $setupInfo.ProductName 'Kvieta Setup'
 Assert-Equal 'Setup product version' $setupInfo.ProductVersion $ExpectedReleaseLabel
 
 $setupProcess = Start-Process -FilePath (Resolve-Path $SetupPath).Path -ArgumentList '--verify-package' -PassThru -Wait

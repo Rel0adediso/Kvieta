@@ -1,5 +1,5 @@
 name: Hata bildirimi / Bug report
-description: Otium'da tekrarlanabilir bir sorun bildir.
+description: Kvieta'da tekrarlanabilir bir sorun bildir.
 title: "[Bug] "
 labels: [bug]
 body:
@@ -11,7 +11,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Otium sürümü / version
+      label: Kvieta sürümü / version
       placeholder: 1.0.0-alpha
     validations:
       required: true

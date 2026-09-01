@@ -1,4 +1,4 @@
-# Otium manager-device protocol v1
+# Kvieta manager-device protocol v1
 
 The protocol is local-network only. The desktop app serves an embedded companion page from a fixed local origin and an unguessable 192-bit route. Pairing and recovery routes expire after two minutes; transfer routes expire after five. Final authorization requests are one-shot and the server never redirects. QR codes contain the explicit RFC1918 IPv4 `http://` page address, so no APK or custom URL scheme is required.
 
@@ -13,17 +13,17 @@ The six-digit comparison code is `UInt32BigEndian(SHA256(signedContent)[0..4]) %
 Recovery test vector:
 
 ```text
-otium-manager-recovery-v1.QUJD.ZGV2aWNlLTE=.MTcwMDAwMDEyMw==.QVFJREJBPT0=.cGluLXJlc2V0.WVdKalpBPT0=
+kvieta-manager-recovery-v1.QUJD.ZGV2aWNlLTE=.MTcwMDAwMDEyMw==.QVFJREJBPT0=.cGluLXJlc2V0.WVdKalpBPT0=
 ```
 
 Comparison code: `660957`.
 
 ## Enrollment
 
-The companion page creates a P-256 key with the browser's cryptographic random source, stores it in local browser storage for the fixed Otium origin, and posts `ManagerDeviceEnrollmentRequest`. `ProofSignatureBase64` signs:
+The companion page creates a P-256 key with the browser's cryptographic random source, stores it in local browser storage for the fixed Kvieta origin, and posts `ManagerDeviceEnrollmentRequest`. `ProofSignatureBase64` signs:
 
 ```text
-otium-manager-enrollment-v1
+kvieta-manager-enrollment-v1
   .B64(DeviceId)
   .B64(DeviceName)
   .B64(PublicKeyPem)
@@ -37,7 +37,7 @@ Enrollment requires the current administrator PIN, Windows administrator confirm
 The challenge signature covers:
 
 ```text
-otium-manager-recovery-v1
+kvieta-manager-recovery-v1
   .B64(ChallengeId)
   .B64(DeviceId)
   .B64(ExpiresAtUtc Unix seconds)
@@ -53,7 +53,7 @@ For PIN reset, `Purpose` is `pin-reset`. `PayloadHashBase64` binds the approval 
 Both the current and replacement device sign:
 
 ```text
-otium-manager-transfer-v1
+kvieta-manager-transfer-v1
   .B64(CurrentDeviceId)
   .B64(NewDeviceId)
   .B64(NewDevicePublicKeyHashBase64)

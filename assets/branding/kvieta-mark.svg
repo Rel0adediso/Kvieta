@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-labelledby="title desc">
+  <title id="title">Kvieta mark</title>
+  <desc id="desc">An asymmetric graphite stem and an organic olive K separated by a curved gap.</desc>
+
+  <path
+    fill="#22231D"
+    d="M63 61
+       C53 61 45 69 45 79
+       L45 279
+       C45 290 53 298 64 298
+       L92 298
+       C103 298 111 290 111 279
+       L111 234
+       C111 223 106 216 98 207
+       C84 192 83 171 93 153
+       C99 143 111 134 111 120
+       L111 79
+       C111 69 103 61 93 61
+       Z" />
+
+  <path
+    fill="#536039"
+    d="M247 38
+       C261 36 273 42 275 54
+       C277 66 272 76 264 84
+       L179 175
+       C171 183 172 193 181 199
+       L245 242
+       C259 251 267 264 265 278
+       C263 293 254 304 240 308
+       C226 311 216 307 205 299
+       L106 211
+       C95 201 91 190 94 176
+       C96 165 101 157 110 149
+       L227 47
+       C233 42 240 39 247 38
+       Z" />
+</svg>

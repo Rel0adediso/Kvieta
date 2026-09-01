@@ -1,15 +1,15 @@
-# Contributing to Otium
+# Contributing to Kvieta
 
-Otium targets Windows with .NET 10 and WPF. Keep security-sensitive behavior fail-closed and preserve Turkish/English resource parity.
+Kvieta targets Windows with .NET 10 and WPF. Keep security-sensitive behavior fail-closed and preserve Turkish/English resource parity.
 
 Before submitting a change, run:
 
 ```powershell
-dotnet format Otium.slnx --verify-no-changes
-dotnet build Otium.slnx -c Debug
-dotnet build Otium.slnx -c Release
-dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Debug --no-build
-dotnet run --project tests/Otium.Core.SmokeTests/Otium.Core.SmokeTests.csproj -c Release --no-build
+dotnet format Kvieta.slnx --verify-no-changes
+dotnet build Kvieta.slnx -c Debug
+dotnet build Kvieta.slnx -c Release
+dotnet run --project tests/Kvieta.Core.SmokeTests/Kvieta.Core.SmokeTests.csproj -c Debug --no-build
+dotnet run --project tests/Kvieta.Core.SmokeTests/Kvieta.Core.SmokeTests.csproj -c Release --no-build
 ./scripts/verify-documentation.ps1
 ```
 
