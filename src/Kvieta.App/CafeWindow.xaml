@@ -21,7 +21,11 @@
                 <TextBlock Text="{Binding Headline}" FontSize="32" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" Margin="0,22,0,8" />
                 <TextBlock Text="{Binding Description}" Foreground="{DynamicResource MutedTextBrush}" FontSize="14" TextAlignment="Center" TextWrapping="Wrap" />
                 <Border Background="{DynamicResource WarningSoftBrush}" CornerRadius="6" Padding="12,7" HorizontalAlignment="Center" Margin="0,12,0,0" Visibility="{Binding IsBlocked, Converter={StaticResource BooleanToVisibilityConverter}}"><TextBlock Text="{Binding BlockedReasonText}" Foreground="{DynamicResource WarningBrush}" FontSize="12" FontWeight="SemiBold" TextAlignment="Center" /></Border>
-                <TextBlock Text="{DynamicResource OutsideScheduleHint}" Foreground="{DynamicResource WarningBrush}" FontSize="11" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0" Visibility="{Binding IsOutsideSchedule, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Text="{DynamicResource OutsideScheduleHint}" Foreground="{DynamicResource WarningBrush}" FontSize="11" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0" Visibility="{Binding IsRegularOutsideSchedule, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Button Content="{DynamicResource TrustCurrentClockAction}" Style="{StaticResource SecondaryButtonStyle}"
+                        HorizontalAlignment="Center" Margin="0,12,0,0" Padding="14,7"
+                        Visibility="{Binding IsClockRollbackDetected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Click="TrustCurrentClock_Click" />
                 <TextBlock Text="{Binding TimeMetricLabel}" Foreground="{DynamicResource FaintTextBrush}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,34,0,8" />
                 <TextBlock Text="{Binding RemainingText}" services:MotionAssist.AnimateTextChanges="True" FontSize="68" FontWeight="Light" HorizontalAlignment="Center" />
                 <TextBlock Text="{Binding PauseDurationText}" Foreground="{DynamicResource PrimaryBrush}" FontSize="13" HorizontalAlignment="Center" Margin="0,7,0,0" />

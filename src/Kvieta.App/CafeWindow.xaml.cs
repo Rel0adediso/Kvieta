@@ -352,6 +352,47 @@ public partial class CafeWindow : Window
         }
     }
 
+    private async void TrustCurrentClock_Click(object sender, RoutedEventArgs e)
+    {
+        AdminCredential credential = await LoadExitCredentialAsync();
+        if (!credential.IsConfigured)
+        {
+            ShowMissingAdministratorCredential();
+            return;
+        }
+
+        AdminPinWindow verification = PrepareSessionModal(AdminPinWindow.CreateVerification(
+            pin => VerifyExitPinAsync(pin, credential),
+            RecoverExitPinAsync,
+            LocalizationService.Get("TrustCurrentClockTitle"),
+            LocalizationService.Get("TrustCurrentClockRequirement")));
+        _modalDialogOpen = true;
+        try
+        {
+            if (verification.ShowDialog() != true)
+            {
+                return;
+            }
+
+            if (!await WindowsAdministratorVerificationService.RequestAsync("recovery.clock-anomaly.clear"))
+            {
+                return;
+            }
+
+            await _viewModel.ClearClockAnomalyAsync();
+            string auditPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Kvieta",
+                "security-audit.jsonl");
+            await new SecurityAuditLog(auditPath).AppendAsync("clock.anomaly", "admin-cleared");
+            EnsureCorrectSurface();
+        }
+        finally
+        {
+            _modalDialogOpen = false;
+        }
+    }
+
     private static bool IsEnglish => LocalizationService.CurrentLanguage == LanguagePreference.English;
 
     private async void PauseFromWidget(object? sender, EventArgs e)

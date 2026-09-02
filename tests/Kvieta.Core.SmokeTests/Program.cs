@@ -935,6 +935,16 @@ ClockIntegrityMonitor.ClearAnomaly(clockLedger, afterReboot.AddMinutes(1), TimeS
 Assert(!clockLedger.ClockAnomalyRequiresRecovery,
     "Yönetici saat kurtarma yolu anomalinin güvenli durumunu temizlemedi.");
 
+UsageLedger caughtUpRollbackLedger = new();
+DateTimeOffset caughtUpStart = new(2026, 8, 25, 14, 0, 0, TimeSpan.FromHours(3));
+ClockIntegrityMonitor.Observe(caughtUpRollbackLedger, caughtUpStart, TimeSpan.FromHours(2), "boot-c");
+Assert(ClockIntegrityMonitor.Observe(caughtUpRollbackLedger, caughtUpStart.AddMinutes(-10), TimeSpan.FromHours(2).Add(TimeSpan.FromMinutes(10)), "boot-c") == ClockChangeKind.Rollback &&
+    caughtUpRollbackLedger.ClockAnomalyRequiresRecovery,
+    "Geri alınan saat güvenli zamana ulaşmadan engellenmedi.");
+Assert(ClockIntegrityMonitor.Observe(caughtUpRollbackLedger, caughtUpStart, TimeSpan.FromHours(2).Add(TimeSpan.FromMinutes(20)), "boot-c") == ClockChangeKind.None &&
+    !caughtUpRollbackLedger.ClockAnomalyRequiresRecovery,
+    "Saat son güvenilir ana ulaştığında geri alma kilidi otomatik temizlenmedi.");
+
 string retentionUsagePath = Path.Combine(testDirectory, "retention-usage.json");
 JsonUsageStore retentionUsageStore = new(retentionUsagePath);
 DateOnly retentionToday = DateOnly.FromDateTime(DateTime.Today);

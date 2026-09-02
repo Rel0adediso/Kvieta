@@ -1048,6 +1048,10 @@ public partial class MainWindow : Window
         }
 
         await _viewModel.ClearClockAnomalyAsync();
+        if (_backgroundSessionWindow is not null)
+        {
+            await _backgroundSessionWindow.ReloadUsageAfterClearAsync();
+        }
         string auditPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Kvieta",

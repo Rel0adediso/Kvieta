@@ -51,6 +51,7 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         (_settings?.Mode != ControlMode.Personal || _settings.StrictPersonalMode == false);
     public bool IsOutsideSchedule => State == SessionState.OutsideSchedule;
     public bool IsClockRollbackDetected => _engine?.Ledger.ClockRollbackUntilUtc is { } until && until > DateTimeOffset.UtcNow;
+    public bool IsRegularOutsideSchedule => IsOutsideSchedule && !IsClockRollbackDetected;
     public LimitReachedAction LimitAction => _settings?.LimitAction ?? LimitReachedAction.ShowBlockScreen;
     public string BlockedReasonText => State switch
     {
@@ -65,6 +66,7 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         SessionState.Active => LocalizationService.Get("StateActive"),
         SessionState.Paused => LocalizationService.Get("StatePaused"),
         SessionState.TimeExpired => LocalizationService.Get("StateExpired"),
+        SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("StateClockProtection"),
         SessionState.OutsideSchedule => LocalizationService.Get("StateOutside"),
         _ => LocalizationService.Get("StateReady")
     };
@@ -424,6 +426,15 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         RefreshSnapshot(notifyStateChange: true);
     }
 
+    public async Task ClearClockAnomalyAsync()
+    {
+        await _usageStore.ClearClockAnomalyAsync(
+            DateTimeOffset.Now,
+            WindowsMonotonicClock.Uptime,
+            WindowsMonotonicClock.GetBootId());
+        await ReloadUsageAfterClearAsync();
+    }
+
     private void CommitPendingActiveTime()
     {
         if (_engine is null)
@@ -460,6 +471,7 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CanRequestExtraTime));
         OnPropertyChanged(nameof(IsOutsideSchedule));
         OnPropertyChanged(nameof(IsClockRollbackDetected));
+        OnPropertyChanged(nameof(IsRegularOutsideSchedule));
         OnPropertyChanged(nameof(HasCountdown));
         OnPropertyChanged(nameof(TimeMetricLabel));
         OnPropertyChanged(nameof(TimeMetricLabelShort));

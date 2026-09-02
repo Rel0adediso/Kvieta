@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace Kvieta.App.Controls;
 
@@ -61,16 +61,12 @@ public partial class TimeWheelPicker : System.Windows.Controls.UserControl
         SetCurrentValue(TimeTextProperty, $"{HourInput.SelectedIndex:00}:{MinuteInput.SelectedIndex:00}");
     }
 
-    private void TimePart_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    private void DropDownButton_Checked(object sender, RoutedEventArgs e)
     {
-        if (sender is not System.Windows.Controls.ComboBox comboBox || comboBox.IsDropDownOpen || comboBox.Items.Count == 0)
+        Dispatcher.BeginInvoke(() =>
         {
-            return;
-        }
-
-        int direction = e.Delta > 0 ? -1 : 1;
-        int current = Math.Max(0, comboBox.SelectedIndex);
-        comboBox.SelectedIndex = Math.Clamp(current + direction, 0, comboBox.Items.Count - 1);
-        e.Handled = true;
+            HourInput.ScrollIntoView(HourInput.SelectedItem);
+            MinuteInput.ScrollIntoView(MinuteInput.SelectedItem);
+        }, DispatcherPriority.Loaded);
     }
 }

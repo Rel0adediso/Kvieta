@@ -17,6 +17,17 @@ public static class ClockIntegrityMonitor
         DateTimeOffset utcNow = now.ToUniversalTime();
         if (ledger.ClockAnomalyRequiresRecovery)
         {
+            // A rollback cannot create extra usable time: the session stays blocked
+            // until wall time catches the last trusted instant. At that point the
+            // clock has safely caught up and no administrator recovery is needed.
+            if (ledger.LastClockChange == ClockChangeKind.Rollback &&
+                ledger.ClockRollbackUntilUtc is { } rollbackUntil &&
+                utcNow >= rollbackUntil)
+            {
+                ClearAnomaly(ledger, now, systemUptime, bootId);
+                return ClockChangeKind.None;
+            }
+
             ledger.State = SessionState.OutsideSchedule;
             return ledger.LastClockChange;
         }
