@@ -1261,6 +1261,29 @@ Assert(flexibleCafeViewModel.RemainingText != "00:00",
 await flexibleCafeViewModel.EndSessionAsync();
 Assert(flexibleCafeViewModel.RemainingText == "00:00",
     "Esnek kişisel kronometre yeni oturum için sıfırlanmadı.");
+string administrativePauseSettingsPath = Path.Combine(testDirectory, "administrative-pause-settings.json");
+string administrativePauseUsagePath = Path.Combine(testDirectory, "administrative-pause-usage.json");
+JsonSettingsStore administrativePauseSettingsStore = new(administrativePauseSettingsPath);
+await administrativePauseSettingsStore.SaveAsync(flexibleSettings);
+CafeViewModel administrativePauseViewModel = new(
+    administrativePauseSettingsStore,
+    new JsonUsageStore(administrativePauseUsagePath));
+await administrativePauseViewModel.InitializeAsync();
+Assert(await administrativePauseViewModel.StartOrResumeAsync(),
+    "Yönetici süresi testi için oturum başlatılamadı.");
+administrativePauseViewModel.SuspendUsageForAdministration();
+await Task.Delay(1100);
+await administrativePauseViewModel.TickAsync();
+await administrativePauseViewModel.ReloadSettingsAsync();
+await administrativePauseViewModel.SaveAsync();
+Assert((await new JsonUsageStore(administrativePauseUsagePath).LoadAsync()).UsedSeconds == 0,
+    "Kontrol Merkezi açıkken geçen süre kullanıcı kullanımına yazıldı.");
+administrativePauseViewModel.ResumeUsageAfterAdministration();
+await Task.Delay(1100);
+await administrativePauseViewModel.TickAsync();
+await administrativePauseViewModel.SaveAsync();
+Assert((await new JsonUsageStore(administrativePauseUsagePath).LoadAsync()).UsedSeconds >= 1,
+    "Kontrol Merkezi kapandıktan sonra kullanıcı sayacı devam etmedi.");
 int elapsedWeekDays = ((int)DateTime.Today.DayOfWeek + 6) % 7 + 1;
 long expectedAverageMinutes = 10 / elapsedWeekDays;
 Assert(awarenessViewModel.HistoryDailyAverageText.StartsWith($"{expectedAverageMinutes} ", StringComparison.Ordinal),

@@ -587,6 +587,7 @@ public partial class CafeWindow : Window
     public void ShowSessionSurface()
     {
         _controlCenterOpen = false;
+        _viewModel.ResumeUsageAfterAdministration();
         if (!_viewModel.ShouldShowSessionSurfaces)
         {
             Hide();
@@ -624,6 +625,7 @@ public partial class CafeWindow : Window
     public void ResumeFromControlCenter()
     {
         _controlCenterOpen = false;
+        _viewModel.ResumeUsageAfterAdministration();
         ExitButton.Content = LocalizationService.Get(
             _requirePinToExit ? "AdminExit" : _returnToControlCenter ? "ControlCenter" : "ExitKvieta");
         EnsureCorrectSurface();
@@ -849,6 +851,7 @@ public partial class CafeWindow : Window
 
     private void SuspendForControlCenter()
     {
+        _viewModel.SuspendUsageForAdministration();
         _controlCenterOpen = true;
         _forceSurfaceVisible = false;
         _widget?.Hide();

@@ -23,6 +23,7 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
     private DateTime _settingsLastWriteUtc;
     private string? _persistenceWarning;
     private bool _clockAnomalyAudited;
+    private bool _usageSuspendedForAdministration;
     private long _flexibleSessionBaselineSeconds;
 
     public CafeViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
@@ -171,6 +172,20 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
                     clockChange == ClockChangeKind.Rollback ? "rollback" : "forward-jump");
             }
         }
+
+        if (_usageSuspendedForAdministration)
+        {
+            _uncommittedSeconds = 0;
+            RefreshSnapshot(notifyStateChange: true);
+            if (_secondsSinceSave >= 5)
+            {
+                _secondsSinceSave = 0;
+                await SaveAsync();
+            }
+
+            return;
+        }
+
         ControlSettings? activeSettings = _settings;
         if (activeSettings is not null &&
             ShouldEnforceApplicationRules(activeSettings, _engine.Ledger.State) &&
@@ -232,6 +247,31 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         (settings.Mode != ControlMode.Personal ||
          settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible ||
          state == SessionState.Active);
+
+    public void SuspendUsageForAdministration()
+    {
+        if (_engine is null || _usageSuspendedForAdministration)
+        {
+            return;
+        }
+
+        CommitPendingActiveTime();
+        _usageSuspendedForAdministration = true;
+        _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
+    }
+
+    public void ResumeUsageAfterAdministration()
+    {
+        if (!_usageSuspendedForAdministration)
+        {
+            return;
+        }
+
+        _usageSuspendedForAdministration = false;
+        _uncommittedSeconds = 0;
+        _tickWatch.Restart();
+        RefreshSnapshot(notifyStateChange: true);
+    }
 
     public async Task<bool> PauseAsync()
     {
@@ -444,6 +484,12 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
 
         TimeSpan elapsed = _tickWatch.Elapsed;
         _tickWatch.Restart();
+        if (_usageSuspendedForAdministration)
+        {
+            _uncommittedSeconds = 0;
+            return;
+        }
+
         _uncommittedSeconds += elapsed.TotalSeconds;
         long wholeSeconds = (long)Math.Floor(_uncommittedSeconds);
         _uncommittedSeconds -= wholeSeconds;
