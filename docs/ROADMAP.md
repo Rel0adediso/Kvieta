@@ -6,7 +6,7 @@
 
 **Aktif hedef:** Alpha 1 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Kvieta Alpha 1 Hotfix 2](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1-hotfix-2)
+**Yayın:** [Kvieta Alpha 1 Hotfix 2](https://github.com/Rel0adediso/kvieta-app/releases/tag/alpha-1-hotfix-2)
 
 Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa

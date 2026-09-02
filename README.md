@@ -23,7 +23,7 @@ Kvieta helps make computer time visible and intentional without turning it into 
 
 ## Download Kvieta Alpha 1 Hotfix 2
 
-[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-1-hotfix-2/Kvieta-Setup-Alpha-1-Hotfix-2.exe)
+[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/kvieta-app/releases/download/alpha-1-hotfix-2/Kvieta-Setup-Alpha-1-Hotfix-2.exe)
 
 The self-contained setup supports English and Turkish and does not require the
 .NET SDK. This community preview is intentionally unsigned, so Windows
@@ -34,7 +34,7 @@ SHA-256: 0c9a974072929e47369efdd951bdc42341a836814aa447f48d8299fbf70e5f72
 ```
 
 The standalone MSI, checksum files, release manifest, detailed notes, and known
-limitations are on the [Kvieta Alpha 1 Hotfix 2 release page](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1-hotfix-2).
+limitations are on the [Kvieta Alpha 1 Hotfix 2 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/alpha-1-hotfix-2).
 
 > **Important:** Hotfix 2 includes the Guardian PIN authorization correction from Hotfix 1 and keeps administrator dialogs visible above the protected session surface. Install it over any earlier Alpha 1 package; existing settings and protected policy are preserved.
 

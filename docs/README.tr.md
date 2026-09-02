@@ -23,7 +23,7 @@ Kvieta, bilgisayar kullanımını cezaya çevirmeden zamanı görünür ve bilin
 
 ## Kvieta Alpha 1 Hotfix 2'yi indir
 
-[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/Kvieta/releases/download/alpha-1-hotfix-2/Kvieta-Setup-Alpha-1-Hotfix-2.exe)
+[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/kvieta-app/releases/download/alpha-1-hotfix-2/Kvieta-Setup-Alpha-1-Hotfix-2.exe)
 
 Self-contained kurucu Türkçe ve English destekler; .NET SDK gerektirmez. Bu
 community preview bilerek imzasızdır, bu nedenle Windows SmartScreen
@@ -34,7 +34,7 @@ SHA-256: 0c9a974072929e47369efdd951bdc42341a836814aa447f48d8299fbf70e5f72
 ```
 
 Bağımsız MSI, checksum dosyaları, release manifesti, ayrıntılı notlar ve bilinen
-sınırlar [Kvieta Alpha 1 Hotfix 2 yayın sayfasında](https://github.com/Rel0adediso/Kvieta/releases/tag/alpha-1-hotfix-2) bulunur.
+sınırlar [Kvieta Alpha 1 Hotfix 2 yayın sayfasında](https://github.com/Rel0adediso/kvieta-app/releases/tag/alpha-1-hotfix-2) bulunur.
 
 > **Önemli:** Hotfix 2, Hotfix 1'deki Guardian PIN düzeltmesini içerir ve yönetici pencerelerini korumalı oturum yüzeyinin üzerinde görünür tutar. Herhangi bir eski Alpha 1 paketinin üzerine kurulabilir; ayarlar ve korunan policy korunur.
 
