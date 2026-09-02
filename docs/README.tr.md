@@ -14,29 +14,29 @@ Windows'ta ekran süresini anlamanın ve yönetmenin sakin, yerel yolu.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=292B26)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=292B26)
 ![Privacy](https://img.shields.io/badge/gizlilik-yerel--öncelikli-87946B?style=flat-square&labelColor=292B26)
-![Status](https://img.shields.io/badge/durum-Alpha_1_Hotfix_2-C9B98E?style=flat-square&labelColor=292B26)
+![Status](https://img.shields.io/badge/durum-Alpha_2-C9B98E?style=flat-square&labelColor=292B26)
 ![License](https://img.shields.io/badge/lisans-MIT-87946B?style=flat-square&labelColor=292B26)
 
 </div>
 
 Kvieta, bilgisayar kullanımını cezaya çevirmeden zamanı görünür ve bilinçli hale getirir. Planlar, kurallar, kullanım geçmişi, kimlik bilgileri ve kurtarma verileri Windows cihazında kalır. Kvieta hesabı gerekmez.
 
-## Kvieta Alpha 1 Hotfix 2'yi indir
+## Kvieta Alpha 2'yi indir
 
-[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/kvieta-app/releases/download/alpha-1-hotfix-2/Kvieta-Setup-Alpha-1-Hotfix-2.exe)
+[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/kvieta-app/releases/download/kvieta-alpha-2/Kvieta-Setup-Alpha-2.exe)
 
 Self-contained kurucu Türkçe ve English destekler; .NET SDK gerektirmez. Bu
 community preview bilerek imzasızdır, bu nedenle Windows SmartScreen
 **Bilinmeyen yayıncı** uyarısı gösterebilir.
 
 ```text
-SHA-256: 0c9a974072929e47369efdd951bdc42341a836814aa447f48d8299fbf70e5f72
+SHA-256: 44444d2c07add93b5b44e374b4de5a426e7b8759efced119c5252485edf0dd2b
 ```
 
 Bağımsız MSI, checksum dosyaları, release manifesti, ayrıntılı notlar ve bilinen
-sınırlar [Kvieta Alpha 1 Hotfix 2 yayın sayfasında](https://github.com/Rel0adediso/kvieta-app/releases/tag/alpha-1-hotfix-2) bulunur.
+sınırlar [Kvieta Alpha 2 yayın sayfasında](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-2) bulunur.
 
-> **Önemli:** Hotfix 2, Hotfix 1'deki Guardian PIN düzeltmesini içerir ve yönetici pencerelerini korumalı oturum yüzeyinin üzerinde görünür tutar. Herhangi bir eski Alpha 1 paketinin üzerine kurulabilir; ayarlar ve korunan policy korunur.
+> **Önemli:** Alpha 2, bütün Alpha 1 paketlerinin yerini alır. Mevcut Kvieta kurulumunun üzerine doğrudan kurulabilir; ayarlar, kullanım geçmişi ve korunan policy korunur.
 
 ## Zamanla nasıl bir ilişki kuracağını seç
 
@@ -57,15 +57,15 @@ sınırlar [Kvieta Alpha 1 Hotfix 2 yayın sayfasında](https://github.com/Rel0a
 | **Kuralları korur** | Guardian gözetimi, korumalı policy alanı, sağlık kontrolleri, onarım yolları ve doğrulanmış yönetici çıkışı. |
 | **Gerçek hayata dayanır** | Atomik kayıt, son sağlam yedek, bozulma kurtarması, saat geri alma algısı ve eşzamanlı yazma koruması. |
 
-## Kvieta Alpha 1 preview ile gelenler
+## Kvieta Alpha 2 ile gelenler
 
-- Uygulama, kurucu, Windows ikonu, tray ve belgelerin tamamında yeni **Kvieta** kimliği.
-- Uygulama ve kurucuda net vektör logo; EXE için çok çözünürlüklü Windows ikonu.
-- Yerel ağda kısa ömürlü, imzalı isteklerle çalışan isteğe bağlı **güvenilir telefon kurtarması**; PIN ve kurtarma kodları bilgisayardan çıkmaz.
-- QR ile güvenilir cihaz eşleştirme ve aktarma, tek aktif cihaz, açık iptal, karşılaştırma kodu, süre sonu ve tekrar oynatma koruması.
-- Başlatma, onarım, policy aktarımı, yönetici çıkışı ve yinelenen pencere engelini kapsayan daha sağlam Guardian yaşam döngüsü.
-- Paket ve manifest doğrulamalı daha güvenli kurulum, güncelleme, onarım, yeniden yapılandırma, rollback ve kaldırma akışları.
-- Oturum davranışı, uygulama kuralları, Windows kilidi geçişleri, güç eylemleri, odak yönetimi ve iki dilli hata durumlarında düzeltmeler.
+- Haftalık planlar için saat ve dakika sütunlarından oluşan kompakt, kaydırmalı zaman seçici.
+- Daha anlaşılır sağlık bilgileri ve güvenli onarım işlemleriyle yenilenen Kurtarma Merkezi.
+- Mevcut kodları sessizce değiştirmeden yeniden kopyalanabilen veya indirilebilen sabit tek kullanımlık kurtarma kodları.
+- Windows saati düzeltildikten sonra doğrudan onay ve güvenilir zaman yakalandığında otomatik toparlanma.
+- Yönetici ve Kontrol Merkezi'nde geçirilen sürenin yönetilen kullanıcının günlük limitinden düşmemesi.
+- Fiziksel cihaz testlerine göre daha güvenilir Guardian başlatma, onarım, PIN yetkilendirmesi ve yönetici geçişleri.
+- Uygulama ve kurucunun tamamında daha net vektör marka öğeleri ve geliştirilmiş iki dilli yerleşimler.
 
 ## Gizlilik tasarımın parçası
 
@@ -73,12 +73,12 @@ Kvieta zorunlu bulut hesabı kullanmaz ve ekran süresi geçmişini bir Kvieta s
 
 ## Projenin durumu
 
-**Kvieta Alpha 1 Hotfix 2 güncel community preview'dur.**
+**Kvieta Alpha 2 güncel community preview'dur.**
 
 - Kaynak kod bugün çalıştırılabilir; Windows paket hattı hazırdır.
 - Debug ve Release derlemeleri, smoke testleri, belge kontrolleri ve public-build bypass kontrolleri kalite kapısı olarak çalışır.
 - Community kurucular bilerek imzasızdır; Windows SmartScreen **Bilinmeyen yayıncı** uyarısı gösterebilir.
-- Yayımlanan Setup EXE, MSI, checksum ve manifest `56c2462` kaynak commit'ine bağlıdır.
+- Alpha 2 Setup EXE, MSI, checksum ve manifest `0444bd2` kaynak commit'ine bağlıdır.
 - Geniş kurucu, DPI, Guardian, kaçış yolu ve Windows yaşam döngüsü matrisi final `v1.0.0` öncesinde açıktır.
 
 Kalan doğrulamalar için [yol haritasına](ROADMAP.md), ayrıntılı geçmiş için [sürüm notlarına](RELEASE_NOTES.md) bakın.

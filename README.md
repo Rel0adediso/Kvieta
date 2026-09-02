@@ -14,29 +14,29 @@ A calm, local-first way to understand and manage screen time on Windows.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=292B26)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=292B26)
 ![Privacy](https://img.shields.io/badge/privacy-local--first-87946B?style=flat-square&labelColor=292B26)
-![Status](https://img.shields.io/badge/status-Alpha_1_Hotfix_2-C9B98E?style=flat-square&labelColor=292B26)
+![Status](https://img.shields.io/badge/status-Alpha_2-C9B98E?style=flat-square&labelColor=292B26)
 ![License](https://img.shields.io/badge/license-MIT-87946B?style=flat-square&labelColor=292B26)
 
 </div>
 
 Kvieta helps make computer time visible and intentional without turning it into punishment. Schedules, rules, usage history, credentials, and recovery data stay on the Windows device. No Kvieta account is required.
 
-## Download Kvieta Alpha 1 Hotfix 2
+## Download Kvieta Alpha 2
 
-[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/kvieta-app/releases/download/alpha-1-hotfix-2/Kvieta-Setup-Alpha-1-Hotfix-2.exe)
+[**Download Kvieta Setup for Windows x64**](https://github.com/Rel0adediso/kvieta-app/releases/download/kvieta-alpha-2/Kvieta-Setup-Alpha-2.exe)
 
 The self-contained setup supports English and Turkish and does not require the
 .NET SDK. This community preview is intentionally unsigned, so Windows
 SmartScreen may show an **Unknown publisher** warning.
 
 ```text
-SHA-256: 0c9a974072929e47369efdd951bdc42341a836814aa447f48d8299fbf70e5f72
+SHA-256: 44444d2c07add93b5b44e374b4de5a426e7b8759efced119c5252485edf0dd2b
 ```
 
 The standalone MSI, checksum files, release manifest, detailed notes, and known
-limitations are on the [Kvieta Alpha 1 Hotfix 2 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/alpha-1-hotfix-2).
+limitations are on the [Kvieta Alpha 2 release page](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-2).
 
-> **Important:** Hotfix 2 includes the Guardian PIN authorization correction from Hotfix 1 and keeps administrator dialogs visible above the protected session surface. Install it over any earlier Alpha 1 package; existing settings and protected policy are preserved.
+> **Important:** Alpha 2 replaces every Alpha 1 package. It can be installed directly over an existing Kvieta installation while preserving settings, usage history, and protected policy.
 
 ## Choose the relationship you want with time
 
@@ -57,15 +57,15 @@ limitations are on the [Kvieta Alpha 1 Hotfix 2 release page](https://github.com
 | **Protect policy** | Guardian-backed supervision, protected policy storage, health checks, repair paths, and verified administrator exit. |
 | **Survive real life** | Atomic saves, last-known-good backups, corruption recovery, clock-rollback detection, and concurrent-write protection. |
 
-## New in the Kvieta Alpha 1 preview
+## New in Kvieta Alpha 2
 
-- A complete **Kvieta** identity across the app, setup experience, Windows icon, tray, and documentation.
-- Crisp vector branding inside the app and installer, with a multi-resolution Windows icon for the executable.
-- Optional **trusted-phone recovery** using short-lived signed requests on the local network; the PIN and recovery codes never leave the PC.
-- QR-based trusted-device enrollment and transfer, one active device at a time, explicit revocation, comparison codes, expiry, and replay protection.
-- A more reliable Guardian lifecycle covering startup, repair, policy handoff, administrator exit, and duplicate-window prevention.
-- Safer install, update, repair, reconfiguration, rollback, and removal flows with package and manifest verification.
-- Stabilized session behavior, application rules, Windows-lock transitions, power actions, focus handling, and bilingual error states.
+- A compact wheel-style time picker with hour and minute columns for weekly schedules.
+- A refined Recovery Center with clearer health information and safer repair actions.
+- Stable one-time recovery codes that can be copied or downloaded again without silently replacing the existing set.
+- Direct clock-recovery controls after Windows time corrections, including automatic recovery when trusted time catches up.
+- Administrator and Control Center time no longer consumes the managed user's daily allowance.
+- More reliable Guardian startup, repair, PIN authorization, and administrator transitions based on physical-device testing.
+- Sharper vector branding and improved bilingual layouts throughout the application and installer.
 
 ## Private by design
 
@@ -73,12 +73,12 @@ Kvieta has no required cloud account and does not send screen-time history to a 
 
 ## Project status
 
-**Kvieta Alpha 1 Hotfix 2 is the current community preview.**
+**Kvieta Alpha 2 is the current community preview.**
 
 - The source is usable today and the Windows package pipeline is in place.
 - Debug and Release builds, smoke tests, documentation checks, and public-build bypass checks run as quality gates.
 - Community installers are intentionally unsigned, so Windows SmartScreen may show an **Unknown publisher** warning.
-- The published Setup EXE, MSI, checksums, and manifest are tied to source commit `56c2462`.
+- The Alpha 2 Setup EXE, MSI, checksums, and manifest are tied to source commit `0444bd2`.
 - The broader installer, DPI, Guardian, escape-path, and Windows lifecycle matrix remains open before final `v1.0.0`.
 
 See the [roadmap](docs/ROADMAP.md) for the remaining validation work and [release notes](docs/RELEASE_NOTES.md) for the detailed history.

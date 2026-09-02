@@ -1,5 +1,45 @@
 # Kvieta release notes
 
+## Kvieta Alpha 2 — Current community preview
+
+Kvieta Alpha 2 turns the Alpha 1 field fixes into a single recommended preview.
+It preserves existing settings, usage history, recovery material, and protected
+policy when installed over an earlier Alpha package.
+
+The unsigned package was built from clean source commit `0444bd2`. Setup EXE
+SHA-256: `44444d2c07add93b5b44e374b4de5a426e7b8759efced119c5252485edf0dd2b`.
+The package label is `Alpha-2`; the future GitHub release uses
+`kvieta-alpha-2` because the pre-rename Otium history already contains an
+`alpha-2` tag.
+
+### Scheduling and recovery
+
+- Replaced the four separate schedule selectors with a compact time picker whose
+  hour and minute columns scroll inside one popup.
+- Refined the Recovery Center layout, version presentation, and repair paths.
+- Recovery codes remain stable when reopened and can be copied or downloaded
+  again; opening the window no longer silently invalidates the previous set.
+- Clock protection can be cleared directly after Windows time is corrected and
+  now recovers automatically when trusted wall time catches up.
+
+### Protected session reliability
+
+- Administrator and Control Center time no longer consumes the managed user's
+  daily allowance; accounting resumes only after returning to the session surface.
+- Kept administrator PIN and bonus-time dialogs above the protected session
+  surface and retained the Guardian identity correction from Alpha 1 hotfixes.
+- Improved Guardian health reporting and recovery behavior observed during
+  physical-device installation and upgrade testing.
+
+### Presentation and packaging
+
+- Continued the crisp vector Kvieta identity across the application, setup,
+  Windows executable, and documentation.
+- Passed Release build, formatting, smoke, package metadata, embedded MSI,
+  manifest, and SHA-256 verification gates.
+- Remains an intentionally unsigned community prerelease, so Windows SmartScreen
+  may display an unknown-publisher warning.
+
 ## Kvieta Alpha 1 Hotfix 2 — Visible administrator dialogs
 
 This hotfix keeps administrator PIN and bonus-time dialogs visibly above the
@@ -70,12 +110,13 @@ the `alpha-1` GitHub prerelease.
 - The community installer is intentionally unsigned. The published Setup EXE
   SHA-256 is `a29169986307434d819e1d7dbb11c30d768058548ce1ef1a166978b93fc87871`;
   the MSI SHA-256 is `29334604fec9f6f577bb830951446c7533bf6e7cb5493fa799ac075e18838fdb`.
-- The existing Alpha 2 entry below is retained as historical development context
-  from before the Kvieta-branded release line.
+- The pre-rename Otium Alpha 2 entry below is retained as historical development
+  context from before the Kvieta-branded release line.
 
-## Kvieta Alpha 2 — Second community prerelease
+## Otium Alpha 2 — Pre-rename historical preview
 
-Kvieta Alpha 2 is the second community prerelease. The public name deliberately
+Otium Alpha 2 was the second community prerelease before the Kvieta rename. Its
+historical public name deliberately
 does not use `v1.0.0-alpha.2`; `alpha-2` is used only where a URL, Git tag, or
 filename-safe identifier is required. The internal MSI product version remains
 `1.0.0` so Windows Installer can service existing Alpha installations.

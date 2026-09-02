@@ -17,6 +17,10 @@ package-safe label is needed; do not present `v1.0.0-alpha.1` as the product nam
 The numeric MSI version stays `1.0.0` so Windows Installer can service the
 existing product correctly.
 
+The current branded preview is **Kvieta Alpha 2**. Its package-safe label is
+`Alpha-2`. Because the pre-rename Otium history already contains an `alpha-2`
+tag, publish the branded preview under the non-conflicting `kvieta-alpha-2` tag.
+
 Final releases must never be published while a documented release blocker remains open. Release candidates and test packages must be labeled clearly and must not be described as signed or production-ready when they are not.
 
 Kvieta currently plans an unsigned, non-commercial community release. It must remain technically distinct from Debug/test packages: no development bypass may be compiled in, manifest and source commit must match, Guardian client identity checks must pass, and the expected Windows SmartScreen warning must be documented. Authenticode can be added later without changing the open-source license.

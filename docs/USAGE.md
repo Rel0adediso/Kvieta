@@ -1,6 +1,6 @@
 # Kvieta usage and recovery guide
 
-> Current status: `v1.0.0-alpha`. Test packages are unsigned and intended only for local development and validation; they are not final public releases.
+> Current status: **Kvieta Alpha 2**. Community packages are unsigned previews intended for validation; they are not final public releases.
 
 ## Installation and update
 

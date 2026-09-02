@@ -1,17 +1,33 @@
 # Kvieta — Ürün ve Release Yol Haritası
 
-**Son güncelleme:** 1 Eylül 2026
+**Son güncelleme:** 2 Eylül 2026
 
-**Mevcut yayın:** **Kvieta Alpha 1 Hotfix 2** GitHub prerelease
+**Mevcut yayın adayı:** **Kvieta Alpha 2** community prerelease
 
-**Aktif hedef:** Alpha 1 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
+**Aktif hedef:** Alpha 2 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Kvieta Alpha 1 Hotfix 2](https://github.com/Rel0adediso/kvieta-app/releases/tag/alpha-1-hotfix-2)
+**Yayın:** [Kvieta Alpha 2](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-2)
 
 Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
 bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği için
 öncelikle **Aktif çalışma planı** bölümü esas alınır.
+
+## Kvieta Alpha 2 yayın adayı
+
+Alpha 2, Alpha 1 saha testlerinden çıkan Guardian, yönetici geçişi, saat
+koruması, plan düzenleme ve kurtarma akışı düzeltmelerini tek önerilen pakette
+birleştirir. Paket etiketi `Alpha-2`, yeni GitHub etiketi `kvieta-alpha-2` olur;
+pre-rename Otium geçmişindeki mevcut `alpha-2` etiketi değiştirilmez.
+
+- [x] Kaydırmalı saat/dakika seçici ve plan yerleşimi tamamlandı.
+- [x] Kurtarma Merkezi ve kurtarma kodu yeniden indirme akışı düzeltildi.
+- [x] Saat koruması için doğrudan onay ve otomatik toparlanma eklendi.
+- [x] Kontrol Merkezi açıkken kullanıcı süresinin işlememesi doğrulandı.
+- [x] Temiz kaynak commit'inden Alpha 2 community paketi üretildi ve doğrulandı.
+- [ ] GitHub kalite hattı Alpha 2 etiketiyle çalıştırılmalı.
+- [ ] `kvieta-alpha-2` prerelease'i ve doğrulama dosyaları yayımlanmalı.
+- [ ] Alpha 2 gerçek cihaz yükseltme ve kullanım testi tamamlanmalı.
 
 ## Ürün ilkeleri
 

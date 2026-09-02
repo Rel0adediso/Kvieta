@@ -25,4 +25,4 @@ Do not publish exploit details or secrets in a public issue. Until a private sec
 
 ## Alpha expectations
 
-The current `v1.0.0-alpha` packages are for development and validation. Multi-monitor, sleep/hibernate, complete installer lifecycle, and public distribution trust are still open V1 work. See the [roadmap](../docs/ROADMAP.md) and [test matrix](../docs/V1-TEST-MATRIX.md) for current evidence.
+The current **Kvieta Alpha 2** packages are for development and validation. Multi-monitor, sleep/hibernate, complete installer lifecycle, and public distribution trust are still open V1 work. See the [roadmap](../docs/ROADMAP.md) and [test matrix](../docs/V1-TEST-MATRIX.md) for current evidence.
