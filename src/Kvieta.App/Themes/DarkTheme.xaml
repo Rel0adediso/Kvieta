@@ -15,6 +15,8 @@
     <SolidColorBrush x:Key="FaintTextBrush" Color="#949184" />
     <SolidColorBrush x:Key="BorderBrush" Color="#37392F" />
     <SolidColorBrush x:Key="BorderStrongBrush" Color="#45483A" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#7D806F" />
+    <SolidColorBrush x:Key="FocusRingBrush" Color="#B4BC82" />
     <SolidColorBrush x:Key="InputBrush" Color="#282A23" />
     <SolidColorBrush x:Key="InputHoverBrush" Color="#303229" />
     <SolidColorBrush x:Key="NavSelectedBrush" Color="#303326" />
@@ -24,4 +26,13 @@
     <SolidColorBrush x:Key="WarningSoftBrush" Color="#382F20" />
     <SolidColorBrush x:Key="DangerBrush" Color="#D98080" />
     <SolidColorBrush x:Key="OverlayBrush" Color="#DA10110E" />
+    <SolidColorBrush x:Key="OverlayScrimBrush" Color="#76000000" />
+    <SolidColorBrush x:Key="ShadowBrush" Color="#000000" />
+    <SolidColorBrush x:Key="WindowSymbolBrush" Color="#2A2B24" />
+    <SolidColorBrush x:Key="WindowMinimizeBrush" Color="#D9AE50" />
+    <SolidColorBrush x:Key="WindowMaximizeBrush" Color="#7E9A62" />
+    <SolidColorBrush x:Key="WindowCloseBrush" Color="#E66A5F" />
+    <SolidColorBrush x:Key="LogoBackgroundBrush" Color="#F2EEE3" />
+    <SolidColorBrush x:Key="LogoInkBrush" Color="#22231D" />
+    <SolidColorBrush x:Key="LogoAccentBrush" Color="#536039" />
 </ResourceDictionary>

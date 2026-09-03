@@ -308,20 +308,9 @@ public partial class MainWindow : Window
             : LocalizationService.Get("ExpandMenu");
     }
 
-    private void HistoryApplications_Click(object sender, MouseButtonEventArgs e)
+    private void HistoryDay_Click(object sender, RoutedEventArgs e)
     {
-        if (_viewModel.HistoryAllApplications.Count == 0)
-        {
-            return;
-        }
-
-        ShowApplicationDetails();
-        e.Handled = true;
-    }
-
-    private void HistoryDay_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is Border { Tag: UsageHistoryDayRow day })
+        if (sender is System.Windows.Controls.Button { Tag: UsageHistoryDayRow day })
         {
             _viewModel.SelectHistoryDay(day);
             e.Handled = true;
@@ -469,24 +458,18 @@ public partial class MainWindow : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
-    private void UninstallKvieta_Click(object sender, RoutedEventArgs e)
+    private async void UninstallKvieta_Click(object sender, RoutedEventArgs e)
     {
-        string? executablePath = Environment.ProcessPath;
-        if (string.IsNullOrWhiteSpace(executablePath))
+        if (System.Windows.Application.Current is not App app)
         {
             System.Windows.MessageBox.Show(LocalizationService.Get("UninstallLaunchFailed"), LocalizationService.Get("UninstallTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
 
-        try
+        if (await app.HandleUninstallRequestAsync(this))
         {
-            Process.Start(new ProcessStartInfo { FileName = executablePath, Arguments = "--uninstall", UseShellExecute = true });
             _allowCloseForUninstall = true;
             Close();
-        }
-        catch
-        {
-            System.Windows.MessageBox.Show(LocalizationService.Get("UninstallLaunchFailed"), LocalizationService.Get("UninstallTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -865,12 +848,14 @@ public partial class MainWindow : Window
                         approvalWindow = new ManagerDeviceApprovalWindow(
                             endpoint.PairingUri,
                             endpoint.ExpiresAtUtc,
-                            enrollment: true,
-                            verificationCode: endpoint.VerificationCode)
+                            enrollment: true)
                         {
                             Owner = owner
                         };
+                        endpoint.EnrollmentProposed += approvalWindow.ShowEnrollmentProposal;
+                        approvalWindow.ConfigureEnrollmentConfirmation(endpoint.ConfirmPendingAsync);
                         bool acceptedByDialog = approvalWindow.ShowDialog() == true;
+                        if (!acceptedByDialog) endpoint.RejectPending();
                         return acceptedByDialog ||
                             enrollmentResult.Task.IsCompletedSuccessfully && enrollmentResult.Task.Result;
                     }

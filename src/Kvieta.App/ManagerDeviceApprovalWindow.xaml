@@ -13,6 +13,7 @@
             <TextBox x:Name="UriBox" Grid.Row="4" IsReadOnly="True" Padding="9,6" FontFamily="Consolas" FontSize="10" Margin="0,10,0,0"/>
             <TextBlock x:Name="StatusText" Grid.Row="5" Foreground="{DynamicResource WarningBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0"/>
             <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="ConfirmEnrollmentButton" Style="{StaticResource PrimaryButtonStyle}" Click="ConfirmEnrollment_Click" Margin="0,0,8,0" Visibility="Collapsed"/>
                 <Button x:Name="CopyButton" Style="{StaticResource SecondaryButtonStyle}" Click="Copy_Click" Margin="0,0,8,0"/>
                 <Button x:Name="CancelButton" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click"/>
             </StackPanel>

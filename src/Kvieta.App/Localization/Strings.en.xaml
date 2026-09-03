@@ -1,4 +1,5 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <sys:String x:Key="TogglePinVisibility">Show or hide PIN</sys:String>
     <sys:String x:Key="ControlCenter">Control Center</sys:String><sys:String x:Key="Minimize">Minimize</sys:String><sys:String x:Key="Maximize">Maximize</sys:String><sys:String x:Key="Close">Close</sys:String>
     <sys:String x:Key="BackgroundActive">Active in background</sys:String>
     <sys:String x:Key="CollapseMenu">Collapse menu</sys:String><sys:String x:Key="ExpandMenu">Expand menu</sys:String>
@@ -37,11 +38,28 @@
     <sys:String x:Key="NoHistoryApplications">No application usage data yet.</sys:String>
     <sys:String x:Key="NoHistoryEvents">No activity has been recorded yet.</sys:String>
     <sys:String x:Key="UninstallTitle">Uninstall Kvieta</sys:String>
-    <sys:String x:Key="UninstallSettingsDescription">Starts the Windows uninstall flow. Protected usage requires the administrator PIN; local usage history is preserved.</sys:String>
+    <sys:String x:Key="UninstallSettingsDescription">Protected usage requires the administrator PIN. During uninstall, you can keep or delete your local data.</sys:String>
     <sys:String x:Key="UninstallAction">Uninstall application</sys:String>
-    <sys:String x:Key="UninstallConfirmation">Uninstall Kvieta from this computer? Your local usage data will be preserved.</sys:String>
     <sys:String x:Key="UninstallLaunchFailed">Uninstall could not be started. Check the Windows administrator permission.</sys:String>
     <sys:String x:Key="UninstallNotAvailableDescription">This copy of Kvieta was not installed by Windows Installer.</sys:String>
+    <sys:String x:Key="UninstallDialogTitle">Uninstall Kvieta from this computer</sys:String>
+    <sys:String x:Key="UninstallDialogDescription">The application files and Kvieta Guardian will be removed. Choose what happens to your local data below.</sys:String>
+    <sys:String x:Key="UninstallRemoveData">Also delete my settings and local data</sys:String>
+    <sys:String x:Key="UninstallRemoveDataDescription">Your plan, application rules, usage history, PIN, and recovery information will be permanently deleted.</sys:String>
+    <sys:String x:Key="UninstallPreserveDataHint">If you leave this unchecked, your settings and history will be available if you install Kvieta again.</sys:String>
+    <sys:String x:Key="UninstallConfirmAction">Uninstall Kvieta</sys:String>
+    <sys:String x:Key="UninstallConfirmWithDataAction">Uninstall app and data</sys:String>
+    <sys:String x:Key="UninstallWorkingTitle">Uninstalling Kvieta</sys:String>
+    <sys:String x:Key="UninstallWorkingDescription">The application and Guardian are being removed safely. Keep this window open.</sys:String>
+    <sys:String x:Key="UninstallSuccessTitle">Kvieta was uninstalled successfully</sys:String>
+    <sys:String x:Key="UninstallRemovedWithWarningTitle">Kvieta was removed, but cleanup is incomplete</sys:String>
+    <sys:String x:Key="UninstallDataRemoved">Your settings and local data were deleted together with the application files.</sys:String>
+    <sys:String x:Key="UninstallDataPreserved">The application was removed. Your settings and local data remain on this computer.</sys:String>
+    <sys:String x:Key="UninstallPartialCleanup">The application was removed, but its startup entry or some selected local data could not be cleaned up. Restart the computer and check the Kvieta folders.</sys:String>
+    <sys:String x:Key="UninstallCancelledTitle">Uninstall cancelled</sys:String>
+    <sys:String x:Key="UninstallCancelledDescription">Kvieta remains installed on this computer.</sys:String>
+    <sys:String x:Key="UninstallFailedTitle">Uninstall could not be completed</sys:String>
+    <sys:String x:Key="UninstallFailedDescription">Windows Installer stopped with code {0}. Kvieta was not removed.</sys:String>
     <sys:String x:Key="GuardianVersionMismatchTitle">Kvieta · Version mismatch</sys:String>
     <sys:String x:Key="GuardianVersionMismatchDescription">The app and Guardian versions do not match. Repair or update Kvieta to keep protection safe.</sys:String>
     <sys:String x:Key="DevelopmentTestBuild">Development/Test build</sys:String>

@@ -10,6 +10,7 @@ public partial class ManagerDeviceApprovalWindow : Window
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DateTimeOffset _expiresAtUtc;
     private readonly bool _transfer;
+    private Func<Task<bool>>? _confirmEnrollment;
 
     public ManagerDeviceApprovalWindow(
         Uri recoveryUri,
@@ -41,6 +42,7 @@ public partial class ManagerDeviceApprovalWindow : Window
                 : "Bu QR kodu kayıtlı telefonla tara ve yerel sayfada PIN sıfırlamayı onayla.";
         CopyButton.Content = english ? "Copy address" : "Adresi kopyala";
         CancelButton.Content = english ? "Cancel" : "Vazgeç";
+        ConfirmEnrollmentButton.Content = english ? "Codes match · Pair" : "Kodlar eşleşiyor · Eşleştir";
         UriBox.Text = recoveryUri.AbsoluteUri;
         VerificationCodeText.Text = verificationCode ?? string.Empty;
         QrImage.Source = QrCodeImageService.Create(recoveryUri.AbsoluteUri);
@@ -58,6 +60,24 @@ public partial class ManagerDeviceApprovalWindow : Window
             {
                 DialogResult = accepted;
             }
+        });
+    }
+
+    public void ConfigureEnrollmentConfirmation(Func<Task<bool>> confirmEnrollment)
+    {
+        _confirmEnrollment = confirmEnrollment ?? throw new ArgumentNullException(nameof(confirmEnrollment));
+    }
+
+    public void ShowEnrollmentProposal(string verificationCode, string deviceName)
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            VerificationCodeText.Text = verificationCode;
+            ConfirmEnrollmentButton.Visibility = Visibility.Visible;
+            bool english = LocalizationService.CurrentLanguage == LanguagePreference.English;
+            StatusText.Text = english
+                ? $"Compare this code with {deviceName}. Pair only if both codes match."
+                : $"Bu kodu {deviceName} ile karşılaştır. Yalnız iki kod eşleşiyorsa eşleştir.";
         });
     }
 
@@ -86,5 +106,13 @@ public partial class ManagerDeviceApprovalWindow : Window
     }
 
     private void Copy_Click(object sender, RoutedEventArgs e) => System.Windows.Clipboard.SetText(UriBox.Text);
+    private async void ConfirmEnrollment_Click(object sender, RoutedEventArgs e)
+    {
+        if (_confirmEnrollment is null) return;
+        ConfirmEnrollmentButton.IsEnabled = false;
+        CancelButton.IsEnabled = false;
+        bool accepted = await _confirmEnrollment();
+        if (IsVisible) DialogResult = accepted;
+    }
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
 }

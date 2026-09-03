@@ -13,6 +13,7 @@ public sealed class LocalManagerDeviceEnrollmentEndpoint : IAsyncDisposable
     private readonly string _routeToken;
     private readonly CancellationTokenSource _expirationCancellation = new();
     private readonly Task _expirationTask;
+    private ManagerDeviceEnrollmentRequest? _pendingRequest;
     private int _requestConsumed;
 
     private LocalManagerDeviceEnrollmentEndpoint(
@@ -26,14 +27,12 @@ public sealed class LocalManagerDeviceEnrollmentEndpoint : IAsyncDisposable
         ExpiresAtUtc = expiresAtUtc;
         _enroll = enroll;
         PairingUri = new Uri($"http://{server.Address}:{server.Port}/{routeToken}/");
-        VerificationCode = RandomNumberGenerator.GetInt32(1_000_000)
-            .ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
         _expirationTask = StopWhenExpiredAsync(_expirationCancellation.Token);
     }
 
     public Uri PairingUri { get; }
     public DateTimeOffset ExpiresAtUtc { get; }
-    public string VerificationCode { get; }
+    public event Action<string, string>? EnrollmentProposed;
 
     public static LocalManagerDeviceEnrollmentEndpoint Start(
         Func<ManagerDeviceEnrollmentRequest, Task<bool>> enroll,
@@ -81,8 +80,7 @@ public sealed class LocalManagerDeviceEnrollmentEndpoint : IAsyncDisposable
             return new LocalNetworkHttpResponse(HttpStatusCode.OK, new
             {
                 service = "kvieta-enrollment",
-                expiresAtUtc = ExpiresAtUtc,
-                verificationCode = VerificationCode
+                expiresAtUtc = ExpiresAtUtc
             });
         }
 
@@ -103,16 +101,49 @@ public sealed class LocalManagerDeviceEnrollmentEndpoint : IAsyncDisposable
 
         if (enrollmentRequest is null ||
             !ManagerDeviceEnrollmentService.VerifyRequest(enrollmentRequest, DateTimeOffset.UtcNow) ||
-            Interlocked.CompareExchange(ref _requestConsumed, 1, 0) != 0)
+            Volatile.Read(ref _requestConsumed) != 0 ||
+            Interlocked.CompareExchange(ref _pendingRequest, enrollmentRequest, null) is not null)
         {
             return new LocalNetworkHttpResponse(HttpStatusCode.Unauthorized);
         }
 
-        bool accepted = await _enroll(enrollmentRequest);
-        return new LocalNetworkHttpResponse(
-            accepted ? HttpStatusCode.OK : HttpStatusCode.Forbidden,
-            new { accepted },
-            StopAfterResponse: true);
+        string verificationCode = ManagerDeviceVerificationCode.ForEnrollmentRequest(enrollmentRequest);
+        EnrollmentProposed?.Invoke(verificationCode, enrollmentRequest.Enrollment.DeviceName);
+        return new LocalNetworkHttpResponse(HttpStatusCode.OK, new
+        {
+            accepted = false,
+            pendingComputerConfirmation = true,
+            verificationCode
+        });
+    }
+
+    public async Task<bool> ConfirmPendingAsync()
+    {
+        ManagerDeviceEnrollmentRequest? request = Volatile.Read(ref _pendingRequest);
+        if (request is null ||
+            Interlocked.CompareExchange(ref _requestConsumed, 1, 0) != 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            return await _enroll(request);
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            _server.Stop();
+        }
+    }
+
+    public void RejectPending()
+    {
+        Interlocked.Exchange(ref _requestConsumed, 1);
+        _server.Stop();
     }
 
     private async Task StopWhenExpiredAsync(CancellationToken cancellationToken)

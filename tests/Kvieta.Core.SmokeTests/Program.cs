@@ -51,6 +51,7 @@ Thread adminPinWindowThread = new(() =>
             _ => Task.FromResult(false),
             recoveryCodeAvailable: false,
             managerDeviceName: "Test phone");
+        _ = new Kvieta.App.BonusTimeWindow();
         application.Shutdown();
     }
     catch (Exception exception)
@@ -89,7 +90,7 @@ await using (LocalManagerDeviceEnrollmentEndpoint endpoint =
         "Telefon için gömülü yerel companion sitesi sunulamadı.");
     string endpointDescription = await localClient.GetStringAsync(new Uri(endpoint.PairingUri, "api"));
     Assert(endpointDescription.Contains("kvieta-enrollment", StringComparison.Ordinal) &&
-        endpointDescription.Contains(endpoint.VerificationCode, StringComparison.Ordinal),
+        !endpointDescription.Contains("verificationCode", StringComparison.Ordinal),
         "Standart kullanıcı yerel eşleştirme endpoint'ini açamadı.");
 }
 await using (LocalManagerDeviceEnrollmentEndpoint firstEndpoint =
@@ -168,6 +169,11 @@ Assert(ManagerDeviceEnrollmentService.VerifyRequest(enrollmentRequest, challenge
         enrollmentRequest with { ProofSignatureBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)) },
         challengeNow),
     "Yönetici cihazı enrollment anahtar sahipliği veya zaman sınırı doğrulanmadı.");
+string enrollmentVerificationCode = ManagerDeviceVerificationCode.ForEnrollmentRequest(enrollmentRequest);
+Assert(enrollmentVerificationCode.Length == 8 && enrollmentVerificationCode.All(char.IsAsciiDigit) &&
+       enrollmentVerificationCode != ManagerDeviceVerificationCode.ForEnrollmentRequest(
+           enrollmentRequest with { Enrollment = managerEnrollment with { DeviceName = "Other phone" } }),
+    "Enrollment doğrulama kodu teklif edilen cihaz kimliğine bağlı değil.");
 bool localEnrollmentAccepted = false;
 await using (LocalManagerDeviceEnrollmentEndpoint endpoint =
     LocalManagerDeviceEnrollmentEndpoint.Start(request =>
@@ -182,8 +188,13 @@ await using (LocalManagerDeviceEnrollmentEndpoint endpoint =
         System.Text.Encoding.UTF8,
         "application/json");
     using HttpResponseMessage response = await localClient.PostAsync(new Uri(endpoint.PairingUri, "api"), content);
-    Assert(response.IsSuccessStatusCode && localEnrollmentAccepted,
-        "Companion enrollment paketi yerel endpoint üzerinden Guardian callback'ine ulaşmadı.");
+    string pendingResponse = await response.Content.ReadAsStringAsync();
+    Assert(response.IsSuccessStatusCode && !localEnrollmentAccepted &&
+           pendingResponse.Contains(enrollmentVerificationCode, StringComparison.Ordinal),
+        "Companion enrollment teklifi bilgisayar onayı beklemeden kaydedildi.");
+    bool enrollmentConfirmed = await endpoint.ConfirmPendingAsync();
+    Assert(enrollmentConfirmed && localEnrollmentAccepted,
+        "Bilgisayarda kod karşılaştırması onaylanan enrollment Guardian callback'ine ulaşmadı.");
 }
 byte[] managerSignature = managerKey.SignData(
     System.Text.Encoding.UTF8.GetBytes(ManagerDeviceAuthorizationService.CreateSignedContent(managerChallenge)),
@@ -321,6 +332,14 @@ await using (LocalManagerDeviceTransferEndpoint endpoint = LocalManagerDeviceTra
         "application/json");
     using HttpResponseMessage proposalResponse = await localClient.PostAsync(apiUri, proposalContent);
     string currentPhase = await localClient.GetStringAsync(apiUri);
+    using StringContent invalidApprovalContent = new(
+        JsonSerializer.Serialize(new
+        {
+            CurrentDeviceSignatureBase64 = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64))
+        }),
+        System.Text.Encoding.UTF8,
+        "application/json");
+    using HttpResponseMessage invalidApprovalResponse = await localClient.PostAsync(apiUri, invalidApprovalContent);
     using StringContent approvalContent = new(
         JsonSerializer.Serialize(new { deviceTransfer.CurrentDeviceSignatureBase64 }),
         System.Text.Encoding.UTF8,
@@ -328,8 +347,9 @@ await using (LocalManagerDeviceTransferEndpoint endpoint = LocalManagerDeviceTra
     using HttpResponseMessage approvalResponse = await localClient.PostAsync(apiUri, approvalContent);
     Assert(proposalResponse.IsSuccessStatusCode &&
         currentPhase.Contains("kvieta-transfer-current", StringComparison.Ordinal) &&
+        invalidApprovalResponse.StatusCode == System.Net.HttpStatusCode.Unauthorized &&
         approvalResponse.IsSuccessStatusCode && localTransferAccepted,
-        "Yerel site üzerinden çift cihaz imzalı yönetici telefonu aktarımı tamamlanmadı.");
+        "Geçersiz imza transferi tüketti veya geçerli çift cihaz imzalı aktarım tamamlanmadı.");
 }
 Assert(SetupPlan.DeterminePackageAction(null, new Version(1, 0, 0)) == SetupPackageAction.FreshInstall &&
        SetupPlan.DeterminePackageAction(new Version(0, 19, 0), new Version(1, 0, 0)) == SetupPackageAction.Update &&
@@ -358,6 +378,28 @@ Assert(awarenessSetupSettings.SetupCompleted &&
        awarenessSetupSettings.Schedule.All(day => day.DailyLimitMinutes == 120) &&
        awarenessSetup.LaunchArguments == string.Empty,
     "Kurucu Sadece takip ayarlarını doğru oluşturmadı.");
+SetupPlan scheduledSetup = new() { Mode = ControlMode.Protected, AdminPin = "2468", HasCustomSchedule = true };
+SetupScheduleDayRow scheduledMonday = scheduledSetup.Schedule.Single(day => day.Day == DayOfWeek.Monday);
+scheduledMonday.AllowedFromText = "08:30";
+scheduledMonday.AllowedUntilText = "20:15";
+scheduledMonday.DailyLimitText = "95";
+SetupScheduleDayRow scheduledSunday = scheduledSetup.Schedule.Single(day => day.Day == DayOfWeek.Sunday);
+scheduledSunday.IsEnabled = false;
+ControlSettings scheduledSetupSettings = scheduledSetup.ComposeSettings(null);
+DaySchedule composedMonday = scheduledSetupSettings.Schedule.Single(day => day.Day == DayOfWeek.Monday);
+Assert(composedMonday.AllowedFrom == new TimeOnly(8, 30) &&
+       composedMonday.AllowedUntil == new TimeOnly(20, 15) &&
+       composedMonday.DailyLimitMinutes == 95 &&
+       !scheduledSetupSettings.Schedule.Single(day => day.Day == DayOfWeek.Sunday).IsEnabled &&
+       scheduledSetupSettings.DefaultDailyLimitMinutes == 95,
+    "Kurucu ayrıntılı haftalık planı ayarlara doğru aktarmadı.");
+SetupPlan flexibleSetup = new()
+{
+    Mode = ControlMode.Personal,
+    PersonalLevel = PersonalProtectionLevel.Flexible
+};
+Assert(!flexibleSetup.UsesScheduledPlan && scheduledSetup.UsesScheduledPlan,
+    "Kurulum plan adımı, plan kullanmayan Esnek moddan ayrıştırılamadı.");
 SetupPlan guardedSetup = new()
 {
     Mode = ControlMode.Personal,
@@ -681,6 +723,19 @@ uninstallPolicy.Mode = ControlMode.Personal;
 uninstallPolicy.PersonalProtectionLevel = PersonalProtectionLevel.Guarded;
 Assert(!ProtectionServiceManager.RequiresPinForUninstall(uninstallPolicy),
     "Sıkı kişisel mod kendi belirlediği PIN'i çıkış anahtarına dönüştürdü.");
+string expectedLocalKvietaPath = Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "Kvieta");
+string currentUserSid = System.Security.Principal.WindowsIdentity.GetCurrent().User?.Value ?? string.Empty;
+Assert(UninstallDataCleaner.IsSafeLocalDataDirectory(expectedLocalKvietaPath) &&
+       UninstallDataCleaner.IsSafeLocalDataDirectory(expectedLocalKvietaPath, currentUserSid) &&
+       !UninstallDataCleaner.IsSafeLocalDataDirectory(expectedLocalKvietaPath, "S-1-invalid") &&
+       !UninstallDataCleaner.IsSafeLocalDataDirectory(Path.GetTempPath()) &&
+       UninstallDataCleaner.IsSafeProtectionDataDirectory(ProtectionServiceManager.ProtectionDataDirectory) &&
+       !UninstallDataCleaner.IsSafeProtectionDataDirectory(expectedLocalKvietaPath),
+    "Kaldırma veri temizliği güvenli Kvieta dizin sınırlarını doğrulamadı.");
+Assert(ProtectionServiceManager.RunProductUninstall("not-a-product-code") == 87,
+    "Kaldırma çalışanı geçersiz ürün kodunu Windows Installer'a gönderdi.");
 ProtectionHealthReport missingProtection = new(
     ProtectionServiceState.NotInstalled,
     [ProtectionHealthIssue.ServiceNotInstalled]);
@@ -712,6 +767,16 @@ ScheduleStatus temporaryAllowed = ScheduleEvaluator.Evaluate(allowanceSettings, 
 Assert(temporaryAllowed.IsAllowed, "Geçici izin, kapalı bir günde kullanım açmadı.");
 Assert(temporaryAllowed.DailyLimitMinutes == 75, "Geçici izin ek süresi günlük limite yansımadı.");
 Assert(!ScheduleEvaluator.Evaluate(allowanceSettings, new DateTimeOffset(2026, 8, 24, 20, 30, 0, TimeSpan.FromHours(3))).IsAllowed, "Geçici izin saatinden sonra kullanım açık kaldı.");
+allowanceMonday.IsEnabled = true;
+allowanceMonday.AllowedFrom = new TimeOnly(8, 0);
+allowanceMonday.AllowedUntil = new TimeOnly(17, 0);
+allowanceMonday.DailyLimitMinutes = 120;
+ScheduleStatus beforeTemporaryAllowance = ScheduleEvaluator.Evaluate(
+    allowanceSettings,
+    new DateTimeOffset(2026, 8, 24, 10, 0, 0, TimeSpan.FromHours(3)));
+Assert(beforeTemporaryAllowance.IsAllowed && beforeTemporaryAllowance.DailyLimitMinutes == 120,
+    "Geçici izin bonusu tanımlanan saat aralığından önce günlük limite eklendi.");
+allowanceMonday.IsEnabled = false;
 SessionEngine allowanceEngine = new(allowanceSettings, new UsageLedger { LocalDay = new DateOnly(2026, 8, 24) }, new DateTimeOffset(2026, 8, 24, 19, 0, 0, TimeSpan.FromHours(3)));
 Assert(allowanceEngine.GetSnapshot(new DateTimeOffset(2026, 8, 24, 19, 0, 0, TimeSpan.FromHours(3))).LimitSeconds == 75 * 60, "Geçici izin oturum limitine eklenmedi.");
 

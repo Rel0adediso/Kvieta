@@ -50,11 +50,18 @@ public sealed class SetupPlan
     public bool AwarenessTracking { get; set; } = true;
     public bool PairManagerDeviceAfterInstall { get; set; }
     public string? AdminPin { get; set; }
+    public List<SetupScheduleDayRow> Schedule { get; } = ControlSettings.CreateDefaultSchedule()
+        .Select(SetupScheduleDayRow.FromModel)
+        .ToList();
+    public bool HasCustomSchedule { get; set; }
 
     public bool RequiresUserPin => Mode == ControlMode.Protected;
     public bool RequiresGuardian =>
         Mode == ControlMode.Protected ||
         Mode == ControlMode.Personal && PersonalLevel == PersonalProtectionLevel.Guarded;
+    public bool UsesScheduledPlan =>
+        Mode == ControlMode.Protected ||
+        Mode == ControlMode.Personal && PersonalLevel != PersonalProtectionLevel.Flexible;
 
     public IReadOnlyList<string> EnsureRecoveryCodes()
     {
@@ -78,6 +85,21 @@ public sealed class SetupPlan
             return existing;
         }
 
+        List<DaySchedule> schedule = HasCustomSchedule
+            ? Schedule.Select(item => item.ToModel()).ToList()
+            : ControlSettings.CreateDefaultSchedule()
+                .Select(day => new DaySchedule
+                {
+                    Day = day.Day,
+                    IsEnabled = day.IsEnabled,
+                    AllowedFrom = day.AllowedFrom,
+                    AllowedUntil = day.AllowedUntil,
+                    DailyLimitMinutes = DailyLimitMinutes
+                })
+                .ToList();
+        int defaultDailyLimit = schedule.FirstOrDefault(day => day.IsEnabled)?.DailyLimitMinutes
+            ?? DailyLimitMinutes;
+
         ControlSettings settings = new()
         {
             SchemaVersion = 9,
@@ -89,16 +111,12 @@ public sealed class SetupPlan
             StrictPersonalMode = Mode == ControlMode.Personal &&
                 PersonalLevel != PersonalProtectionLevel.Flexible,
             DeviceName = string.IsNullOrWhiteSpace(DeviceName) ? Environment.MachineName : DeviceName.Trim(),
-            DefaultDailyLimitMinutes = DailyLimitMinutes,
+            DefaultDailyLimitMinutes = defaultDailyLimit,
             Language = ToLanguagePreference(Language),
             StartWithWindows = StartWithWindows,
-            AwarenessTrackingEnabled = Mode == ControlMode.Awareness || AwarenessTracking
+            AwarenessTrackingEnabled = Mode == ControlMode.Awareness || AwarenessTracking,
+            Schedule = schedule
         };
-
-        foreach (DaySchedule day in settings.Schedule)
-        {
-            day.DailyLimitMinutes = DailyLimitMinutes;
-        }
 
         settings.AdminPin = Mode switch
         {
@@ -133,4 +151,52 @@ public sealed class SetupPlan
             CreatedAtUtc = code.CreatedAtUtc,
             UsedAtUtc = code.UsedAtUtc
         }).ToList();
+}
+
+public sealed class SetupScheduleDayRow
+{
+    public DayOfWeek Day { get; init; }
+    public bool IsEnabled { get; set; } = true;
+    public string DayName { get; set; } = string.Empty;
+    public string AllowedFromText { get; set; } = "09:00";
+    public string AllowedUntilText { get; set; } = "21:00";
+    public string DailyLimitText { get; set; } = "180";
+    public string EnabledAutomationName { get; set; } = string.Empty;
+    public string StartAutomationName { get; set; } = string.Empty;
+    public string EndAutomationName { get; set; } = string.Empty;
+    public string LimitAutomationName { get; set; } = string.Empty;
+
+    public static SetupScheduleDayRow FromModel(DaySchedule schedule) => new()
+    {
+        Day = schedule.Day,
+        IsEnabled = schedule.IsEnabled,
+        AllowedFromText = schedule.AllowedFrom.ToString("HH:mm"),
+        AllowedUntilText = schedule.AllowedUntil.ToString("HH:mm"),
+        DailyLimitText = schedule.DailyLimitMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture)
+    };
+
+    public DaySchedule ToModel()
+    {
+        _ = TimeOnly.TryParseExact(
+            AllowedFromText,
+            "HH:mm",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None,
+            out TimeOnly allowedFrom);
+        _ = TimeOnly.TryParseExact(
+            AllowedUntilText,
+            "HH:mm",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None,
+            out TimeOnly allowedUntil);
+        _ = int.TryParse(DailyLimitText, out int dailyLimitMinutes);
+        return new DaySchedule
+        {
+            Day = Day,
+            IsEnabled = IsEnabled,
+            AllowedFrom = allowedFrom,
+            AllowedUntil = allowedUntil,
+            DailyLimitMinutes = Math.Clamp(dailyLimitMinutes, 1, 1440)
+        };
+    }
 }

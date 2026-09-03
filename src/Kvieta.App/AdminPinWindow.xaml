@@ -77,7 +77,7 @@
                         <Grid>
                             <PasswordBox x:Name="PinBox" Height="39" MaxLength="8" FontSize="17" PasswordChar="●" Padding="12,6,48,6" PreviewTextInput="PinBox_PreviewTextInput" />
                             <TextBox x:Name="VisiblePinBox" Height="39" MaxLength="8" FontSize="17" Padding="12,6,48,6" PreviewTextInput="PinBox_PreviewTextInput" Visibility="Collapsed" />
-                            <Button x:Name="PinVisibilityButton" Width="34" Height="31" HorizontalAlignment="Right" Margin="0,4,4,4" Padding="0" Style="{StaticResource SecondaryButtonStyle}" Click="TogglePinVisibility_Click" ToolTip="PIN'i göster/gizle">
+                            <Button x:Name="PinVisibilityButton" Width="34" Height="31" HorizontalAlignment="Right" Margin="0,4,4,4" Padding="0" Style="{StaticResource SecondaryButtonStyle}" Click="TogglePinVisibility_Click" ToolTip="{DynamicResource TogglePinVisibility}" AutomationProperties.Name="{DynamicResource TogglePinVisibility}">
                                 <Path Data="M2,12 C5,5 19,5 22,12 C19,19 5,19 2,12 M12,9 A3,3 0 1 1 11.99,9" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                             </Button>
                         </Grid>
@@ -90,7 +90,7 @@
                         <Grid>
                             <PasswordBox x:Name="ConfirmPinBox" Height="39" MaxLength="8" FontSize="17" PasswordChar="●" Padding="12,6,48,6" PreviewTextInput="PinBox_PreviewTextInput" />
                             <TextBox x:Name="VisibleConfirmPinBox" Height="39" MaxLength="8" FontSize="17" Padding="12,6,48,6" PreviewTextInput="PinBox_PreviewTextInput" Visibility="Collapsed" />
-                            <Button x:Name="ConfirmPinVisibilityButton" Width="34" Height="31" HorizontalAlignment="Right" Margin="0,4,4,4" Padding="0" Style="{StaticResource SecondaryButtonStyle}" Click="ToggleConfirmPinVisibility_Click" ToolTip="PIN'i göster/gizle">
+                            <Button x:Name="ConfirmPinVisibilityButton" Width="34" Height="31" HorizontalAlignment="Right" Margin="0,4,4,4" Padding="0" Style="{StaticResource SecondaryButtonStyle}" Click="ToggleConfirmPinVisibility_Click" ToolTip="{DynamicResource TogglePinVisibility}" AutomationProperties.Name="{DynamicResource TogglePinVisibility}">
                                 <Path Data="M2,12 C5,5 19,5 22,12 C19,19 5,19 2,12 M12,9 A3,3 0 1 1 11.99,9" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                             </Button>
                         </Grid>

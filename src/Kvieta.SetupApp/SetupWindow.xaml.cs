@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.ServiceProcess;
 using System.Reflection;
@@ -39,6 +40,7 @@ public partial class SetupWindow : Window
     public SetupWindow()
     {
         InitializeComponent();
+        ScheduleDaysControl.ItemsSource = _plan.Schedule;
     }
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
@@ -120,16 +122,23 @@ public partial class SetupWindow : Window
     private void ApplySystemTheme()
     {
         bool light = ReadAppsUseLightTheme();
-        SetBrush("BackgroundBrush", light ? "#F5F2E8" : "#11130F");
-        SetBrush("SurfaceBrush", light ? "#FFFCF4" : "#1A1D16");
-        SetBrush("SurfaceHoverBrush", light ? "#F0ECDD" : "#23271D");
-        SetBrush("BorderBrush", light ? "#D7D2C0" : "#343A2A");
-        SetBrush("PrimaryBrush", light ? "#748044" : "#C7D18E");
-        SetBrush("PrimarySoftBrush", light ? "#E5EACF" : "#303721");
-        SetBrush("TextBrush", light ? "#202318" : "#F3F0E5");
-        SetBrush("MutedTextBrush", light ? "#626757" : "#A9AD9D");
-        SetBrush("SidebarBrush", light ? "#ECE9DC" : "#171A13");
-        SetBrush("FaintTextBrush", light ? "#7D816F" : "#747A69");
+        SetBrush("BackgroundBrush", light ? "#D8D6CC" : "#171813");
+        SetBrush("SurfaceBrush", light ? "#EAE6DC" : "#1F201A");
+        SetBrush("SurfaceHoverBrush", light ? "#DAD6CB" : "#2B2D24");
+        SetBrush("BorderBrush", light ? "#BDBCB0" : "#37392F");
+        SetBrush("PrimaryBrush", light ? "#4E5A35" : "#B4BC82");
+        SetBrush("PrimaryForegroundBrush", light ? "#F6F5EC" : "#202217");
+        SetBrush("PrimarySoftBrush", light ? "#CDD3B4" : "#343725");
+        SetBrush("TextBrush", light ? "#22231D" : "#F1EEE3");
+        SetBrush("MutedTextBrush", light ? "#505248" : "#B0AC9F");
+        SetBrush("SidebarBrush", light ? "#D0D1C6" : "#1A1B16");
+        SetBrush("FaintTextBrush", light ? "#606257" : "#949184");
+        SetBrush("ControlBorderBrush", light ? "#777A6C" : "#7D806F");
+        SetBrush("FocusRingBrush", light ? "#4E5A35" : "#B4BC82");
+        SetBrush("ErrorTextBrush", light ? "#9E342E" : "#D86B64");
+        SetBrush("LogoBackgroundBrush", "#F2EEE3");
+        SetBrush("LogoInkBrush", "#22231D");
+        SetBrush("LogoAccentBrush", "#4E5A35");
     }
 
     private static bool ReadAppsUseLightTheme()
@@ -297,14 +306,25 @@ public partial class SetupWindow : Window
         ModeNextButton.IsEnabled = true;
         TrackingBox.IsChecked = true;
         TrackingBox.IsEnabled = mode != ControlMode.Awareness;
+        UpdateModeDependentPreferences();
         UpdateSelectionStyles();
+    }
+
+    private void UpdateModeDependentPreferences()
+    {
+        DailyLimitSection.Visibility = Visibility.Collapsed;
     }
 
     private void ModeBack_Click(object sender, RoutedEventArgs e) =>
         ShowPage(_hasExistingSettings ? WizardPage.Existing : WizardPage.Welcome);
 
     private void ModeNext_Click(object sender, RoutedEventArgs e) =>
-        ShowPage(_plan.Mode == ControlMode.Personal ? WizardPage.Personal : WizardPage.Preferences);
+        ShowPage(_plan.Mode switch
+        {
+            ControlMode.Personal => WizardPage.Personal,
+            ControlMode.Protected => WizardPage.Schedule,
+            _ => WizardPage.Preferences
+        });
 
     private void Flexible_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Flexible);
     private void Balanced_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Balanced);
@@ -317,9 +337,62 @@ public partial class SetupWindow : Window
     }
 
     private void PersonalBack_Click(object sender, RoutedEventArgs e) => ShowPage(WizardPage.Mode);
-    private void PersonalNext_Click(object sender, RoutedEventArgs e) => ShowPage(WizardPage.Preferences);
-    private void PreferencesBack_Click(object sender, RoutedEventArgs e) =>
+    private void PersonalNext_Click(object sender, RoutedEventArgs e) =>
+        ShowPage(_plan.UsesScheduledPlan ? WizardPage.Schedule : WizardPage.Preferences);
+    private void ScheduleBack_Click(object sender, RoutedEventArgs e) =>
         ShowPage(_plan.Mode == ControlMode.Personal ? WizardPage.Personal : WizardPage.Mode);
+
+    private void ScheduleNext_Click(object sender, RoutedEventArgs e)
+    {
+        Keyboard.ClearFocus();
+        if (!TryReadSchedule()) return;
+        ShowPage(WizardPage.Preferences);
+    }
+
+    private bool TryReadSchedule()
+    {
+        string[] timeFormats = ["H:mm", "HH:mm"];
+        foreach (SetupScheduleDayRow day in _plan.Schedule.Where(item => item.IsEnabled))
+        {
+            if (!TimeOnly.TryParseExact(day.AllowedFromText.Trim(), timeFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly allowedFrom) ||
+                !TimeOnly.TryParseExact(day.AllowedUntilText.Trim(), timeFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out TimeOnly allowedUntil))
+            {
+                ScheduleErrorText.Text = T(
+                    $"{day.DayName} için saatleri SS:DD biçiminde gir.",
+                    $"Enter the times for {day.DayName} in HH:MM format.");
+                return false;
+            }
+
+            if (!int.TryParse(day.DailyLimitText.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int limit) || limit is < 1 or > 1440)
+            {
+                ScheduleErrorText.Text = T(
+                    $"{day.DayName} için günlük limit 1 ile 1440 dakika arasında olmalı.",
+                    $"The daily limit for {day.DayName} must be between 1 and 1440 minutes.");
+                return false;
+            }
+
+            day.AllowedFromText = allowedFrom.ToString("HH:mm", CultureInfo.InvariantCulture);
+            day.AllowedUntilText = allowedUntil.ToString("HH:mm", CultureInfo.InvariantCulture);
+            day.DailyLimitText = limit.ToString(CultureInfo.InvariantCulture);
+        }
+
+        _plan.HasCustomSchedule = true;
+        _plan.DailyLimitMinutes = _plan.Schedule
+            .Where(item => item.IsEnabled)
+            .Select(item => int.TryParse(item.DailyLimitText, out int limit) ? limit : 180)
+            .FirstOrDefault(180);
+        ScheduleErrorText.Text = string.Empty;
+        ScheduleDaysControl.Items.Refresh();
+        return true;
+    }
+
+    private void PreferencesBack_Click(object sender, RoutedEventArgs e) =>
+        ShowPage(_plan.Mode switch
+        {
+            ControlMode.Awareness => WizardPage.Mode,
+            ControlMode.Personal when !_plan.UsesScheduledPlan => WizardPage.Personal,
+            _ => WizardPage.Schedule
+        });
 
     private void PreferencesNext_Click(object sender, RoutedEventArgs e)
     {
@@ -725,6 +798,7 @@ public partial class SetupWindow : Window
         bool english = IsEnglish;
         if (_plan.ExistingChoice == SetupChoice.KeepExisting && _existingSettings is not null)
         {
+            SetSummaryLimitVisibility(true);
             SummaryModeValue.Text = T("Mevcut ayarlar korunacak", "Existing settings will be kept");
             SummaryDeviceValue.Text = _existingSettings.DeviceName;
             SummaryLimitValue.Text = FormatMinutes(_existingSettings.DefaultDailyLimitMinutes, english);
@@ -734,7 +808,10 @@ public partial class SetupWindow : Window
 
         SummaryModeValue.Text = ModeName(_plan.Mode, _plan.PersonalLevel);
         SummaryDeviceValue.Text = _plan.DeviceName;
-        SummaryLimitValue.Text = FormatMinutes(_plan.DailyLimitMinutes, english);
+        int enabledDays = _plan.Schedule.Count(day => day.IsEnabled);
+        SummaryLimitLabel.Text = T("Haftalık plan", "Weekly plan");
+        SummaryLimitValue.Text = T($"{enabledDays} gün etkin", $"{enabledDays} days active");
+        SetSummaryLimitVisibility(_plan.UsesScheduledPlan);
         List<string> options = [];
         if (_plan.StartWithWindows) options.Add(T("Windows ile başlangıç", "Start with Windows"));
         if (_plan.DesktopShortcut) options.Add(T("masaüstü kısayolu", "desktop shortcut"));
@@ -743,6 +820,13 @@ public partial class SetupWindow : Window
         if (_plan.RequiresUserPin) options.Add(T("8 tek kullanımlık kurtarma kodu", "8 one-time recovery codes"));
         if (_plan.RequiresUserPin && _plan.PairManagerDeviceAfterInstall) options.Add(T("isteğe bağlı telefon eşleştirme", "optional phone pairing"));
         SummaryOptionsValue.Text = options.Count == 0 ? T("Ek seçenek yok", "No optional features") : string.Join(" · ", options);
+    }
+
+    private void SetSummaryLimitVisibility(bool visible)
+    {
+        Visibility visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        SummaryLimitLabel.Visibility = visibility;
+        SummaryLimitValue.Visibility = visibility;
     }
 
     private void ShowInstallError(string message)
@@ -757,7 +841,7 @@ public partial class SetupWindow : Window
         foreach (Grid panel in new[]
         {
             LanguagePanel, WelcomePanel, ExistingPanel, ModePanel, PersonalPanel,
-            PreferencesPanel, PinPanel, RecoveryPanel, SummaryPanel, InstallingPanel, ErrorPanel
+            SchedulePanel, PreferencesPanel, PinPanel, RecoveryPanel, SummaryPanel, InstallingPanel, ErrorPanel
         })
         {
             panel.Visibility = Visibility.Collapsed;
@@ -770,6 +854,7 @@ public partial class SetupWindow : Window
             WizardPage.Existing => ExistingPanel,
             WizardPage.Mode => ModePanel,
             WizardPage.Personal => PersonalPanel,
+            WizardPage.Schedule => SchedulePanel,
             WizardPage.Preferences => PreferencesPanel,
             WizardPage.Pin => PinPanel,
             WizardPage.Recovery => RecoveryPanel,
@@ -779,6 +864,7 @@ public partial class SetupWindow : Window
         };
         selected.Visibility = Visibility.Visible;
         PairManagerDeviceFeature.Visibility = _plan.RequiresUserPin ? Visibility.Visible : Visibility.Collapsed;
+        UpdateModeDependentPreferences();
         AnimatePageEntrance(selected);
         UpdateStepStatus();
         RefreshLanguage();
@@ -814,22 +900,26 @@ public partial class SetupWindow : Window
             WizardPage.Language => 1,
             WizardPage.Welcome => 2,
             WizardPage.Existing or WizardPage.Mode or WizardPage.Personal => 3,
-            WizardPage.Preferences => 4,
-            WizardPage.Pin => 5,
-            WizardPage.Recovery => 6,
-            WizardPage.Summary => 7,
-            WizardPage.Installing or WizardPage.Error => 8,
+            WizardPage.Schedule => 4,
+            WizardPage.Preferences => 5,
+            WizardPage.Pin => 6,
+            WizardPage.Recovery => 7,
+            WizardPage.Summary => 8,
+            WizardPage.Installing or WizardPage.Error => 9,
             _ => 1
         };
+        StepProgress.Maximum = 9;
         StepProgress.Value = step;
-        StepLabel.Text = T($"ADIM {step} / 8", $"STEP {step} / 8");
+        StepLabel.Text = T($"ADIM {step} / 9", $"STEP {step} / 9");
         (StepTitle.Text, StepDescription.Text) = _page switch
         {
             WizardPage.Language => (T("Dil seçimi", "Language"), T("Kurulum ve Kvieta aynı dilde devam eder.", "Setup and Kvieta continue in the same language.")),
             WizardPage.Welcome => (T("Kvieta'yı tanı", "Meet Kvieta"), T("Ne kurulduğunu ve verilerin nasıl işlendiğini gör.", "See what is installed and how your data is handled.")),
             WizardPage.Existing => (T("Mevcut kurulum", "Existing setup"), T("Ayarlarını koru veya yeniden yapılandır.", "Keep or reconfigure your settings.")),
             WizardPage.Mode or WizardPage.Personal => (T("Kullanım biçimi", "Usage mode"), T("İhtiyacına uygun koruma düzeyini seç.", "Choose the protection level that fits you.")),
-            WizardPage.Preferences => (T("Başlangıç ayarları", "Essentials"), T("Cihaz, süre ve başlangıç seçenekleri.", "Device, time, and startup options.")),
+            WizardPage.Schedule => (T("Haftalık plan", "Weekly plan"), T("Günleri, saatleri ve limitleri belirle.", "Set days, hours, and limits.")),
+            WizardPage.Preferences when _plan.Mode == ControlMode.Awareness => (T("Başlangıç ayarları", "Essentials"), T("Cihaz ve başlangıç seçenekleri.", "Device and startup options.")),
+            WizardPage.Preferences => (T("Başlangıç ayarları", "Essentials"), T("Cihaz ve başlangıç seçenekleri.", "Device and startup options.")),
             WizardPage.Pin => (T("Yönetici güvenliği", "Administrator security"), T("Korumalı kullanım için PIN oluştur.", "Create a PIN for protected use.")),
             WizardPage.Recovery => (T("PIN kurtarma", "PIN recovery"), T("Tek kullanımlık kurtarma kodlarını güvenli biçimde sakla.", "Store the one-time recovery codes securely.")),
             WizardPage.Summary => (T("Son kontrol", "Final review"), T("Kurulumdan önce seçimlerini doğrula.", "Confirm your choices before installation.")),
@@ -875,6 +965,11 @@ public partial class SetupWindow : Window
         BalancedTitle.Text = T("Dengeli · Önerilen", "Balanced · Recommended"); BalancedText.Text = T("Planını uygular; kural gevşetmelerinde bekleme süresi kullanır.", "Applies your plan and delays rule relaxations.");
         GuardedTitle.Text = T("Gözetimli", "Guarded"); GuardedText.Text = T("Dengeli davranışa Windows Guardian süreç korumasını ekler.", "Adds Windows Guardian process protection to Balanced behavior.");
         PersonalBackButton.Content = BackText; PersonalNextButton.Content = ContinueText;
+        ScheduleTitle.Text = T("Haftalık planını oluştur", "Create your weekly plan");
+        ScheduleDescription.Text = T("Her gün için kullanılabilecek saat aralığını ve toplam süreyi belirle.", "Set the allowed hours and total time for each day.");
+        ScheduleEnabledHeader.Text = T("AÇIK", "ON"); ScheduleDayHeader.Text = T("GÜN", "DAY"); ScheduleStartHeader.Text = T("BAŞLANGIÇ", "START"); ScheduleEndHeader.Text = T("BİTİŞ", "END"); ScheduleLimitHeader.Text = T("LİMİT (DK)", "LIMIT (MIN)");
+        ScheduleBackButton.Content = BackText; ScheduleNextButton.Content = ContinueText;
+        RefreshScheduleLabels();
         PreferencesTitle.Text = T("Başlangıç ayarları", "Essentials"); PreferencesDescription.Text = T("İlk kullanım için temel tercihleri belirle.", "Set the essentials for first use.");
         DeviceNameLabel.Text = T("Cihaz adı", "Device name"); DailyLimitLabel.Text = T("Günlük süre", "Daily time");
         StartWithWindowsBox.Content = T("Windows ile başlat", "Start with Windows"); StartWithWindowsHint.Text = T("Oturum açınca Kvieta arka planda hazır olur.", "Kvieta is ready in the background after sign-in.");
@@ -916,6 +1011,22 @@ public partial class SetupWindow : Window
         SetSelected(FlexibleButton, _plan.PersonalLevel == PersonalProtectionLevel.Flexible);
         SetSelected(BalancedButton, _plan.PersonalLevel == PersonalProtectionLevel.Balanced);
         SetSelected(GuardedButton, _plan.PersonalLevel == PersonalProtectionLevel.Guarded);
+    }
+
+    private void RefreshScheduleLabels()
+    {
+        string[] turkishDays = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
+        string[] englishDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        foreach (SetupScheduleDayRow row in _plan.Schedule)
+        {
+            int index = row.Day == DayOfWeek.Sunday ? 6 : (int)row.Day - 1;
+            row.DayName = IsEnglish ? englishDays[index] : turkishDays[index];
+            row.EnabledAutomationName = T($"{row.DayName} planını etkinleştir", $"Enable the plan for {row.DayName}");
+            row.StartAutomationName = T($"{row.DayName} başlangıç saati", $"Start time for {row.DayName}");
+            row.EndAutomationName = T($"{row.DayName} bitiş saati", $"End time for {row.DayName}");
+            row.LimitAutomationName = T($"{row.DayName} günlük dakika limiti", $"Daily minute limit for {row.DayName}");
+        }
+        ScheduleDaysControl.Items.Refresh();
     }
 
     private void SetSelected(Button button, bool selected)
@@ -1063,6 +1174,7 @@ public partial class SetupWindow : Window
         Existing,
         Mode,
         Personal,
+        Schedule,
         Preferences,
         Pin,
         Recovery,

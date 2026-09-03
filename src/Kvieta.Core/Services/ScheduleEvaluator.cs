@@ -47,12 +47,7 @@ public static class ScheduleEvaluator
 
         int baseLimit = activeRegularWindow?.Schedule.DailyLimitMinutes ??
             (todaysSchedule is { IsEnabled: true } ? todaysSchedule.DailyLimitMinutes : 0);
-        int allowanceMinutes = settings.TemporaryAllowances
-            .Where(item => item.Date == today)
-            .Sum(item => item.BonusMinutes) +
-            activeAllowances
-                .Where(item => item.AnchorDate == yesterday)
-                .Sum(item => item.Allowance.BonusMinutes);
+        int allowanceMinutes = activeAllowances.Sum(item => item.Allowance.BonusMinutes);
         int dailyLimit = Math.Clamp(baseLimit + allowanceMinutes, 0, 1440);
 
         if (activeRegularWindow is null && activeAllowances.Count == 0)

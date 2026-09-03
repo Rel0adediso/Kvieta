@@ -1,6 +1,41 @@
 # Kvieta release notes
 
-## Kvieta Alpha 2 — Current community preview
+## Kvieta Alpha 2.1 — Current community preview
+
+Kvieta Alpha 2.1 is a usability and reliability update built from the Alpha 2
+field-feedback branch. It keeps the numeric MSI version at `1.0.0` so existing
+Alpha installations can be serviced in place. The public package label is
+`Alpha-2.1` and the GitHub tag is `kvieta-alpha-2.1`.
+
+### Setup and lifecycle
+
+- Added mode-aware weekly planning directly to setup. Tracking-only users no
+  longer choose a daily limit, while managed modes can finish their initial plan
+  before the first launch.
+- Rounded and aligned setup inputs and refined the bilingual onboarding layout.
+- Replaced the immediate in-app uninstall action with a confirmation window,
+  optional local-data cleanup, progress feedback, and a clear completion result.
+
+### Dashboard and interaction polish
+
+- Increased the useful space for application usage cards and restored their
+  visual hierarchy.
+- Improved the seven-day chart's label contrast, spacing, progress visibility,
+  and selected-day state.
+- Refined administrator PIN, bonus-time, session, tray, and manager-device
+  approval surfaces across light and dark themes.
+
+### Reliability and validation
+
+- Hardened trusted-device enrollment and transfer validation, Guardian client
+  identity handling, and schedule evaluation edge cases.
+- Updated the local companion experience and its generated distribution bundle.
+- Expanded smoke coverage for scheduling, managed-device verification, and the
+  new lifecycle behavior.
+- The package remains an intentionally unsigned community prerelease; Windows
+  SmartScreen may display an unknown-publisher warning.
+
+## Kvieta Alpha 2 — Previous community preview
 
 Kvieta Alpha 2 turns the Alpha 1 field fixes into a single recommended preview.
 It preserves existing settings, usage history, recovery material, and protected

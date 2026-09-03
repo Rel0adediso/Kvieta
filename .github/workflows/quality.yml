@@ -99,7 +99,7 @@ jobs:
 
       - name: Build community installer
         shell: pwsh
-        run: ./scripts/build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel Alpha-2 -CommunityRelease
+        run: ./scripts/build-test-installer.ps1 -Version 1.0.0 -ReleaseLabel Alpha-2.1 -CommunityRelease
 
       - name: Verify package manifest
         shell: pwsh
@@ -112,7 +112,7 @@ jobs:
       - name: Upload test package
         uses: actions/upload-artifact@v4
         with:
-          name: Kvieta-Alpha-2-community
+          name: Kvieta-Alpha-2.1-community
           path: artifacts/installer-community/1.0.0/
           if-no-files-found: error
           retention-days: 7

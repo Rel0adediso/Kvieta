@@ -118,7 +118,7 @@ public sealed class LocalManagerDeviceTransferEndpoint : IAsyncDisposable
         CurrentDeviceApproval? approval;
         try { approval = JsonSerializer.Deserialize<CurrentDeviceApproval>(request.Body); }
         catch (JsonException) { return new LocalNetworkHttpResponse(HttpStatusCode.BadRequest); }
-        if (approval is null || Interlocked.CompareExchange(ref _requestConsumed, 1, 0) != 0)
+        if (approval is null)
             return new LocalNetworkHttpResponse(HttpStatusCode.Unauthorized);
 
         ManagerDeviceTransferRequest completed = existing with
@@ -130,7 +130,10 @@ public sealed class LocalManagerDeviceTransferEndpoint : IAsyncDisposable
         };
         if (ManagerDeviceTransferService.CompleteTransfer(
                 _current, completed.Replacement, completed.Transfer, DateTimeOffset.UtcNow) is null)
-            return new LocalNetworkHttpResponse(HttpStatusCode.Unauthorized, StopAfterResponse: true);
+            return new LocalNetworkHttpResponse(HttpStatusCode.Unauthorized);
+
+        if (Interlocked.CompareExchange(ref _requestConsumed, 1, 0) != 0)
+            return new LocalNetworkHttpResponse(HttpStatusCode.Unauthorized);
 
         bool accepted = await _transfer(completed);
         return new LocalNetworkHttpResponse(

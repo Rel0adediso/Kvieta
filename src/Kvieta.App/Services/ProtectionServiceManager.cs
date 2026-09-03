@@ -5,6 +5,7 @@ using System.Security.Principal;
 using System.ServiceProcess;
 using System.Text;
 using System.Text.Json;
+using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Kvieta.Core.Models;
 using Kvieta.Core.Services;
@@ -56,6 +57,7 @@ public sealed record ProtectionInstallationIdentity(
 
 public static class ProtectionServiceManager
 {
+    private const uint MoveFileDelayUntilReboot = 0x00000004;
     public const string ServiceName = "KvietaGuardian";
     public static string InstallDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
@@ -175,7 +177,10 @@ public static class ProtectionServiceManager
          health.Issues.Contains(ProtectionHealthIssue.VersionUnknown) ||
          health.Issues.Contains(ProtectionHealthIssue.StartupNotAutomatic));
 
-    public static bool LaunchProductUninstall()
+    public static bool LaunchProductUninstallWorker(
+        bool removeLocalData,
+        LanguagePreference language,
+        ThemePreference theme)
     {
         if (!IsInstallerManaged || ReadInstallerValue("ProductCode") is not string productCode ||
             !Guid.TryParse(productCode.Trim('{', '}'), out _))
@@ -183,21 +188,98 @@ public static class ProtectionServiceManager
             return false;
         }
 
-        ProcessStartInfo startInfo = new()
+        string? executablePath = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
+        {
+            return false;
+        }
+
+        string? helperPath = null;
+        try
+        {
+            string helperDirectory = Path.Combine(Path.GetTempPath(), "Kvieta", "Uninstall");
+            Directory.CreateDirectory(helperDirectory);
+            helperPath = Path.Combine(helperDirectory, $"Kvieta.Uninstall.{Guid.NewGuid():N}.exe");
+            File.Copy(executablePath, helperPath, overwrite: false);
+
+            string localDataPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Kvieta");
+            string userSid = WindowsIdentity.GetCurrent().User?.Value ?? string.Empty;
+
+            ProcessStartInfo startInfo = new()
+            {
+                FileName = helperPath,
+                UseShellExecute = true,
+                Verb = "runas",
+                WorkingDirectory = helperDirectory
+            };
+            startInfo.ArgumentList.Add("--uninstall-worker");
+            startInfo.ArgumentList.Add(productCode);
+            startInfo.ArgumentList.Add(removeLocalData ? "1" : "0");
+            startInfo.ArgumentList.Add(Convert.ToBase64String(Encoding.UTF8.GetBytes(localDataPath)));
+            startInfo.ArgumentList.Add(Convert.ToBase64String(Encoding.UTF8.GetBytes(userSid)));
+            startInfo.ArgumentList.Add(language.ToString());
+            startInfo.ArgumentList.Add(theme.ToString());
+            if (Process.Start(startInfo) is not null)
+            {
+                return true;
+            }
+
+            TryDelete(helperPath);
+            return false;
+        }
+        catch
+        {
+            if (!string.IsNullOrWhiteSpace(helperPath))
+            {
+                TryDelete(helperPath);
+            }
+            return false;
+        }
+    }
+
+    public static int RunProductUninstall(string productCode)
+    {
+        if (!Guid.TryParse(productCode.Trim('{', '}'), out _))
+        {
+            return 87;
+        }
+
+        using Process process = Process.Start(new ProcessStartInfo
         {
             FileName = Path.Combine(Environment.SystemDirectory, "msiexec.exe"),
             Arguments = $"/x {productCode} /passive /norestart",
-            UseShellExecute = true,
-            Verb = "runas"
-        };
+            UseShellExecute = false,
+            CreateNoWindow = true
+        }) ?? throw new InvalidOperationException("Windows Installer başlatılamadı.");
+        process.WaitForExit();
+        return process.ExitCode;
+    }
+
+    public static void ScheduleCurrentUninstallWorkerCleanup()
+    {
+        string? executablePath = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            return;
+        }
 
         try
         {
-            return Process.Start(startInfo) is not null;
+            string expectedDirectory = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "Kvieta", "Uninstall"));
+            string actualDirectory = Path.GetFullPath(Path.GetDirectoryName(executablePath) ?? string.Empty);
+            string fileName = Path.GetFileName(executablePath);
+            if (string.Equals(actualDirectory, expectedDirectory, StringComparison.OrdinalIgnoreCase) &&
+                fileName.StartsWith("Kvieta.Uninstall.", StringComparison.OrdinalIgnoreCase) &&
+                fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                _ = MoveFileEx(executablePath, null, MoveFileDelayUntilReboot);
+            }
         }
-        catch (System.ComponentModel.Win32Exception)
+        catch
         {
-            return false;
+            // The helper is harmless in Temp; a future cleanup can remove it.
         }
     }
 
@@ -1030,6 +1112,10 @@ public static class ProtectionServiceManager
         using WindowsIdentity identity = WindowsIdentity.GetCurrent();
         return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
     }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool MoveFileEx(string existingFileName, string? newFileName, uint flags);
 
     private static object? ReadInstallerValue(string name)
     {

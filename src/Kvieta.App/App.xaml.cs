@@ -1,5 +1,6 @@
 using System.Windows;
 using System.IO;
+using System.Text;
 using Kvieta.App.Services;
 using Kvieta.App.ViewModels;
 using Kvieta.Core.Models;
@@ -21,6 +22,12 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        if (e.Args.Any(argument => string.Equals(argument, "--uninstall-worker", StringComparison.OrdinalIgnoreCase)))
+        {
+            StartUninstallWorker(e.Args);
+            return;
+        }
 
         if (e.Args.Any(argument => string.Equals(argument, "--windows-admin-verification", StringComparison.OrdinalIgnoreCase)))
         {
@@ -765,7 +772,7 @@ public partial class App : System.Windows.Application
         return recoveryWindow.ShowDialog() == true ? recoveryWindow.ResultPin : null;
     }
 
-    private async Task HandleUninstallRequestAsync()
+    internal async Task<bool> HandleUninstallRequestAsync(Window? owner = null)
     {
         JsonSettingsStore settingsStore = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
             ? new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true)
@@ -782,7 +789,7 @@ public partial class App : System.Windows.Application
                 "Kvieta · Recovery required",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
-            return;
+            return false;
         }
 
         LocalizationService.SetLanguage(this, settings.Language);
@@ -795,7 +802,7 @@ public partial class App : System.Windows.Application
                 LocalizationService.Get("UninstallTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
-            return;
+            return false;
         }
 
         if (ProtectionServiceManager.RequiresPinForUninstall(settings))
@@ -808,29 +815,88 @@ public partial class App : System.Windows.Application
                     settings,
                     ProtectionServiceManager.GetState() == ProtectionServiceState.Running));
             verification.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            verification.ShowInTaskbar = true;
+            if (owner is not null)
+            {
+                verification.Owner = owner;
+                verification.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            }
+            verification.ShowInTaskbar = owner is null;
             if (verification.ShowDialog() != true)
             {
-                return;
+                return false;
             }
         }
 
-        if (System.Windows.MessageBox.Show(
-                LocalizationService.Get("UninstallConfirmation"),
-                LocalizationService.Get("UninstallTitle"),
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning) != MessageBoxResult.Yes)
+        UninstallWindow confirmation = new()
         {
+            Owner = owner,
+            WindowStartupLocation = owner is null ? WindowStartupLocation.CenterScreen : WindowStartupLocation.CenterOwner,
+            ShowInTaskbar = owner is null
+        };
+        if (confirmation.ShowDialog() != true)
+        {
+            return false;
+        }
+
+        try
+        {
+            if (ProtectionServiceManager.LaunchProductUninstallWorker(
+                    confirmation.RemoveLocalData,
+                    settings.Language,
+                    settings.Theme))
+            {
+                return true;
+            }
+        }
+        catch
+        {
+            // The same actionable message is shown for staging and elevation failures.
+        }
+
+        System.Windows.MessageBox.Show(
+            LocalizationService.Get("UninstallLaunchFailed"),
+            LocalizationService.Get("UninstallTitle"),
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+        return false;
+    }
+
+    private void StartUninstallWorker(IReadOnlyList<string> arguments)
+    {
+        int marker = arguments.ToList().FindIndex(argument =>
+            string.Equals(argument, "--uninstall-worker", StringComparison.OrdinalIgnoreCase));
+        if (marker < 0 || arguments.Count < marker + 7)
+        {
+            Shutdown(87);
             return;
         }
 
-        if (!ProtectionServiceManager.LaunchProductUninstall())
+        try
         {
-            System.Windows.MessageBox.Show(
-                LocalizationService.Get("UninstallLaunchFailed"),
-                LocalizationService.Get("UninstallTitle"),
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            string productCode = arguments[marker + 1];
+            bool removeLocalData = arguments[marker + 2] == "1";
+            string localDataPath = Encoding.UTF8.GetString(Convert.FromBase64String(arguments[marker + 3]));
+            string userSid = Encoding.UTF8.GetString(Convert.FromBase64String(arguments[marker + 4]));
+            _ = Enum.TryParse(arguments[marker + 5], ignoreCase: true, out LanguagePreference language);
+            _ = Enum.TryParse(arguments[marker + 6], ignoreCase: true, out ThemePreference theme);
+
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _themeService.Start(this);
+            LocalizationService.SetLanguage(this, language);
+            _themeService.SetPreference(theme);
+
+            UninstallWindow worker = new(productCode, removeLocalData, localDataPath, userSid);
+            MainWindow = worker;
+            worker.Closed += (_, _) =>
+            {
+                ProtectionServiceManager.ScheduleCurrentUninstallWorkerCleanup();
+                Shutdown();
+            };
+            worker.Show();
+        }
+        catch
+        {
+            Shutdown(87);
         }
     }
 

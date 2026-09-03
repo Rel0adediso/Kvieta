@@ -1,0 +1,62 @@
+<Window x:Class="Kvieta.App.UninstallWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="580" Height="470" WindowStyle="None" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen" Background="Transparent" AllowsTransparency="True"
+        ShowInTaskbar="True" Title="{DynamicResource UninstallTitle}">
+    <Border Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
+        <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="16,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ContentControl Template="{StaticResource KvietaAppIconTemplate}" Width="21" Height="21" />
+                        <TextBlock Text="Kvieta" FontSize="12" FontWeight="SemiBold" Margin="9,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button x:Name="TitleCloseButton" Content="×" AutomationProperties.Name="{DynamicResource Close}" Width="28" Height="28" Padding="0" HorizontalAlignment="Right" Style="{StaticResource SecondaryButtonStyle}" Click="Close_Click" />
+                </Grid>
+            </Border>
+
+            <Grid x:Name="ChoicePanel" Grid.Row="1" Margin="34,28,34,30">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <TextBlock Text="{DynamicResource UninstallDialogTitle}" FontSize="25" FontWeight="SemiBold" />
+                <TextBlock Grid.Row="1" Text="{DynamicResource UninstallDialogDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12.5" TextWrapping="Wrap" LineHeight="18" Margin="0,8,0,22" />
+
+                <StackPanel Grid.Row="2">
+                    <Border Style="{StaticResource PanelStyle}" Padding="18,16">
+                        <StackPanel>
+                            <CheckBox x:Name="RemoveDataBox" AutomationProperties.HelpText="{DynamicResource UninstallRemoveDataDescription}" Checked="RemoveData_Changed" Unchecked="RemoveData_Changed">
+                                <TextBlock Text="{DynamicResource UninstallRemoveData}" FontSize="13" FontWeight="SemiBold" />
+                            </CheckBox>
+                            <TextBlock Text="{DynamicResource UninstallRemoveDataDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="17" Margin="38,8,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{DynamicResource WarningSoftBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="9" Padding="14,11" Margin="0,12,0,0">
+                        <TextBlock Text="{DynamicResource UninstallPreserveDataHint}" Foreground="{DynamicResource TextBrush}" FontSize="11" TextWrapping="Wrap" LineHeight="17" />
+                    </Border>
+                </StackPanel>
+
+                <Grid Grid.Row="3" Margin="0,24,0,0">
+                    <Button Content="{DynamicResource Cancel}" Style="{StaticResource SecondaryButtonStyle}" Click="Cancel_Click" HorizontalAlignment="Left" MinWidth="92" Padding="15,8" />
+                    <Button x:Name="ConfirmButton" Content="{DynamicResource UninstallConfirmAction}" Style="{StaticResource PrimaryButtonStyle}" Click="Confirm_Click" HorizontalAlignment="Right" MinWidth="150" Padding="16,8" />
+                </Grid>
+            </Grid>
+
+            <Grid x:Name="StatusPanel" Grid.Row="1" Margin="42,34,42,34" Visibility="Collapsed" Focusable="True"
+                  AutomationProperties.LiveSetting="Polite" AutomationProperties.Name="{DynamicResource UninstallWorkingDescription}">
+                <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="440">
+                    <Grid x:Name="StatusIcon" Width="70" Height="70" Margin="0,0,0,22">
+                        <Ellipse x:Name="StatusIconSurface" Fill="{DynamicResource PrimarySoftBrush}" />
+                        <Path x:Name="SuccessMark" Data="M18,35 L29,46 L52,23" Stroke="{DynamicResource SuccessBrush}" StrokeThickness="5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed" />
+                        <Path x:Name="FailureMark" Data="M24,24 L46,46 M46,24 L24,46" Stroke="{DynamicResource WarningBrush}" StrokeThickness="4" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed" />
+                    </Grid>
+                    <TextBlock x:Name="StatusTitle" Text="{DynamicResource UninstallWorkingTitle}" FontSize="25" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Center" />
+                    <TextBlock x:Name="StatusDescription" Text="{DynamicResource UninstallWorkingDescription}" Foreground="{DynamicResource MutedTextBrush}" FontSize="12.5" TextWrapping="Wrap" TextAlignment="Center" LineHeight="18" Margin="0,9,0,0" />
+                    <ProgressBar x:Name="UninstallProgress" IsIndeterminate="True" Width="300" Height="5" Margin="0,26,0,0" />
+                </StackPanel>
+                <Button x:Name="DoneButton" Grid.Row="1" Content="{DynamicResource Close}" Style="{StaticResource PrimaryButtonStyle}" Click="Close_Click" HorizontalAlignment="Center" MinWidth="120" Padding="16,8" Visibility="Collapsed" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

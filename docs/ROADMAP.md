@@ -1,33 +1,33 @@
 # Kvieta — Ürün ve Release Yol Haritası
 
-**Son güncelleme:** 2 Eylül 2026
+**Son güncelleme:** 3 Eylül 2026
 
-**Mevcut yayın adayı:** **Kvieta Alpha 2** community prerelease
+**Mevcut yayın adayı:** **Kvieta Alpha 2.1** community prerelease
 
-**Aktif hedef:** Alpha 2 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
+**Aktif hedef:** Alpha 2.1 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Kvieta Alpha 2](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-2)
+**Yayın:** [Kvieta Alpha 2.1](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-2.1)
 
 Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
 bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği için
 öncelikle **Aktif çalışma planı** bölümü esas alınır.
 
-## Kvieta Alpha 2 yayın adayı
+## Kvieta Alpha 2.1 yayın adayı
 
-Alpha 2, Alpha 1 saha testlerinden çıkan Guardian, yönetici geçişi, saat
-koruması, plan düzenleme ve kurtarma akışı düzeltmelerini tek önerilen pakette
-birleştirir. Paket etiketi `Alpha-2`, yeni GitHub etiketi `kvieta-alpha-2` olur;
-pre-rename Otium geçmişindeki mevcut `alpha-2` etiketi değiştirilmez.
+Alpha 2.1; Alpha 2 üzerine kurulumda haftalık planlama, okunabilir kullanım
+görselleştirmeleri, kontrollü kaldırma, yönetilen cihaz akışları ve arayüz
+iyileştirmelerini ekler. Paket etiketi `Alpha-2.1`, GitHub etiketi
+`kvieta-alpha-2.1` olur; numerik MSI sürümü uyumluluk için `1.0.0` kalır.
 
-- [x] Kaydırmalı saat/dakika seçici ve plan yerleşimi tamamlandı.
-- [x] Kurtarma Merkezi ve kurtarma kodu yeniden indirme akışı düzeltildi.
-- [x] Saat koruması için doğrudan onay ve otomatik toparlanma eklendi.
-- [x] Kontrol Merkezi açıkken kullanıcı süresinin işlememesi doğrulandı.
-- [x] Temiz kaynak commit'inden Alpha 2 community paketi üretildi ve doğrulandı.
-- [ ] GitHub kalite hattı Alpha 2 etiketiyle çalıştırılmalı.
-- [ ] `kvieta-alpha-2` prerelease'i ve doğrulama dosyaları yayımlanmalı.
-- [ ] Alpha 2 gerçek cihaz yükseltme ve kullanım testi tamamlanmalı.
+- [x] Kurulum akışına biçime göre haftalık planlama eklendi.
+- [x] Yedi günlük kullanım grafiği ve uygulama kartları iyileştirildi.
+- [x] Kontrollü kaldırma, isteğe bağlı veri temizliği ve sonuç ekranı eklendi.
+- [x] Yönetilen cihaz, Guardian ve yerel companion akışları sertleştirildi.
+- [ ] Temiz kaynak commit'inden Alpha 2.1 community paketi üretilip doğrulanmalı.
+- [ ] GitHub kalite hattı Alpha 2.1 etiketiyle çalıştırılmalı.
+- [ ] `kvieta-alpha-2.1` prerelease'i ve doğrulama dosyaları yayımlanmalı.
+- [ ] Alpha 2.1 gerçek cihaz yükseltme ve kullanım testi tamamlanmalı.
 
 ## Ürün ilkeleri
 

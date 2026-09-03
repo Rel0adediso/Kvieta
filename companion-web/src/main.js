@@ -104,6 +104,16 @@ function recoverySignedContent(challenge) {
   ].join(".");
 }
 
+function enrollmentSignedContent(enrollment) {
+  return [
+    "kvieta-manager-enrollment-v1",
+    encodeField(enrollment.DeviceId),
+    encodeField(enrollment.DeviceName),
+    encodeField(enrollment.PublicKeyPem),
+    encodeField(unixSeconds(enrollment.EnrolledAtUtc)),
+  ].join(".");
+}
+
 function transferSignedContent(transfer) {
   return [
     "kvieta-manager-transfer-v1",
@@ -115,10 +125,10 @@ function transferSignedContent(transfer) {
   ].join(".");
 }
 
-function verificationCode(content) {
+function verificationCode(content, digits = 6) {
   const digest = sha256(textEncoder.encode(content));
   const value = (((digest[0] << 24) >>> 0) + (digest[1] << 16) + (digest[2] << 8) + digest[3]) >>> 0;
-  return String(value % 1_000_000).padStart(6, "0");
+  return String(value % (10 ** digits)).padStart(digits, "0");
 }
 
 async function api(method, body) {
@@ -138,11 +148,13 @@ function setBusy(busy) {
 }
 
 function showResult(message, error = false) {
-  $("#result").textContent = message;
-  $("#result").className = error ? "result error" : "result success";
+  const result = $("#result");
+  result.setAttribute("role", error ? "alert" : "status");
+  result.textContent = message;
+  result.className = error ? "result error" : "result success";
 }
 
-async function approveEnrollment(endpoint) {
+function createEnrollmentRequest() {
   const identity = getOrCreateIdentity();
   const privateKey = fromBase64(identity.privateKeyBase64);
   const enrolledAtUtc = nowIso();
@@ -155,17 +167,19 @@ async function approveEnrollment(endpoint) {
     EnrolledAtUtc: enrolledAtUtc,
     RevokedAtUtc: null,
   };
-  const proof = [
-    "kvieta-manager-enrollment-v1",
-    encodeField(enrollment.DeviceId),
-    encodeField(enrollment.DeviceName),
-    encodeField(enrollment.PublicKeyPem),
-    encodeField(unixSeconds(enrolledAtUtc)),
-  ].join(".");
-  await api("POST", {
+  const proof = enrollmentSignedContent(enrollment);
+  return {
     Enrollment: enrollment,
     ProofSignatureBase64: signContent(proof, privateKey),
-  });
+  };
+}
+
+async function approveEnrollment(request) {
+  const result = await api("POST", request);
+  if (!result.pendingComputerConfirmation ||
+      result.verificationCode !== verificationCode(enrollmentSignedContent(request.Enrollment), 8)) {
+    throw new Error("Bilgisayar eşleştirme teklifini doğrulayamadı.");
+  }
 }
 
 async function approveRecovery(endpoint) {
@@ -236,9 +250,12 @@ async function start() {
     const transferNew = endpoint.service === "kvieta-transfer-new";
     const transferCurrent = endpoint.service === "kvieta-transfer-current";
     if (!enrollment && !recovery && !transferNew && !transferCurrent) throw new Error("Geçersiz Kvieta endpoint'i.");
-    const code = recovery
-      ? verificationCode(recoverySignedContent(endpoint.challenge))
-      : endpoint.verificationCode;
+    const enrollmentRequest = enrollment ? createEnrollmentRequest() : null;
+    const code = enrollment
+      ? verificationCode(enrollmentSignedContent(enrollmentRequest.Enrollment), 8)
+      : recovery
+        ? verificationCode(recoverySignedContent(endpoint.challenge))
+        : endpoint.verificationCode;
     $("#title").textContent = enrollment
       ? "Yönetici telefonunu eşleştir"
       : recovery
@@ -262,12 +279,12 @@ async function start() {
     $("#approve").onclick = async () => {
       setBusy(true);
       try {
-        if (enrollment) await approveEnrollment(endpoint);
+        if (enrollment) await approveEnrollment(enrollmentRequest);
         else if (recovery) await approveRecovery(endpoint);
         else if (transferNew) await proposeTransfer(endpoint);
         else await approveTransfer(endpoint);
         showResult(enrollment
-          ? "Telefon başarıyla eşleştirildi."
+          ? "Teklif gönderildi. Kodlar eşleşiyorsa bilgisayardan eşleştirmeyi onayla."
           : recovery
             ? "PIN sıfırlama onaylandı."
             : transferNew

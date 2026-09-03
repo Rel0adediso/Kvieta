@@ -32,12 +32,12 @@ $englishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/USAGE.
 $turkishGuide = Get-Content -LiteralPath (Join-Path $repositoryRoot 'docs/KULLANIM.tr.md') -Raw
 
 $requiredText = @(
-    @{ Name = 'English README Alpha 2 status'; Text = $englishReadme; Pattern = 'Kvieta Alpha 2' }
-    @{ Name = 'Turkish README Alpha 2 status'; Text = $turkishReadme; Pattern = 'Kvieta Alpha 2' }
-    @{ Name = 'English Alpha 2 download'; Text = $englishReadme; Pattern = 'releases/download/kvieta-alpha-2/Kvieta-Setup-Alpha-2\.exe' }
-    @{ Name = 'Turkish Alpha 2 download'; Text = $turkishReadme; Pattern = 'releases/download/kvieta-alpha-2/Kvieta-Setup-Alpha-2\.exe' }
-    @{ Name = 'English Alpha 2 checksum'; Text = $englishReadme; Pattern = '44444d2c07add93b5b44e374b4de5a426e7b8759efced119c5252485edf0dd2b' }
-    @{ Name = 'Turkish Alpha 2 checksum'; Text = $turkishReadme; Pattern = '44444d2c07add93b5b44e374b4de5a426e7b8759efced119c5252485edf0dd2b' }
+    @{ Name = 'English README Alpha 2.1 status'; Text = $englishReadme; Pattern = 'Kvieta Alpha 2\.1' }
+    @{ Name = 'Turkish README Alpha 2.1 status'; Text = $turkishReadme; Pattern = 'Kvieta Alpha 2\.1' }
+    @{ Name = 'English Alpha 2.1 download'; Text = $englishReadme; Pattern = 'releases/download/kvieta-alpha-2\.1/Kvieta-Setup-Alpha-2\.1\.exe' }
+    @{ Name = 'Turkish Alpha 2.1 download'; Text = $turkishReadme; Pattern = 'releases/download/kvieta-alpha-2\.1/Kvieta-Setup-Alpha-2\.1\.exe' }
+    @{ Name = 'English Alpha 2.1 checksum guidance'; Text = $englishReadme; Pattern = 'attached `\.sha256` file' }
+    @{ Name = 'Turkish Alpha 2.1 checksum guidance'; Text = $turkishReadme; Pattern = 'ekli `\.sha256` dosyasıyla' }
     @{ Name = 'English tracking mode'; Text = $englishReadme; Pattern = 'Tracking only' }
     @{ Name = 'Turkish tracking mode'; Text = $turkishReadme; Pattern = 'Sadece takip' }
     @{ Name = 'English usage update guidance'; Text = $englishGuide; Pattern = 'Installation and update' }

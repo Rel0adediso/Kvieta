@@ -1,6 +1,6 @@
 # Kvieta kullanım ve kurtarma rehberi
 
-> Mevcut durum: **Kvieta Alpha 2**. Community paketleri doğrulama amaçlı imzasız önizlemelerdir; final public sürüm değildir.
+> Mevcut durum: **Kvieta Alpha 2.1**. Community paketleri doğrulama amaçlı imzasız önizlemelerdir; final public sürüm değildir.
 
 ## Kurulum ve güncelleme
 
