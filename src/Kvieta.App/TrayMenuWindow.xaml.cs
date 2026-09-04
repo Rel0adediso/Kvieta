@@ -6,14 +6,16 @@ namespace Kvieta.App;
 
 public partial class TrayMenuWindow : Window
 {
-    public TrayMenuWindow(bool showSessionScreen = true)
+    public TrayMenuWindow(bool showSessionScreen = true, bool showQuickFocus = false)
     {
         InitializeComponent();
         SessionScreenButton.Visibility = showSessionScreen ? Visibility.Visible : Visibility.Collapsed;
+        QuickFocusPanel.Visibility = showQuickFocus ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public event EventHandler? ControlCenterRequested;
     public event EventHandler? SessionScreenRequested;
+    public event Action<int>? QuickFocusRequested;
 
     protected override void OnContentRendered(EventArgs e)
     {
@@ -41,6 +43,16 @@ public partial class TrayMenuWindow : Window
     {
         SessionScreenRequested?.Invoke(this, EventArgs.Empty);
         Close();
+    }
+
+    private void QuickFocus_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: string durationText } &&
+            int.TryParse(durationText, out int durationMinutes))
+        {
+            QuickFocusRequested?.Invoke(durationMinutes);
+            Close();
+        }
     }
 
     private void Window_Deactivated(object? sender, EventArgs e)

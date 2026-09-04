@@ -2,8 +2,8 @@ namespace Kvieta.App.Services;
 
 public static class SessionSurfaceRecoveryPolicy
 {
-    public static bool ShouldResumeAfterControlCenterDismissal(bool isProtectedMode) =>
-        !isProtectedMode;
+    public static bool ShouldResumeAfterControlCenterDismissal(bool isFamilyMode) =>
+        !isFamilyMode;
 
     public static bool ShouldCoverAllDisplays(
         bool shouldShowSessionSurfaces,

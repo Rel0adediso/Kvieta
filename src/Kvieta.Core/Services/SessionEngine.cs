@@ -68,7 +68,7 @@ public sealed class SessionEngine
         }
 
         ScheduleStatus schedule = ScheduleEvaluator.Evaluate(_settings, now);
-        if (_settings.Mode != ControlMode.Awareness &&
+        if (_settings.Mode != UsageMode.Insights &&
             (!schedule.IsAllowed || Ledger.UsedSeconds >= GetLimitSeconds(now)))
         {
             Refresh(now);
@@ -119,7 +119,7 @@ public sealed class SessionEngine
             return;
         }
 
-        if (_settings.Mode == ControlMode.Awareness)
+        if (_settings.Mode == UsageMode.Insights)
         {
             Ledger.UsedSeconds = Math.Min(24 * 60 * 60, Ledger.UsedSeconds + seconds);
             Ledger.State = SessionState.Active;
@@ -224,7 +224,7 @@ public sealed class SessionEngine
             return;
         }
 
-        if (_settings.Mode == ControlMode.Awareness)
+        if (_settings.Mode == UsageMode.Insights)
         {
             if (Ledger.State is SessionState.OutsideSchedule or SessionState.TimeExpired)
             {
@@ -264,7 +264,7 @@ public sealed class SessionEngine
 
     private long GetNormalLimitSeconds(DateTimeOffset now)
     {
-        if (_settings.Mode == ControlMode.Awareness)
+        if (_settings.Mode == UsageMode.Insights)
         {
             return 24 * 60 * 60;
         }

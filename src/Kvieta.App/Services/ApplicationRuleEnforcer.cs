@@ -49,7 +49,7 @@ public sealed class ApplicationRuleEnforcer : IDisposable
             if (settingsChanged) ResolveObservedRules(recheckDirectRules: true);
             PruneObservations();
         }
-        if (settings.Mode == ControlMode.Awareness || settings.AppRules.Count == 0) return false;
+        if (settings.Mode == UsageMode.Insights || settings.AppRules.Count == 0) return false;
 
         _uncommittedSeconds += Math.Max(0, elapsed.TotalSeconds);
         long accruedSeconds = (long)Math.Floor(_uncommittedSeconds);

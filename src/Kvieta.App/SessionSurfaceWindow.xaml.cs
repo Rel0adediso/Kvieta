@@ -11,9 +11,9 @@ using Kvieta.Core.Services;
 
 namespace Kvieta.App;
 
-public partial class CafeWindow : Window
+public partial class SessionSurfaceWindow : Window
 {
-    private readonly CafeViewModel _viewModel;
+    private readonly SessionViewModel _viewModel;
     private readonly DispatcherTimer _timer;
     private readonly SessionShortcutGuard _shortcutGuard;
     private readonly SessionDisplayShieldManager _displayShieldManager;
@@ -35,17 +35,17 @@ public partial class CafeWindow : Window
     private bool _surfaceRecoveryQueued;
     private bool _surfaceRecoveryInProgress;
 
-    public CafeWindow(
+    public SessionSurfaceWindow(
         bool isDirectSession = false,
         bool requirePinToExit = false,
         bool returnToControlCenter = false,
         bool startHidden = false,
         AdminCredential? exitCredentialOverride = null,
-        CafeViewModel? viewModel = null)
+        SessionViewModel? viewModel = null)
     {
         InitializeComponent();
         Title = $"Kvieta · {(LocalizationService.CurrentLanguage == LanguagePreference.English ? "Focus session" : "Odak oturumu")}";
-        _viewModel = viewModel ?? new CafeViewModel();
+        _viewModel = viewModel ?? new SessionViewModel();
         _isDirectSession = isDirectSession;
         _startHidden = startHidden;
         _requirePinToExit = requirePinToExit;

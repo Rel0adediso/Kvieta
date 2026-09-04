@@ -162,7 +162,7 @@ public static class ProtectionServiceManager
     }
 
     public static bool RequiresPinForUninstall(ControlSettings settings) =>
-        settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured;
+            settings.Mode == UsageMode.Family && settings.AdminPin.IsConfigured;
 
     public static bool RequiresProductRepair(ProtectionHealthReport health) =>
         RequiresProductRepair(health, IsInstallerManaged);

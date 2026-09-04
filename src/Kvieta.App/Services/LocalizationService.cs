@@ -33,6 +33,11 @@ public static class LocalizationService
         {
             Source = new Uri(language == LanguagePreference.English ? EnglishDictionary : TurkishDictionary, UriKind.Relative)
         });
+
+        foreach ((string key, string value) in ProductTerminology.GetResources(language))
+        {
+            application.Resources[key] = value;
+        }
     }
 
     public static string Get(string key)

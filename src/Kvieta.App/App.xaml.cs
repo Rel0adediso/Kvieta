@@ -126,7 +126,7 @@ public partial class App : System.Windows.Application
         LocalizationService.SetLanguage(this, settings.Language);
         _themeService.SetPreference(settings.Theme);
 
-        if (!guardianSession && protectedPolicyAvailable && settings.Mode != ControlMode.Protected)
+        if (!guardianSession && protectedPolicyAvailable && settings.Mode != UsageMode.Family)
         {
             await RestoreProtectedSettingsToUserProfileAsync();
         }
@@ -172,7 +172,7 @@ public partial class App : System.Windows.Application
             settings.Mode = modeWindow.SelectedMode.Value;
             settings.PersonalProtectionLevel = modeWindow.SelectedPersonalProtectionLevel;
             settings.StrictPersonalMode = settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible;
-            if (settings.Mode == ControlMode.Protected)
+            if (settings.Mode == UsageMode.Family)
             {
                 AdminPinWindow setup = AdminPinWindow.CreateSetup();
                 setup.WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -242,12 +242,12 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            CafeWindow sessionWindow = new(
-                isDirectSession: true,
-                requirePinToExit: settings.Mode == ControlMode.Protected,
-                returnToControlCenter: settings.RequiresGuardian,
-                exitCredentialOverride: _guardianCredential,
-                viewModel: guardianSession ? new CafeViewModel(settingsStore) : null);
+            SessionSurfaceWindow sessionWindow = new(
+                    isDirectSession: true,
+                requirePinToExit: settings.Mode == UsageMode.Family,
+                    returnToControlCenter: settings.RequiresGuardian,
+                    exitCredentialOverride: _guardianCredential,
+                viewModel: guardianSession ? new SessionViewModel(settingsStore) : null);
             sessionWindow.ControlCenterRequested += DirectSession_ControlCenterRequested;
             MainWindow = sessionWindow;
             ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -261,7 +261,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        if (settings.Mode == ControlMode.Protected &&
+        if (settings.Mode == UsageMode.Family &&
             settings.AdminPin.IsConfigured &&
             !postInstallControlCenter)
         {
@@ -293,7 +293,7 @@ public partial class App : System.Windows.Application
         }
 
         if (postInstallControlCenter &&
-            settings.Mode == ControlMode.Protected &&
+            settings.Mode == UsageMode.Family &&
             settings.AdminPin.IsConfigured)
         {
             _guardianCredential = settings.AdminPin;
@@ -358,7 +358,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        if (MainWindow is not CafeWindow sessionWindow || !sessionWindow.IsLoaded)
+        if (MainWindow is not SessionSurfaceWindow sessionWindow || !sessionWindow.IsLoaded)
         {
             await OpenRecoveredControlCenterAsync();
             return;
@@ -383,7 +383,7 @@ public partial class App : System.Windows.Application
             {
                 settings = File.Exists(ProtectionServiceManager.ProtectedSettingsPath)
                     ? await new JsonSettingsStore(ProtectionServiceManager.ProtectedSettingsPath, readOnly: true).LoadAsync()
-                    : new ControlSettings { SetupCompleted = true, Mode = ControlMode.Protected };
+            : new ControlSettings { SetupCompleted = true, Mode = UsageMode.Family };
                 settings.AdminPin = _guardianCredential;
             }
             else
@@ -391,7 +391,7 @@ public partial class App : System.Windows.Application
                 settings = await new JsonSettingsStore().LoadAsync();
             }
             string? managementPin = null;
-            if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
+            if (settings.Mode == UsageMode.Family && settings.AdminPin.IsConfigured)
             {
                 if (administratorVerified && !string.IsNullOrWhiteSpace(verifiedPin))
                 {
@@ -509,7 +509,7 @@ public partial class App : System.Windows.Application
             _themeService.SetPreference(settings.Theme);
 
             string? managementPin = null;
-            if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured)
+            if (settings.Mode == UsageMode.Family && settings.AdminPin.IsConfigured)
             {
                 AdminPinWindow verification = AdminPinWindow.CreateVerification(
                     pin => VerifyAdminPinAsync(pin, settings),
@@ -568,7 +568,7 @@ public partial class App : System.Windows.Application
         }
         catch (Exception exception)
         {
-            if (sender is CafeWindow sessionWindow)
+            if (sender is SessionSurfaceWindow sessionWindow)
             {
                 sessionWindow.ResumeFromControlCenter();
             }
@@ -901,7 +901,7 @@ public partial class App : System.Windows.Application
     }
 
     private static Task<bool> VerifyAdminPinAsync(string pin, ControlSettings settings) =>
-        settings.Mode == ControlMode.Protected &&
+            settings.Mode == UsageMode.Family &&
         ProtectionServiceManager.GetState() == ProtectionServiceState.Running
             ? ProtectionPolicyChannel.VerifyPinAsync(pin)
             : Task.FromResult(AdminPinService.Verify(pin, settings.AdminPin));

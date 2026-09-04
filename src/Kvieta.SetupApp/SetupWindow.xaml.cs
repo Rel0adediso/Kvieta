@@ -84,7 +84,7 @@ public partial class SetupWindow : Window
         catch
         {
             _existingSettings = _existingPolicyLocked
-                ? new ControlSettings { SetupCompleted = true, Mode = ControlMode.Protected }
+            ? new ControlSettings { SetupCompleted = true, Mode = UsageMode.Family }
                 : null;
             _hasExistingSettings = _existingPolicyLocked;
         }
@@ -296,16 +296,16 @@ public partial class SetupWindow : Window
         }
     }
 
-    private void Awareness_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Awareness);
-    private void Personal_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Personal);
-    private void Protected_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Protected);
+    private void Insights_Click(object sender, RoutedEventArgs e) => SelectMode(UsageMode.Insights);
+    private void Personal_Click(object sender, RoutedEventArgs e) => SelectMode(UsageMode.Personal);
+    private void Family_Click(object sender, RoutedEventArgs e) => SelectMode(UsageMode.Family);
 
-    private void SelectMode(ControlMode mode)
+    private void SelectMode(UsageMode mode)
     {
         _plan.Mode = mode;
         ModeNextButton.IsEnabled = true;
         TrackingBox.IsChecked = true;
-        TrackingBox.IsEnabled = mode != ControlMode.Awareness;
+        TrackingBox.IsEnabled = mode != UsageMode.Insights;
         UpdateModeDependentPreferences();
         UpdateSelectionStyles();
     }
@@ -321,14 +321,14 @@ public partial class SetupWindow : Window
     private void ModeNext_Click(object sender, RoutedEventArgs e) =>
         ShowPage(_plan.Mode switch
         {
-            ControlMode.Personal => WizardPage.Personal,
-            ControlMode.Protected => WizardPage.Schedule,
+            UsageMode.Personal => WizardPage.Personal,
+            UsageMode.Family => WizardPage.Schedule,
             _ => WizardPage.Preferences
         });
 
     private void Flexible_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Flexible);
     private void Balanced_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Balanced);
-    private void Guarded_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Guarded);
+    private void ProtectedLevel_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Protected);
 
     private void SelectPersonalLevel(PersonalProtectionLevel level)
     {
@@ -340,7 +340,7 @@ public partial class SetupWindow : Window
     private void PersonalNext_Click(object sender, RoutedEventArgs e) =>
         ShowPage(_plan.UsesScheduledPlan ? WizardPage.Schedule : WizardPage.Preferences);
     private void ScheduleBack_Click(object sender, RoutedEventArgs e) =>
-        ShowPage(_plan.Mode == ControlMode.Personal ? WizardPage.Personal : WizardPage.Mode);
+        ShowPage(_plan.Mode == UsageMode.Personal ? WizardPage.Personal : WizardPage.Mode);
 
     private void ScheduleNext_Click(object sender, RoutedEventArgs e)
     {
@@ -389,8 +389,8 @@ public partial class SetupWindow : Window
     private void PreferencesBack_Click(object sender, RoutedEventArgs e) =>
         ShowPage(_plan.Mode switch
         {
-            ControlMode.Awareness => WizardPage.Mode,
-            ControlMode.Personal when !_plan.UsesScheduledPlan => WizardPage.Personal,
+            UsageMode.Insights => WizardPage.Mode,
+            UsageMode.Personal when !_plan.UsesScheduledPlan => WizardPage.Personal,
             _ => WizardPage.Schedule
         });
 
@@ -815,7 +815,7 @@ public partial class SetupWindow : Window
         List<string> options = [];
         if (_plan.StartWithWindows) options.Add(T("Windows ile başlangıç", "Start with Windows"));
         if (_plan.DesktopShortcut) options.Add(T("masaüstü kısayolu", "desktop shortcut"));
-        if (_plan.AwarenessTracking || _plan.Mode == ControlMode.Awareness) options.Add(T("yerel ölçüm", "local tracking"));
+        if (_plan.AwarenessTracking || _plan.Mode == UsageMode.Insights) options.Add(T("yerel ölçüm", "local tracking"));
         if (_plan.RequiresGuardian) options.Add("Guardian");
         if (_plan.RequiresUserPin) options.Add(T("8 tek kullanımlık kurtarma kodu", "8 one-time recovery codes"));
         if (_plan.RequiresUserPin && _plan.PairManagerDeviceAfterInstall) options.Add(T("isteğe bağlı telefon eşleştirme", "optional phone pairing"));
@@ -918,7 +918,7 @@ public partial class SetupWindow : Window
             WizardPage.Existing => (T("Mevcut kurulum", "Existing setup"), T("Ayarlarını koru veya yeniden yapılandır.", "Keep or reconfigure your settings.")),
             WizardPage.Mode or WizardPage.Personal => (T("Kullanım biçimi", "Usage mode"), T("İhtiyacına uygun koruma düzeyini seç.", "Choose the protection level that fits you.")),
             WizardPage.Schedule => (T("Haftalık plan", "Weekly plan"), T("Günleri, saatleri ve limitleri belirle.", "Set days, hours, and limits.")),
-            WizardPage.Preferences when _plan.Mode == ControlMode.Awareness => (T("Başlangıç ayarları", "Essentials"), T("Cihaz ve başlangıç seçenekleri.", "Device and startup options.")),
+            WizardPage.Preferences when _plan.Mode == UsageMode.Insights => (T("Başlangıç ayarları", "Essentials"), T("Cihaz ve başlangıç seçenekleri.", "Device and startup options.")),
             WizardPage.Preferences => (T("Başlangıç ayarları", "Essentials"), T("Cihaz ve başlangıç seçenekleri.", "Device and startup options.")),
             WizardPage.Pin => (T("Yönetici güvenliği", "Administrator security"), T("Korumalı kullanım için PIN oluştur.", "Create a PIN for protected use.")),
             WizardPage.Recovery => (T("PIN kurtarma", "PIN recovery"), T("Tek kullanımlık kurtarma kodlarını güvenli biçimde sakla.", "Store the one-time recovery codes securely.")),
@@ -949,21 +949,21 @@ public partial class SetupWindow : Window
             ConfigureNewText.Text = T("Guardian koruması nedeniyle mod değişikliği Kontrol Merkezi'nde doğrulama gerektirir.", "Guardian protection requires Control Center verification for mode changes.");
         }
         ExistingBackButton.Content = _openedForExistingInstallation ? T("İptal", "Cancel") : BackText;
-        ModeTitle.Text = T("Kvieta'yı nasıl kullanacaksın?", "How will you use Kvieta?"); ModeDescription.Text = T("İhtiyacına en yakın biçimi seç; ayrıntıları daha sonra değiştirebilirsin.", "Choose the closest fit; you can change details later.");
-        AwarenessTitle.Text = T("Sadece takip", "Tracking only"); AwarenessText.Text = T("Kısıtlama olmadan hangi uygulamayı ne kadar kullandığını gör.", "See which apps you use and for how long without restrictions.");
-        PersonalTitle.Text = T("Kendim için", "For myself"); PersonalText.Text = T("Odaklan ve kendi koyduğun sınırlara seçtiğin güçte bağlı kal.", "Focus and stay with your own limits at the strength you choose.");
-        ProtectedTitle.Text = T("Yönettiğim biri için", "For someone I manage"); ProtectedText.Text = T("Kuralları yönetici PIN'i ve Guardian ile koru.", "Protect rules with an administrator PIN and Guardian.");
-        AwarenessDetails.Text = T("• Engel veya zorunlu mola yok\n• Başlangıç ritmi ve haftalık eğilim\n• Tüm veriler yalnız bu cihazda", "• No blocking or forced breaks\n• Baseline rhythm and weekly trends\n• All data stays on this device");
-        AwarenessBestFor.Text = T("En hafif başlangıç", "The lightest way to start");
-        PersonalDetails.Text = T("• Günlük plan, limit ve uygulama kuralları\n• Esnek, Dengeli veya Gözetimli düzey\n• Gevşetmeler seçtiğin süre kadar bekler", "• Daily plan, limits, and app rules\n• Flexible, Balanced, or Guarded level\n• Relaxations wait for your chosen delay");
+        ModeTitle.Text = ProductText("ChooseModeTitle"); ModeDescription.Text = ProductText("ChooseModeDescription");
+        InsightsTitle.Text = ProductText("InsightsMode"); InsightsText.Text = ProductText("InsightsModeDescription");
+        PersonalTitle.Text = ProductText("PersonalMode"); PersonalText.Text = ProductText("PersonalModeDescription");
+        FamilyTitle.Text = ProductText("FamilyMode"); FamilyText.Text = ProductText("FamilyModeDescription");
+        InsightsDetails.Text = T("• Engel veya zorunlu mola yok\n• Başlangıç ritmi ve haftalık eğilim\n• Tüm veriler yalnız bu cihazda", "• No blocking or forced breaks\n• Baseline rhythm and weekly trends\n• All data stays on this device");
+        InsightsBestFor.Text = T("En hafif başlangıç", "The lightest way to start");
+        PersonalDetails.Text = T("• Günlük plan, limit ve uygulama kuralları\n• Esnek, Dengeli veya Korumalı düzey\n• Gevşetmeler seçtiğin süre kadar bekler", "• Daily plan, limits, and app rules\n• Flexible, Balanced, or Protected level\n• Relaxations wait for your chosen delay");
         PersonalBestFor.Text = T("Kendi kararlarına destek", "Support for your own decisions");
-        ProtectedDetails.Text = T("• Ayarlar ve çıkış yönetici PIN'iyle korunur\n• Guardian kapatılan oturumu yeniden açar\n• Yönetici onayı olmadan gevşetilemez", "• Settings and exit require the administrator PIN\n• Guardian reopens a closed session\n• Rules cannot be relaxed without approval");
-        ProtectedBestFor.Text = T("Yönetilen Windows hesabı", "A managed Windows account");
+        FamilyDetails.Text = T("• Ayarlar ve çıkış yönetici PIN'iyle korunur\n• Guardian kapatılan oturumu yeniden açar\n• Yönetici onayı olmadan gevşetilemez", "• Settings and exit require the administrator PIN\n• Guardian reopens a closed session\n• Rules cannot be relaxed without approval");
+        FamilyBestFor.Text = T("Yönetilen Windows hesabı", "A managed Windows account");
         ModeBackButton.Content = BackText; ModeNextButton.Content = ContinueText;
-        PersonalLevelTitle.Text = T("Ne kadar destek istersin?", "How much support do you want?"); PersonalLevelDescription.Text = T("Kendim için modunun davranışını seç.", "Choose how personal mode should behave.");
+        PersonalLevelTitle.Text = T("Ne kadar destek istersin?", "How much support do you want?"); PersonalLevelDescription.Text = T("Kişisel kullanımın davranışını seç.", "Choose how Personal mode should behave.");
         FlexibleTitle.Text = T("Esnek", "Flexible"); FlexibleText.Text = T("Manuel odak oturumlarını istediğin zaman başlat, duraklat ve bitir.", "Start, pause, and end manual focus sessions whenever you want.");
         BalancedTitle.Text = T("Dengeli · Önerilen", "Balanced · Recommended"); BalancedText.Text = T("Planını uygular; kural gevşetmelerinde bekleme süresi kullanır.", "Applies your plan and delays rule relaxations.");
-        GuardedTitle.Text = T("Gözetimli", "Guarded"); GuardedText.Text = T("Dengeli davranışa Windows Guardian süreç korumasını ekler.", "Adds Windows Guardian process protection to Balanced behavior.");
+        ProtectedLevelTitle.Text = T("Korumalı", "Protected"); ProtectedLevelText.Text = T("Dengeli davranışa Windows Guardian süreç korumasını ekler.", "Adds Windows Guardian process protection to Balanced behavior.");
         PersonalBackButton.Content = BackText; PersonalNextButton.Content = ContinueText;
         ScheduleTitle.Text = T("Haftalık planını oluştur", "Create your weekly plan");
         ScheduleDescription.Text = T("Her gün için kullanılabilecek saat aralığını ve toplam süreyi belirle.", "Set the allowed hours and total time for each day.");
@@ -1005,12 +1005,12 @@ public partial class SetupWindow : Window
         EnglishCheck.Visibility = _languageChosen && _plan.Language == SetupLanguage.English ? Visibility.Visible : Visibility.Collapsed;
         SetSelected(TurkishButton, _languageChosen && _plan.Language == SetupLanguage.Turkish);
         SetSelected(EnglishButton, _languageChosen && _plan.Language == SetupLanguage.English);
-        SetSelected(AwarenessButton, ModeNextButton.IsEnabled && _plan.Mode == ControlMode.Awareness);
-        SetSelected(PersonalButton, ModeNextButton.IsEnabled && _plan.Mode == ControlMode.Personal);
-        SetSelected(ProtectedButton, ModeNextButton.IsEnabled && _plan.Mode == ControlMode.Protected);
+        SetSelected(InsightsButton, ModeNextButton.IsEnabled && _plan.Mode == UsageMode.Insights);
+        SetSelected(PersonalButton, ModeNextButton.IsEnabled && _plan.Mode == UsageMode.Personal);
+        SetSelected(FamilyButton, ModeNextButton.IsEnabled && _plan.Mode == UsageMode.Family);
         SetSelected(FlexibleButton, _plan.PersonalLevel == PersonalProtectionLevel.Flexible);
         SetSelected(BalancedButton, _plan.PersonalLevel == PersonalProtectionLevel.Balanced);
-        SetSelected(GuardedButton, _plan.PersonalLevel == PersonalProtectionLevel.Guarded);
+        SetSelected(ProtectedLevelButton, _plan.PersonalLevel == PersonalProtectionLevel.Protected);
     }
 
     private void RefreshScheduleLabels()
@@ -1037,17 +1037,20 @@ public partial class SetupWindow : Window
 
     private bool IsEnglish => _plan.Language == SetupLanguage.English;
     private string T(string turkish, string english) => IsEnglish ? english : turkish;
+    private string ProductText(string key) => ProductTerminology.Get(key, _plan.Language == SetupLanguage.English
+        ? LanguagePreference.English
+        : LanguagePreference.Turkish);
     private string BackText => T("Geri", "Back");
     private string ContinueText => T("Devam et", "Continue");
 
-    private string ModeName(ControlMode mode, PersonalProtectionLevel level) => mode switch
+    private string ModeName(UsageMode mode, PersonalProtectionLevel level) => mode switch
     {
-        ControlMode.Awareness => T("Sadece takip", "Tracking only"),
-        ControlMode.Protected => T("Yönettiğim biri için · Korumalı", "For someone I manage · Protected"),
-        _ => $"{T("Kendim için", "For myself")} · {level switch
+        UsageMode.Insights => ProductText("InsightsModeShort"),
+        UsageMode.Family => ProductText("FamilyModeShort"),
+        _ => $"{ProductText("PersonalModeShort")} · {level switch
         {
             PersonalProtectionLevel.Flexible => T("Esnek", "Flexible"),
-            PersonalProtectionLevel.Guarded => T("Gözetimli", "Guarded"),
+            PersonalProtectionLevel.Protected => T("Korumalı", "Protected"),
             _ => T("Dengeli", "Balanced")
         }}"
     };

@@ -14,9 +14,13 @@ Kvieta is installed under `C:\Program Files\Kvieta` by default. User settings an
 
 ## First-use modes
 
-- **Tracking only:** Measures configured application usage on the device without restrictions.
-- **For myself:** Applies schedules and limits as a personal routine. Flexible remains user-controlled; Balanced maintains a session surface during an active time window.
-- **For someone I manage:** Intended for a standard Windows account managed through a separate administrator account. An administrator PIN and Guardian protect policy.
+- **Insights:** Measures configured application usage on the device without restrictions.
+- **Personal:** Applies schedules and limits as a personal routine. Flexible remains user-controlled; Balanced maintains a session surface during an active time window.
+- **Family:** Intended for a family member's standard Windows account managed through a separate administrator account. An administrator PIN and Guardian protect policy.
+
+In Personal mode, **Quick focus** starts a 25, 50, or 90-minute session from Today or the tray menu. The focus target never extends the daily limit or the allowed schedule.
+
+In Family mode, an administrator can grant extra time with the existing PIN-protected action while a session is active or paused; waiting for the daily limit to expire is not required.
 
 Review the weekly schedule, daily limit, and application rules, then select **Save**. For protected use, store the administrator PIN and one-time recovery codes securely and separately.
 

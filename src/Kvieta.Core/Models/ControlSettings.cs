@@ -23,25 +23,32 @@ public enum LanguagePreference
     English
 }
 
-public enum ControlMode
+public enum UsageMode
 {
-    Protected,
+    [JsonStringEnumMemberName("Protected")]
+    Family,
+
+    [JsonStringEnumMemberName("Personal")]
     Personal,
-    Awareness
+
+    [JsonStringEnumMemberName("Awareness")]
+    Insights
 }
 
 public enum PersonalProtectionLevel
 {
     Flexible,
     Balanced,
-    Guarded
+
+    [JsonStringEnumMemberName("Guarded")]
+    Protected
 }
 
 public sealed class ControlSettings
 {
     public int SchemaVersion { get; set; } = 9;
     public bool SetupCompleted { get; set; }
-    public ControlMode Mode { get; set; } = ControlMode.Protected;
+    public UsageMode Mode { get; set; } = UsageMode.Family;
     public string DeviceName { get; set; } = "Bu Bilgisayar";
     public int DefaultDailyLimitMinutes { get; set; } = 180;
     public LimitReachedAction LimitAction { get; set; } = LimitReachedAction.LockWindows;
@@ -64,8 +71,8 @@ public sealed class ControlSettings
 
     [JsonIgnore]
     public bool RequiresGuardian =>
-        Mode == ControlMode.Protected ||
-        Mode == ControlMode.Personal && PersonalProtectionLevel == PersonalProtectionLevel.Guarded;
+        Mode == UsageMode.Family ||
+        Mode == UsageMode.Personal && PersonalProtectionLevel == PersonalProtectionLevel.Protected;
 
     public static List<DaySchedule> CreateDefaultSchedule()
     {

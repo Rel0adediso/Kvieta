@@ -21,7 +21,7 @@ public partial class MainWindow : Window
     private readonly MainViewModel _viewModel = new();
     private string? _managementPin;
     private readonly DispatcherTimer _overviewTimer;
-    private CafeWindow? _backgroundSessionWindow;
+    private SessionSurfaceWindow? _backgroundSessionWindow;
     private bool _ownsBackgroundSessionWindow;
     private bool _sessionEventsAttached;
     private bool _allowCloseForUninstall;
@@ -39,7 +39,7 @@ public partial class MainWindow : Window
     private bool _protectionActionInProgress;
 
     public MainWindow(
-        CafeWindow? existingSessionWindow = null,
+        SessionSurfaceWindow? existingSessionWindow = null,
         string? managementPin = null,
         bool openManagerDeviceOnLoad = false)
     {
@@ -59,7 +59,7 @@ public partial class MainWindow : Window
             ControlSettings rollbackSettings = _viewModel.CreateSettingsSnapshot();
             if (await _viewModel.ApplyPendingIfDueAsync())
             {
-                if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
+                if (!await EnsureGuardianForFamilyModeAsync(rollbackSettings))
                 {
                     return;
                 }
@@ -137,7 +137,7 @@ public partial class MainWindow : Window
         }
 
         await _viewModel.InitializeAsync();
-        if (!await EnsureGuardianForProtectedModeAsync(_viewModel.CreateSettingsSnapshot()))
+        if (!await EnsureGuardianForFamilyModeAsync(_viewModel.CreateSettingsSnapshot()))
         {
             _isInitializing = false;
             return;
@@ -149,7 +149,7 @@ public partial class MainWindow : Window
         ResetSettingsScrollPosition();
         _overviewTimer.Start();
         _isInitializing = false;
-        if (_openManagerDeviceOnLoad && _viewModel.IsProtectedMode)
+        if (_openManagerDeviceOnLoad && _viewModel.IsFamilyMode)
         {
             _openManagerDeviceOnLoad = false;
             await TryOpenManagerDeviceAsync(startPairing: true);
@@ -486,7 +486,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
+        if (!await EnsureGuardianForFamilyModeAsync(rollbackSettings))
         {
             return;
         }
@@ -892,7 +892,7 @@ public partial class MainWindow : Window
     private async void RestoreLastKnownGood_Click(object sender, RoutedEventArgs e)
     {
         string? authorizationPin = _managementPin;
-        if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
+        if (_viewModel.IsFamilyMode && _viewModel.HasAdminPin)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(
                 _viewModel.VerifyAdminPinAsync,
@@ -937,7 +937,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!await EnsureGuardianForProtectedModeAsync(rollbackSettings))
+        if (!await EnsureGuardianForFamilyModeAsync(rollbackSettings))
         {
             return;
         }
@@ -1017,7 +1017,7 @@ public partial class MainWindow : Window
 
     private async void ResetClockProtection_Click(object sender, RoutedEventArgs e)
     {
-        if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
+        if (_viewModel.IsFamilyMode && _viewModel.HasAdminPin)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(
                 _viewModel.VerifyAdminPinAsync,
@@ -1069,7 +1069,7 @@ public partial class MainWindow : Window
 
         if (guardedAuthorizationCredential is not null ||
             _viewModel.IsPersonalMode &&
-            _viewModel.PersonalProtectionLevel == PersonalProtectionLevel.Guarded)
+                   _viewModel.PersonalProtectionLevel == PersonalProtectionLevel.Protected)
         {
             bool guardedSynced = await ProtectionPolicyChannel.SyncGuardedPersonalAsync(
                 _viewModel.ExportSettingsJson(),
@@ -1147,7 +1147,7 @@ public partial class MainWindow : Window
     private void ChangeMode_Click(object sender, RoutedEventArgs e)
     {
         ModeSelectionWindow selection = new(
-            _viewModel.SelectedControlMode,
+            _viewModel.SelectedUsageMode,
             _viewModel.PersonalProtectionLevel)
         {
             Owner = this,
@@ -1159,15 +1159,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        ControlMode targetMode = selection.SelectedMode.Value;
+        UsageMode targetMode = selection.SelectedMode.Value;
         PersonalProtectionLevel targetPersonalLevel = selection.SelectedPersonalProtectionLevel;
-        if (targetMode == _viewModel.SelectedControlMode &&
-            (targetMode != ControlMode.Personal || targetPersonalLevel == _viewModel.PersonalProtectionLevel))
+        if (targetMode == _viewModel.SelectedUsageMode &&
+            (targetMode != UsageMode.Personal || targetPersonalLevel == _viewModel.PersonalProtectionLevel))
         {
             return;
         }
 
-        if (_viewModel.IsProtectedMode && _viewModel.HasAdminPin)
+        if (_viewModel.IsFamilyMode && _viewModel.HasAdminPin)
         {
             AdminPinWindow verification = AdminPinWindow.CreateVerification(
                 _viewModel.VerifyAdminPinAsync,
@@ -1181,7 +1181,7 @@ public partial class MainWindow : Window
 
         string? newPin = null;
         AdminCredential? newCredential = null;
-        if (targetMode == ControlMode.Protected && !_viewModel.IsProtectedMode)
+        if (targetMode == UsageMode.Family && !_viewModel.IsFamilyMode)
         {
             AdminPinWindow setup = AdminPinWindow.CreateSetup();
             setup.Owner = this;
@@ -1193,14 +1193,14 @@ public partial class MainWindow : Window
             newPin = setup.ResultPin;
             _managementPin = newPin;
         }
-        else if (targetMode == ControlMode.Personal &&
-                 targetPersonalLevel == PersonalProtectionLevel.Guarded &&
+        else if (targetMode == UsageMode.Personal &&
+                 targetPersonalLevel == PersonalProtectionLevel.Protected &&
                  !_viewModel.HasAdminPin)
         {
             newCredential = AdminPinService.CreateInternalCredential();
         }
 
-        _viewModel.StageControlMode(targetMode, targetPersonalLevel, newPin, newCredential);
+        _viewModel.StageUsageMode(targetMode, targetPersonalLevel, newPin, newCredential);
         ResetSettingsScrollPosition();
     }
 
@@ -1412,7 +1412,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task<bool> EnsureGuardianForProtectedModeAsync(ControlSettings rollbackSettings)
+    private async Task<bool> EnsureGuardianForFamilyModeAsync(ControlSettings rollbackSettings)
     {
         if (!_viewModel.IsGuardianRequired)
         {
@@ -1471,7 +1471,7 @@ public partial class MainWindow : Window
         return false;
     }
 
-    private async void OpenCafeMode_Click(object sender, RoutedEventArgs e)
+    private async void OpenSessionSurface_Click(object sender, RoutedEventArgs e)
     {
         if (_sessionSurfaceTransitionInProgress)
         {
@@ -1496,8 +1496,8 @@ public partial class MainWindow : Window
                 return;
             }
 
-            CafeWindow cafeWindow = new();
-            cafeWindow.Closed += async (_, _) =>
+            SessionSurfaceWindow sessionWindow = new();
+            sessionWindow.Closed += async (_, _) =>
             {
                 ShowInTaskbar = true;
                 Show();
@@ -1508,7 +1508,7 @@ public partial class MainWindow : Window
 
             ShowInTaskbar = false;
             Hide();
-            cafeWindow.Show();
+            sessionWindow.Show();
         }
         finally
         {
@@ -1520,18 +1520,18 @@ public partial class MainWindow : Window
     private void EnsurePersonalBackgroundSession()
     {
         if (_viewModel.IsGuardianRequired ||
-            !_viewModel.IsPersonalMode && !_viewModel.IsAwarenessMode)
+            !_viewModel.IsPersonalMode && !_viewModel.IsInsightsMode)
         {
             return;
         }
 
         if (_backgroundSessionWindow is null)
         {
-            _backgroundSessionWindow = new CafeWindow(
+            _backgroundSessionWindow = new SessionSurfaceWindow(
                 isDirectSession: !_viewModel.IsFlexiblePersonalMode,
                 requirePinToExit: false,
                 returnToControlCenter: true,
-                startHidden: _viewModel.IsAwarenessMode);
+                startHidden: _viewModel.IsInsightsMode);
             _ownsBackgroundSessionWindow = true;
             AttachSessionEvents();
             _backgroundSessionWindow.Show();
@@ -1564,7 +1564,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        CafeWindow window = _backgroundSessionWindow;
+        SessionSurfaceWindow window = _backgroundSessionWindow;
         if (_sessionEventsAttached)
         {
             window.ControlCenterRequested -= BackgroundSession_ControlCenterRequested;
@@ -1649,7 +1649,9 @@ public partial class MainWindow : Window
     {
         _trayMenuWindow?.Close();
 
-        TrayMenuWindow menu = new(showSessionScreen: _viewModel.HasRestrictions);
+        TrayMenuWindow menu = new(
+            showSessionScreen: _viewModel.HasRestrictions,
+            showQuickFocus: _viewModel.IsPersonalMode);
         _trayMenuWindow = menu;
         menu.ControlCenterRequested += (_, _) => RestoreControlCenter();
         menu.SessionScreenRequested += (_, _) =>
@@ -1657,6 +1659,7 @@ public partial class MainWindow : Window
             HideControlCenterToTray();
             _backgroundSessionWindow?.ShowSessionSurface();
         };
+        menu.QuickFocusRequested += durationMinutes => _ = StartQuickFocusAsync(durationMinutes);
         menu.Closed += (_, _) =>
         {
             if (ReferenceEquals(_trayMenuWindow, menu))
@@ -1673,15 +1676,80 @@ public partial class MainWindow : Window
         EnsureTrayIcon();
         ShowInTaskbar = false;
         Hide();
-        if (Owner is CafeWindow)
+        if (Owner is SessionSurfaceWindow)
         {
             Owner = null;
         }
         Topmost = false;
         if (SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(
-                _viewModel.IsProtectedMode))
+                _viewModel.IsFamilyMode))
         {
             _backgroundSessionWindow?.ResumeFromControlCenter();
+        }
+    }
+
+    private async void StartQuickFocus_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { Tag: string durationText } ||
+            !int.TryParse(durationText, out int durationMinutes) ||
+            !_viewModel.IsPersonalMode)
+        {
+            return;
+        }
+
+        await StartQuickFocusAsync(durationMinutes);
+    }
+
+    private async Task StartQuickFocusAsync(int durationMinutes)
+    {
+        if (_sessionSurfaceTransitionInProgress || !_viewModel.IsPersonalMode)
+        {
+            return;
+        }
+
+        _sessionSurfaceTransitionInProgress = true;
+        try
+        {
+            if (!await _viewModel.SaveAsync())
+            {
+                return;
+            }
+
+            await CloseOwnedBackgroundSessionAsync();
+            SessionSurfaceWindow sessionWindow = new(
+                isDirectSession: true,
+                requirePinToExit: false,
+                returnToControlCenter: true,
+                viewModel: new SessionViewModel(focusDurationMinutes: durationMinutes));
+            bool returningToControlCenter = false;
+
+            sessionWindow.ControlCenterRequested += async (_, _) =>
+            {
+                if (returningToControlCenter)
+                {
+                    return;
+                }
+
+                returningToControlCenter = true;
+                await sessionWindow.CloseFromControllerAsync();
+            };
+            sessionWindow.Closed += async (_, _) =>
+            {
+                ShowInTaskbar = true;
+                Show();
+                Activate();
+                await _viewModel.ReloadUsageAsync();
+                _viewModel.RefreshOverview();
+                EnsurePersonalBackgroundSession();
+            };
+
+            ShowInTaskbar = false;
+            Hide();
+            sessionWindow.Show();
+        }
+        finally
+        {
+            _sessionSurfaceTransitionInProgress = false;
         }
     }
 
@@ -1697,7 +1765,7 @@ public partial class MainWindow : Window
 
     private void ConfigureControlCenterForSession()
     {
-        if (Owner is CafeWindow)
+        if (Owner is SessionSurfaceWindow)
         {
             Owner = null;
         }

@@ -20,9 +20,9 @@ body:
     attributes:
       label: Kullanım biçimi / usage mode
       options:
-        - Sadece takip / Awareness
-        - Kendim için / Personal
-        - Yönettiğim biri için / Protected
+        - Farkındalık / Insights
+        - Kişisel / Personal
+        - Aile / Family
         - Kurulum / Installer
     validations:
       required: true
@@ -50,4 +50,3 @@ body:
     attributes:
       label: Windows sürümü ve ekran düzeni
       placeholder: Windows 11 24H2, tek ekran, %125 DPI
-

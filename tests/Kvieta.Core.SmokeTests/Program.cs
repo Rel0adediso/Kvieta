@@ -360,10 +360,22 @@ Assert(WindowsAdministratorVerificationService.IsAllowedAuditEvent("recovery.cod
     !WindowsAdministratorVerificationService.IsAllowedAuditEvent("arbitrary.command"),
     "Windows yönetici doğrulama yardımcısı audit olaylarını allowlist ile sınırlamıyor.");
 Assert(!settings.SetupCompleted, "Yeni kurulum, kullanım biçimi seçilmeden tamamlanmış görünmemeli.");
+IReadOnlyDictionary<string, string> turkishProductTerms = ProductTerminology
+    .GetResources(LanguagePreference.Turkish)
+    .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
+IReadOnlyDictionary<string, string> englishProductTerms = ProductTerminology
+    .GetResources(LanguagePreference.English)
+    .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
+Assert(turkishProductTerms.Keys.Order().SequenceEqual(englishProductTerms.Keys.Order()) &&
+       turkishProductTerms["InsightsModeShort"] == "Farkındalık" &&
+       englishProductTerms["InsightsModeShort"] == "Insights" &&
+       turkishProductTerms["FamilyModeShort"] == "Aile" &&
+       englishProductTerms["FamilyModeShort"] == "Family",
+    "Ortak ürün sözlüğünde Türkçe/English anahtar veya anlam eşitliği bozuldu.");
 SetupPlan awarenessSetup = new()
 {
     Language = SetupLanguage.English,
-    Mode = ControlMode.Awareness,
+    Mode = UsageMode.Insights,
     DeviceName = "Test PC",
     DailyLimitMinutes = 120,
     StartWithWindows = true,
@@ -371,14 +383,14 @@ SetupPlan awarenessSetup = new()
 };
 ControlSettings awarenessSetupSettings = awarenessSetup.ComposeSettings(null);
 Assert(awarenessSetupSettings.SetupCompleted &&
-       awarenessSetupSettings.Mode == ControlMode.Awareness &&
+       awarenessSetupSettings.Mode == UsageMode.Insights &&
        awarenessSetupSettings.Language == LanguagePreference.English &&
        awarenessSetupSettings.AwarenessTrackingEnabled &&
        awarenessSetupSettings.RecoveryCodes.Count == 0 &&
        awarenessSetupSettings.Schedule.All(day => day.DailyLimitMinutes == 120) &&
        awarenessSetup.LaunchArguments == string.Empty,
-    "Kurucu Sadece takip ayarlarını doğru oluşturmadı.");
-SetupPlan scheduledSetup = new() { Mode = ControlMode.Protected, AdminPin = "2468", HasCustomSchedule = true };
+    "Kurucu Farkındalık ayarlarını doğru oluşturmadı.");
+SetupPlan scheduledSetup = new() { Mode = UsageMode.Family, AdminPin = "2468", HasCustomSchedule = true };
 SetupScheduleDayRow scheduledMonday = scheduledSetup.Schedule.Single(day => day.Day == DayOfWeek.Monday);
 scheduledMonday.AllowedFromText = "08:30";
 scheduledMonday.AllowedUntilText = "20:15";
@@ -395,21 +407,21 @@ Assert(composedMonday.AllowedFrom == new TimeOnly(8, 30) &&
     "Kurucu ayrıntılı haftalık planı ayarlara doğru aktarmadı.");
 SetupPlan flexibleSetup = new()
 {
-    Mode = ControlMode.Personal,
+    Mode = UsageMode.Personal,
     PersonalLevel = PersonalProtectionLevel.Flexible
 };
 Assert(!flexibleSetup.UsesScheduledPlan && scheduledSetup.UsesScheduledPlan,
     "Kurulum plan adımı, plan kullanmayan Esnek moddan ayrıştırılamadı.");
 SetupPlan guardedSetup = new()
 {
-    Mode = ControlMode.Personal,
-    PersonalLevel = PersonalProtectionLevel.Guarded
+    Mode = UsageMode.Personal,
+    PersonalLevel = PersonalProtectionLevel.Protected
 };
 ControlSettings guardedSetupSettings = guardedSetup.ComposeSettings(null);
 Assert(guardedSetupSettings.RequiresGuardian && guardedSetupSettings.AdminPin.IsConfigured &&
        guardedSetup.LaunchArguments == string.Empty,
-    "Kurucu Gözetimli kişisel mod kimliğini veya başlangıç yüzeyini hazırlamadı.");
-SetupPlan protectedSetup = new() { Mode = ControlMode.Protected, AdminPin = "2468" };
+    "Kurucu Korumalı kişisel mod kimliğini veya başlangıç yüzeyini hazırlamadı.");
+SetupPlan protectedSetup = new() { Mode = UsageMode.Family, AdminPin = "2468" };
 IReadOnlyList<string> setupRecoveryCodes = protectedSetup.EnsureRecoveryCodes();
 Assert(setupRecoveryCodes.SequenceEqual(protectedSetup.EnsureRecoveryCodes()),
     "Kurucu geri dönüşte kurtarma kodlarını sessizce yeniledi.");
@@ -443,6 +455,20 @@ Assert(storedProtectedPolicy.AdminPin.IsPublicMarker &&
        storedProtectedPolicy.RecoveryCodes.Count == protectedSetupSettings.RecoveryCodes.Count &&
        RecoveryCodeService.TryConsume(storedProtectedPolicy, setupRecoveryCodes[1]),
     "Guardian'a yazılan politika geçerli kurtarma kayıtlarını kaybetti.");
+JsonSerializerOptions settingsJsonOptions = new() { Converters = { new JsonStringEnumConverter() } };
+string renamedSettingsJson = JsonSerializer.Serialize(new ControlSettings
+{
+    Mode = UsageMode.Family,
+    PersonalProtectionLevel = PersonalProtectionLevel.Protected
+}, settingsJsonOptions);
+ControlSettings legacyNamedSettings = JsonSerializer.Deserialize<ControlSettings>(
+    """{"Mode":"Awareness","PersonalProtectionLevel":"Guarded"}""",
+    settingsJsonOptions) ?? throw new InvalidOperationException("Eski ayar adları ayrıştırılamadı.");
+Assert(renamedSettingsJson.Contains("\"Mode\":\"Protected\"", StringComparison.Ordinal) &&
+       renamedSettingsJson.Contains("\"PersonalProtectionLevel\":\"Guarded\"", StringComparison.Ordinal) &&
+       legacyNamedSettings.Mode == UsageMode.Insights &&
+       legacyNamedSettings.PersonalProtectionLevel == PersonalProtectionLevel.Protected,
+    "Yeni ürün adları eski ayar dosyalarının JSON sözleşmesini bozdu.");
 Assert(ProtectionPolicyChannel.CanAttemptDuringPinCooldown("recovery-pin-reset") &&
        ProtectionPolicyChannel.CanAttemptDuringPinCooldown("manager-device-pin-reset") &&
        !ProtectionPolicyChannel.CanAttemptDuringPinCooldown("verify-pin") &&
@@ -478,7 +504,7 @@ Assert(missingRepairCredentialRejected,
 ControlSettings existingSetupSettings = new()
 {
     SetupCompleted = true,
-    Mode = ControlMode.Personal,
+    Mode = UsageMode.Personal,
     PersonalProtectionLevel = PersonalProtectionLevel.Flexible,
     DeviceName = "Korunan ad"
 };
@@ -487,12 +513,12 @@ SetupPlan keepSetup = new()
 {
     ExistingChoice = SetupChoice.KeepExisting,
     Language = SetupLanguage.English,
-    Mode = ControlMode.Protected,
+    Mode = UsageMode.Family,
     DeviceName = "Değişmemeli"
 };
 ControlSettings keptSettings = keepSetup.ComposeSettings(existingSetupSettings);
 Assert(ReferenceEquals(keptSettings, existingSetupSettings) &&
-       keptSettings.Mode == ControlMode.Personal &&
+       keptSettings.Mode == UsageMode.Personal &&
        keptSettings.DeviceName == "Korunan ad" &&
        keptSettings.Language == LanguagePreference.English &&
        keptSettings.RecoveryCodes.Count == 1 &&
@@ -584,9 +610,18 @@ Assert(!SessionSurfaceRecoveryPolicy.ShouldRecover(
         isControlCenterOpen: false,
         isModalDialogOpen: false,
         isTransitionInProgress: false),
-    "Sadece takip modu yanlışlıkla tam ekran yüzey korumasını etkinleştiriyor.");
-Assert(!SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(isProtectedMode: true) &&
-       SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(isProtectedMode: false),
+    "Farkındalık modu yanlışlıkla tam ekran yüzey korumasını etkinleştiriyor.");
+FocusSessionGoal focusGoal = new(25);
+focusGoal.Start(3_600);
+Assert(focusGoal.RemainingSeconds(3_600) == 1_500 &&
+       focusGoal.RemainingSeconds(4_350) == 750 &&
+       Math.Abs(focusGoal.ProgressPercent(4_350) - 50) < 0.001 &&
+       !focusGoal.CompleteIfReached(5_099) &&
+       focusGoal.CompleteIfReached(5_100) &&
+       focusGoal.IsCompleted,
+    "Hızlı odak hedefi günlük kullanım tabanından bağımsız ve deterministik ilerlemiyor.");
+Assert(!SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(isFamilyMode: true) &&
+       SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(isFamilyMode: false),
     "Korumalı Kontrol Merkezi kapatılınca oturum yüzeyi kendiliğinden geri geliyor.");
 Assert(SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
         shouldShowSessionSurfaces: true,
@@ -605,7 +640,7 @@ Assert(!SessionSurfaceRecoveryPolicy.ShouldCoverAllDisplays(
         shouldShowSessionSurfaces: true,
         isFullSurfaceRequired: true,
         isControlCenterOpen: true),
-    "Kontrol Merkezi, aktif widget veya Sadece takip modu ikincil ekranları yanlışlıkla kapatıyor.");
+    "Kontrol Merkezi, aktif widget veya Farkındalık modu ikincil ekranları yanlışlıkla kapatıyor.");
 Assert(SessionShortcutGuard.ShouldBlockShortcut(
         SessionShortcutGuard.VirtualKeyLeftWindows,
         controlPressed: false,
@@ -677,7 +712,7 @@ settings.Language = LanguagePreference.Turkish;
 ControlSettings flexibleSettings = new()
 {
     SetupCompleted = true,
-    Mode = ControlMode.Personal,
+    Mode = UsageMode.Personal,
     PersonalProtectionLevel = PersonalProtectionLevel.Flexible
 };
 DaySchedule flexibleMonday = flexibleSettings.Schedule.Single(item => item.Day == DayOfWeek.Monday);
@@ -695,10 +730,10 @@ Assert(flexibleEngine.Pause(blockedTime.AddMinutes(2)) && flexibleEngine.GetSnap
 flexibleEngine.EndSession(blockedTime.AddMinutes(3));
 Assert(flexibleEngine.GetSnapshot(blockedTime.AddMinutes(3)).State == SessionState.Ready,
     "Esnek kişisel oturum kullanıcı tarafından bitirilemedi.");
-Assert(!CafeViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionState.Ready) &&
-       !CafeViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionState.Paused) &&
-       CafeViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionState.Active),
-    "Esnek kişisel uygulama kuralları manuel oturum durumuna bağlanmadı.");
+Assert(!SessionViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionState.Ready) &&
+       !SessionViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionState.Paused) &&
+       SessionViewModel.ShouldEnforceApplicationRules(flexibleSettings, SessionState.Active),
+"Esnek kişisel uygulama kuralları manuel oturum durumuna bağlanmadı.");
 
 Assert(ProtectionServiceManager.EvaluateVersionCompatibility(
         new Version(0, 17, 0, 0), new Version(0, 17, 0), new Version(0, 17, 0)) ==
@@ -714,13 +749,13 @@ Assert(ProtectionServiceManager.EvaluateVersionCompatibility(
     "Okunamayan Guardian sürümü güvenli olmayan biçimde uyumlu sayıldı.");
 ControlSettings uninstallPolicy = new()
 {
-    Mode = ControlMode.Protected,
+    Mode = UsageMode.Family,
     AdminPin = AdminPinService.Create("2468")
 };
 Assert(ProtectionServiceManager.RequiresPinForUninstall(uninstallPolicy),
     "Korumalı mod kaldırma akışı PIN istemiyor.");
-uninstallPolicy.Mode = ControlMode.Personal;
-uninstallPolicy.PersonalProtectionLevel = PersonalProtectionLevel.Guarded;
+uninstallPolicy.Mode = UsageMode.Personal;
+uninstallPolicy.PersonalProtectionLevel = PersonalProtectionLevel.Protected;
 Assert(!ProtectionServiceManager.RequiresPinForUninstall(uninstallPolicy),
     "Sıkı kişisel mod kendi belirlediği PIN'i çıkış anahtarına dönüştürdü.");
 string expectedLocalKvietaPath = Path.Combine(
@@ -819,7 +854,7 @@ settings.DeviceName = "Test Bilgisayarı";
 settings.Theme = ThemePreference.Light;
 settings.Language = LanguagePreference.English;
 settings.SetupCompleted = true;
-settings.Mode = ControlMode.Personal;
+settings.Mode = UsageMode.Personal;
 settings.StartWithWindows = true;
 settings.AwarenessTrackingEnabled = true;
 settings.UsageRetentionDays = 180;
@@ -830,7 +865,7 @@ ControlSettings loaded = await store.LoadAsync();
 Assert(loaded.DeviceName == settings.DeviceName, "Ayarlar geri yüklenemedi.");
 Assert(loaded.Theme == ThemePreference.Light, "Tema tercihi geri yüklenemedi.");
 Assert(loaded.Language == LanguagePreference.English, "Dil tercihi geri yüklenemedi.");
-Assert(loaded.SetupCompleted && loaded.Mode == ControlMode.Personal, "Kullanım biçimi geri yüklenemedi.");
+Assert(loaded.SetupCompleted && loaded.Mode == UsageMode.Personal, "Kullanım biçimi geri yüklenemedi.");
 Assert(loaded.StartWithWindows, "Windows başlangıç tercihi geri yüklenemedi.");
 Assert(loaded.AwarenessTrackingEnabled && loaded.UsageRetentionDays == 180, "Ritim gizlilik tercihleri geri yüklenemedi.");
 Assert(loaded.WeeklyReductionGoalPercent == 10, "Ritim azaltma hedefi geri yüklenemedi.");
@@ -1167,7 +1202,7 @@ string legacyPath = Path.Combine(testDirectory, "legacy-settings.json");
 await File.WriteAllTextAsync(legacyPath, "{\"SchemaVersion\":1,\"DeviceName\":\"Eski Kurulum\"}");
 ControlSettings migratedSettings = await new JsonSettingsStore(legacyPath).LoadAsync();
 Assert(migratedSettings.SchemaVersion == 9, "Eski ayar şeması yükseltilemedi.");
-Assert(migratedSettings.Mode == ControlMode.Protected &&
+Assert(migratedSettings.Mode == UsageMode.Family &&
        migratedSettings.PersonalProtectionLevel == PersonalProtectionLevel.Balanced &&
        !migratedSettings.StrictPersonalMode,
     "Eski korumalı ayardaki ilgisiz kişisel seviye temizlenmedi.");
@@ -1240,13 +1275,13 @@ RhythmSummary sessionOnlyRhythm = RhythmAnalyzer.Analyze(rhythmSettings, session
 Assert(sessionOnlyRhythm.BaselineDays == 0 && !sessionOnlyRhythm.IsBaselineReady,
     "Kural oturumu verisi farkındalık başlangıç ritmi olarak sayıldı.");
 Assert(migratedSettings.SetupCompleted, "Mevcut kullanıcıya ilk kurulum ekranı yeniden gösterilmemeli.");
-Assert(migratedSettings.Mode == ControlMode.Protected, "Mevcut kullanıcı korumalı kullanıma taşınmalı.");
+Assert(migratedSettings.Mode == UsageMode.Family, "Mevcut kullanıcı Aile kullanımına taşınmalı.");
 
 string awarenessSettingsPath = Path.Combine(testDirectory, "awareness-settings.json");
 ControlSettings awarenessModeSettings = new()
 {
     SetupCompleted = true,
-    Mode = ControlMode.Awareness,
+    Mode = UsageMode.Insights,
     AwarenessTrackingEnabled = false
 };
 foreach (DaySchedule day in awarenessModeSettings.Schedule)
@@ -1278,7 +1313,7 @@ Assert(awarenessModeEngine.GetSnapshot(blockedTime.AddMinutes(1)).State == Sessi
 Assert(!new ApplicationRuleEnforcer().Enforce(loadedAwarenessSettings, awarenessModeLedger, TimeSpan.FromSeconds(1)),
     "Farkındalık modu eski uygulama engellerini uyguladı.");
 string silentAwarenessUsagePath = Path.Combine(testDirectory, "silent-awareness-usage.json");
-CafeViewModel silentAwarenessViewModel = new(awarenessSettingsStore, new JsonUsageStore(silentAwarenessUsagePath));
+SessionViewModel silentAwarenessViewModel = new(awarenessSettingsStore, new JsonUsageStore(silentAwarenessUsagePath));
 await silentAwarenessViewModel.InitializeAsync();
 Assert(!silentAwarenessViewModel.ShouldShowSessionSurfaces,
     "Farkındalık modunda sayaç veya oturum yüzeyi görünür bırakıldı.");
@@ -1296,7 +1331,7 @@ await new JsonUsageStore(awarenessUsagePath).SaveAsync(new UsageLedger
 });
 MainViewModel awarenessViewModel = new(awarenessSettingsStore, new JsonUsageStore(awarenessUsagePath));
 await awarenessViewModel.InitializeAsync();
-Assert(awarenessViewModel.IsAwarenessMode && !awarenessViewModel.HasRestrictions,
+Assert(awarenessViewModel.IsInsightsMode && !awarenessViewModel.HasRestrictions,
     "Farkındalık profili arayüz durumuna yansımadı.");
 awarenessViewModel.SelectedPageIndex = 2;
 Assert(awarenessViewModel.SelectedPageIndex == 0, "Farkındalık modunda uygulama kuralı paneli açılabildi.");
@@ -1314,25 +1349,25 @@ Assert(flexibleViewModel.IsFlexiblePersonalMode && !flexibleViewModel.HasSchedul
     "Esnek kişisel modun manuel arayüz durumu oluşturulmadı.");
 flexibleViewModel.SelectedPageIndex = 1;
 Assert(flexibleViewModel.SelectedPageIndex == 0, "Esnek kişisel modda Plan sayfası açılabildi.");
-CafeViewModel flexibleCafeViewModel = new(flexibleSettingsStore, new JsonUsageStore(flexibleUsagePath));
-await flexibleCafeViewModel.InitializeAsync();
-Assert(!flexibleCafeViewModel.HasCountdown && flexibleCafeViewModel.RemainingText == "00:00",
-    "Esnek kişisel oturum kronometre yerine geri sayımla hazırlandı.");
-Assert(await flexibleCafeViewModel.StartOrResumeAsync(), "Esnek kişisel kronometre başlatılamadı.");
+SessionViewModel flexibleSessionViewModel = new(flexibleSettingsStore, new JsonUsageStore(flexibleUsagePath));
+await flexibleSessionViewModel.InitializeAsync();
+Assert(!flexibleSessionViewModel.HasCountdown && flexibleSessionViewModel.RemainingText == "00:00",
+"Esnek kişisel oturum kronometre yerine geri sayımla hazırlandı.");
+Assert(await flexibleSessionViewModel.StartOrResumeAsync(), "Esnek kişisel kronometre başlatılamadı.");
 await Task.Delay(1100);
-await flexibleCafeViewModel.TickAsync();
-Assert(flexibleCafeViewModel.RemainingText != "00:00",
-    "Esnek kişisel kronometre başlatıldıktan sonra ilerlemedi.");
-await flexibleCafeViewModel.EndSessionAsync();
-Assert(flexibleCafeViewModel.RemainingText == "00:00",
-    "Esnek kişisel kronometre yeni oturum için sıfırlanmadı.");
+await flexibleSessionViewModel.TickAsync();
+Assert(flexibleSessionViewModel.RemainingText != "00:00",
+"Esnek kişisel kronometre başlatıldıktan sonra ilerlemedi.");
+await flexibleSessionViewModel.EndSessionAsync();
+Assert(flexibleSessionViewModel.RemainingText == "00:00",
+"Esnek kişisel kronometre yeni oturum için sıfırlanmadı.");
 string administrativePauseSettingsPath = Path.Combine(testDirectory, "administrative-pause-settings.json");
 string administrativePauseUsagePath = Path.Combine(testDirectory, "administrative-pause-usage.json");
 JsonSettingsStore administrativePauseSettingsStore = new(administrativePauseSettingsPath);
 await administrativePauseSettingsStore.SaveAsync(flexibleSettings);
-CafeViewModel administrativePauseViewModel = new(
-    administrativePauseSettingsStore,
-    new JsonUsageStore(administrativePauseUsagePath));
+SessionViewModel administrativePauseViewModel = new(
+administrativePauseSettingsStore,
+new JsonUsageStore(administrativePauseUsagePath));
 await administrativePauseViewModel.InitializeAsync();
 Assert(await administrativePauseViewModel.StartOrResumeAsync(),
     "Yönetici süresi testi için oturum başlatılamadı.");
@@ -1364,7 +1399,7 @@ Assert(exportedCsv.StartsWith("date,type,name,seconds,minutes", StringComparison
        exportedCsv.Contains(",rule_application,", StringComparison.Ordinal) &&
        exportedCsv.Contains(",foreground_application,\"'=SUM(1,1)\",600,10", StringComparison.Ordinal),
     "Kullanım verisi CSV olarak eksiksiz veya formül güvenli biçimde dışa aktarılamadı.");
-CafeViewModel clearingBackgroundViewModel = new(awarenessSettingsStore, new JsonUsageStore(awarenessUsagePath));
+SessionViewModel clearingBackgroundViewModel = new(awarenessSettingsStore, new JsonUsageStore(awarenessUsagePath));
 await clearingBackgroundViewModel.InitializeAsync();
 await clearingBackgroundViewModel.StartOrResumeAsync();
 await Task.Delay(1100);
@@ -1405,13 +1440,13 @@ string pendingPath = Path.Combine(testDirectory, "pending-settings.json");
 ControlSettings pendingBase = new()
 {
     SetupCompleted = true,
-    Mode = ControlMode.Personal,
+    Mode = UsageMode.Personal,
     DeviceName = "Şimdiki Ad"
 };
 ControlSettings pendingTarget = new()
 {
     SetupCompleted = true,
-    Mode = ControlMode.Personal,
+    Mode = UsageMode.Personal,
     DeviceName = "Yeni Ad"
 };
 pendingBase.PendingChange = new PendingPolicyChange
@@ -1426,25 +1461,25 @@ Assert(appliedPending.DeviceName == "Yeni Ad" && appliedPending.PendingChange is
 
 string shortcutSettingsPath = Path.Combine(testDirectory, "shortcut-settings.json");
 string shortcutUsagePath = Path.Combine(testDirectory, "shortcut-usage.json");
-ControlSettings shortcutSettings = new() { SetupCompleted = true, Mode = ControlMode.Personal };
+ControlSettings shortcutSettings = new() { SetupCompleted = true, Mode = UsageMode.Personal };
 shortcutSettings.PendingChange = new PendingPolicyChange
 {
     ApplyAfterUtc = DateTimeOffset.UtcNow.AddHours(1),
     TargetSettings = new ControlSettings
     {
         SetupCompleted = true,
-        Mode = ControlMode.Protected,
+        Mode = UsageMode.Family,
         AdminPin = credential
     }
 };
 JsonSettingsStore shortcutStore = new(shortcutSettingsPath);
 await shortcutStore.SaveAsync(shortcutSettings);
-CafeViewModel shortcutViewModel = new(shortcutStore, new JsonUsageStore(shortcutUsagePath));
+SessionViewModel shortcutViewModel = new(shortcutStore, new JsonUsageStore(shortcutUsagePath));
 await shortcutViewModel.InitializeAsync();
 #if KVIETA_DEVELOPMENT_BUILD
 await shortcutViewModel.ForceUnlockForTestingAsync();
 ControlSettings shortcutApplied = await shortcutStore.LoadAsync();
-Assert(shortcutApplied.Mode == ControlMode.Protected && shortcutApplied.PendingChange is null, "Gizli yönetici kısayolu bekleyen değişikliği hemen uygulamadı.");
+Assert(shortcutApplied.Mode == UsageMode.Family && shortcutApplied.PendingChange is null, "Gizli yönetici kısayolu bekleyen değişikliği hemen uygulamadı.");
 #else
 Assert(!BuildInfo.IsDevelopmentBuild, "Public Release testi geliştirme paketi olarak derlendi.");
 #endif
@@ -1454,7 +1489,7 @@ string personalUsagePath = Path.Combine(testDirectory, "personal-usage.json");
 ControlSettings personalSettings = new()
 {
     SetupCompleted = true,
-    Mode = ControlMode.Personal,
+    Mode = UsageMode.Personal,
     PersonalChangeDelayMinutes = 60
 };
 personalSettings.Schedule.Single(day => day.Day == DayOfWeek.Monday).DailyLimitMinutes = 60;
@@ -1465,15 +1500,15 @@ await personalViewModel.InitializeAsync();
 
 string stagedModeSettingsPath = Path.Combine(testDirectory, "staged-mode-settings.json");
 JsonSettingsStore stagedModeStore = new(stagedModeSettingsPath);
-await stagedModeStore.SaveAsync(new ControlSettings { SetupCompleted = true, Mode = ControlMode.Personal });
+await stagedModeStore.SaveAsync(new ControlSettings { SetupCompleted = true, Mode = UsageMode.Personal });
 MainViewModel stagedModeViewModel = new(stagedModeStore, new JsonUsageStore(Path.Combine(testDirectory, "staged-mode-usage.json")));
 await stagedModeViewModel.InitializeAsync();
-stagedModeViewModel.StageControlMode(ControlMode.Protected, PersonalProtectionLevel.Balanced, "4826");
-Assert((await stagedModeStore.LoadAsync()).Mode == ControlMode.Personal,
+stagedModeViewModel.StageUsageMode(UsageMode.Family, PersonalProtectionLevel.Balanced, "4826");
+Assert((await stagedModeStore.LoadAsync()).Mode == UsageMode.Personal,
     "Korumalı mod Kaydet'e basılmadan etkinleşti.");
 Assert(await stagedModeViewModel.SaveAsync(), "Hazırlanan korumalı mod kaydedilemedi.");
 ControlSettings savedStagedMode = await stagedModeStore.LoadAsync();
-Assert(savedStagedMode.Mode == ControlMode.Protected && AdminPinService.Verify("4826", savedStagedMode.AdminPin),
+Assert(savedStagedMode.Mode == UsageMode.Family && AdminPinService.Verify("4826", savedStagedMode.AdminPin),
     "Korumalı mod Kaydet sonrasında uygulanmadı.");
 
 personalViewModel.AwarenessTrackingEnabled = true;
@@ -1520,18 +1555,18 @@ ControlSettings relaxedPersonal = CloneForTest(strictPersonal);
 relaxedPersonal.StrictPersonalMode = false;
 Assert(SettingsPolicyComparer.HasRelaxation(strictPersonal, relaxedPersonal), "Sıkı kişisel modu kapatma gevşetme olarak algılanmadı.");
 ControlSettings guardedPersonal = CloneForTest(strictPersonal);
-guardedPersonal.Mode = ControlMode.Personal;
-guardedPersonal.PersonalProtectionLevel = PersonalProtectionLevel.Guarded;
+guardedPersonal.Mode = UsageMode.Personal;
+guardedPersonal.PersonalProtectionLevel = PersonalProtectionLevel.Protected;
 ControlSettings balancedPersonal = CloneForTest(guardedPersonal);
 balancedPersonal.PersonalProtectionLevel = PersonalProtectionLevel.Balanced;
 Assert(guardedPersonal.RequiresGuardian, "Sıkı kişisel seviye Guardian gerektirmedi.");
 Assert(SettingsPolicyComparer.HasRelaxation(guardedPersonal, balancedPersonal),
     "Guardian destekli kişisel seviyeyi düşürme gevşetme olarak algılanmadı.");
 
-await personalViewModel.SetControlModeAsync(ControlMode.Awareness);
+await personalViewModel.SetUsageModeAsync(UsageMode.Insights);
 ControlSettings queuedAwarenessSettings = await personalSettingsStore.LoadAsync();
-Assert(queuedAwarenessSettings.Mode == ControlMode.Personal, "Farkındalık moduna geçiş kişisel beklemeyi deldi.");
-Assert(queuedAwarenessSettings.PendingChange?.TargetSettings.Mode == ControlMode.Awareness &&
+Assert(queuedAwarenessSettings.Mode == UsageMode.Personal, "Farkındalık kullanımına geçiş kişisel beklemeyi deldi.");
+Assert(queuedAwarenessSettings.PendingChange?.TargetSettings.Mode == UsageMode.Insights &&
        queuedAwarenessSettings.PendingChange.TargetSettings.AwarenessTrackingEnabled &&
        queuedAwarenessSettings.PendingChange.TargetSettings.PersonalProtectionLevel == PersonalProtectionLevel.Balanced &&
        !queuedAwarenessSettings.PendingChange.TargetSettings.StrictPersonalMode,
@@ -1539,7 +1574,7 @@ Assert(queuedAwarenessSettings.PendingChange?.TargetSettings.Mode == ControlMode
 #if KVIETA_DEVELOPMENT_BUILD
 Assert(await personalViewModel.ForceApplyPendingForTestingAsync(), "Kontrol merkezi test atlaması bekleyen değişikliği uygulamadı.");
 ControlSettings bypassedAwarenessSettings = await personalSettingsStore.LoadAsync();
-Assert(bypassedAwarenessSettings.Mode == ControlMode.Awareness && bypassedAwarenessSettings.PendingChange is null,
+Assert(bypassedAwarenessSettings.Mode == UsageMode.Insights && bypassedAwarenessSettings.PendingChange is null,
     "Kontrol merkezi test atlaması bekleme süresini kaldıramadı.");
 Assert(!await personalViewModel.ForceApplyPendingForTestingAsync(), "Bekleyen değişiklik yokken test atlaması başarılı göründü.");
 #else
@@ -1549,27 +1584,34 @@ Assert(typeof(MainViewModel).GetMethod("ForceApplyPendingForTestingAsync") is nu
 
 string strictSettingsPath = Path.Combine(testDirectory, "strict-personal-settings.json");
 string strictUsagePath = Path.Combine(testDirectory, "strict-personal-usage.json");
-ControlSettings strictSessionSettings = new() { SetupCompleted = true, Mode = ControlMode.Personal, StrictPersonalMode = true };
+ControlSettings strictSessionSettings = new() { SetupCompleted = true, Mode = UsageMode.Personal, StrictPersonalMode = true };
 DaySchedule strictToday = strictSessionSettings.Schedule.Single(day => day.Day == DateTime.Today.DayOfWeek);
 strictToday.AllowedFrom = TimeOnly.MinValue;
 strictToday.AllowedUntil = TimeOnly.MinValue;
 strictToday.DailyLimitMinutes = 1;
 await new JsonSettingsStore(strictSettingsPath).SaveAsync(strictSessionSettings);
 await new JsonUsageStore(strictUsagePath).SaveAsync(new UsageLedger { LocalDay = DateOnly.FromDateTime(DateTime.Today), UsedSeconds = 60 });
-CafeViewModel strictCafe = new(new JsonSettingsStore(strictSettingsPath), new JsonUsageStore(strictUsagePath));
-await strictCafe.InitializeAsync();
-Assert(strictCafe.State == SessionState.TimeExpired && !strictCafe.CanRequestExtraTime, "Sıkı kişisel modda ek süre isteği kapatılmadı.");
-await strictCafe.AddBonusMinutesAsync(30);
+SessionViewModel protectedSession = new(new JsonSettingsStore(strictSettingsPath), new JsonUsageStore(strictUsagePath));
+await protectedSession.InitializeAsync();
+Assert(protectedSession.State == SessionState.TimeExpired && !protectedSession.CanRequestExtraTime, "Sıkı kişisel modda ek süre isteği kapatılmadı.");
+await protectedSession.AddBonusMinutesAsync(30);
 Assert((await new JsonUsageStore(strictUsagePath).LoadAsync()).BonusMinutes == 0, "Sıkı kişisel mod ek süreyi model katmanında reddetmedi.");
+ControlSettings familyExtraTimeSettings = new() { Mode = UsageMode.Family };
+Assert(SessionViewModel.ShouldAllowExtraTimeRequest(familyExtraTimeSettings, SessionState.Active) &&
+       SessionViewModel.ShouldAllowExtraTimeRequest(familyExtraTimeSettings, SessionState.Paused) &&
+       SessionViewModel.ShouldAllowExtraTimeRequest(familyExtraTimeSettings, SessionState.TimeExpired) &&
+       !SessionViewModel.ShouldAllowExtraTimeRequest(familyExtraTimeSettings, SessionState.Ready) &&
+       !SessionViewModel.ShouldAllowExtraTimeRequest(familyExtraTimeSettings, SessionState.OutsideSchedule),
+    "Aile modunda ek süre eylemi oturum sürerken ve süre dolduğunda doğru görünmüyor.");
 
 AdminCredential guardedCredential = AdminPinService.CreateInternalCredential();
-await personalViewModel.SetControlModeAsync(
-    ControlMode.Personal,
-    PersonalProtectionLevel.Guarded,
+await personalViewModel.SetUsageModeAsync(
+    UsageMode.Personal,
+    PersonalProtectionLevel.Protected,
     newCredential: guardedCredential);
 ControlSettings guardedModeSettings = await personalSettingsStore.LoadAsync();
-Assert(guardedModeSettings.Mode == ControlMode.Personal &&
-       guardedModeSettings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded &&
+Assert(guardedModeSettings.Mode == UsageMode.Personal &&
+       guardedModeSettings.PersonalProtectionLevel == PersonalProtectionLevel.Protected &&
        guardedModeSettings.RequiresGuardian &&
        guardedModeSettings.PendingChange is null,
     "Sıkı kişisel seviye hemen ve Guardian zorunlu olarak uygulanmadı.");
@@ -1577,17 +1619,17 @@ Assert(guardedModeSettings.AdminPin.HashBase64 == guardedCredential.HashBase64 &
        !AdminPinService.Verify("4826", guardedModeSettings.AdminPin),
     "Sıkı kişisel teknik Guardian anahtarı kullanıcı PIN'ine dönüştü.");
 
-await personalViewModel.SetControlModeAsync(
-    ControlMode.Personal,
+await personalViewModel.SetUsageModeAsync(
+    UsageMode.Personal,
     PersonalProtectionLevel.Balanced);
 ControlSettings queuedGuardedExit = await personalSettingsStore.LoadAsync();
-Assert(queuedGuardedExit.PersonalProtectionLevel == PersonalProtectionLevel.Guarded &&
+Assert(queuedGuardedExit.PersonalProtectionLevel == PersonalProtectionLevel.Protected &&
        queuedGuardedExit.PendingChange?.TargetSettings.PersonalProtectionLevel == PersonalProtectionLevel.Balanced,
     "Sıkı kişisel moddan çıkış bekleme süresini atladı.");
 
-await personalViewModel.SetControlModeAsync(ControlMode.Protected, "4826");
+await personalViewModel.SetUsageModeAsync(UsageMode.Family, "4826");
 ControlSettings protectedFromGuarded = await personalSettingsStore.LoadAsync();
-Assert(protectedFromGuarded.Mode == ControlMode.Protected && protectedFromGuarded.PendingChange is null,
+Assert(protectedFromGuarded.Mode == UsageMode.Family && protectedFromGuarded.PendingChange is null,
     "Sıkı kişisel moddan daha korumalı moda geçiş gereksiz yere bekletildi.");
 Assert(AdminPinService.Verify("4826", protectedFromGuarded.AdminPin),
     "Korumalı moda geçişte kullanıcı yönetici PIN'i uygulanmadı.");

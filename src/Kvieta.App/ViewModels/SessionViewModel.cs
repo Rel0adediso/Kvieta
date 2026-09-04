@@ -6,7 +6,7 @@ using Kvieta.App.Services;
 
 namespace Kvieta.App.ViewModels;
 
-public sealed class CafeViewModel : ObservableObject, IDisposable
+public sealed class SessionViewModel : ObservableObject, IDisposable
 {
     private JsonSettingsStore _settingsStore;
     private readonly JsonUsageStore _usageStore;
@@ -25,11 +25,16 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
     private bool _clockAnomalyAudited;
     private bool _usageSuspendedForAdministration;
     private long _flexibleSessionBaselineSeconds;
+    private readonly FocusSessionGoal? _focusGoal;
 
-    public CafeViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
+    public SessionViewModel(
+        JsonSettingsStore? settingsStore = null,
+        JsonUsageStore? usageStore = null,
+        int? focusDurationMinutes = null)
     {
         _settingsStore = settingsStore ?? new JsonSettingsStore();
         _usageStore = usageStore ?? new JsonUsageStore();
+        _focusGoal = focusDurationMinutes is > 0 ? new FocusSessionGoal(focusDurationMinutes.Value) : null;
     }
 
     public void Dispose() => _applicationRuleEnforcer.Dispose();
@@ -38,18 +43,19 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
 
     public SessionState State => _snapshot?.State ?? SessionState.Ready;
     public bool IsActive => State == SessionState.Active;
-    public bool CanStartOrResume => State is SessionState.Ready or SessionState.Paused;
+    public bool CanStartOrResume =>
+        _focusGoal?.IsCompleted != true && State is (SessionState.Ready or SessionState.Paused);
     public bool CanEndSession => State == SessionState.Paused;
     public bool IsBlocked => State is SessionState.TimeExpired or SessionState.OutsideSchedule;
-    public bool ShouldShowSessionSurfaces => _settings?.Mode != ControlMode.Awareness;
-    public bool IsGuardedPersonalMode =>
-        _settings?.Mode == ControlMode.Personal &&
-        _settings.PersonalProtectionLevel == PersonalProtectionLevel.Guarded;
+    public bool ShouldShowSessionSurfaces => _settings?.Mode != UsageMode.Insights;
+    public bool IsProtectedPersonalMode =>
+        _settings?.Mode == UsageMode.Personal &&
+        _settings.PersonalProtectionLevel == PersonalProtectionLevel.Protected;
     public bool IsFlexiblePersonalMode =>
-        _settings?.Mode == ControlMode.Personal &&
+        _settings?.Mode == UsageMode.Personal &&
         _settings.PersonalProtectionLevel == PersonalProtectionLevel.Flexible;
-    public bool CanRequestExtraTime => State == SessionState.TimeExpired &&
-        (_settings?.Mode != ControlMode.Personal || _settings.StrictPersonalMode == false);
+    public bool CanRequestExtraTime => _settings is not null &&
+        ShouldAllowExtraTimeRequest(_settings, State);
     public bool IsOutsideSchedule => State == SessionState.OutsideSchedule;
     public bool IsClockRollbackDetected => _engine?.Ledger.ClockRollbackUntilUtc is { } until && until > DateTimeOffset.UtcNow;
     public bool IsRegularOutsideSchedule => IsOutsideSchedule && !IsClockRollbackDetected;
@@ -62,33 +68,41 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         _ => string.Empty
     };
 
-    public string StateLabel => State switch
-    {
-        SessionState.Active => LocalizationService.Get("StateActive"),
-        SessionState.Paused => LocalizationService.Get("StatePaused"),
-        SessionState.TimeExpired => LocalizationService.Get("StateExpired"),
-        SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("StateClockProtection"),
-        SessionState.OutsideSchedule => LocalizationService.Get("StateOutside"),
-        _ => LocalizationService.Get("StateReady")
-    };
+    public string StateLabel => _focusGoal?.IsCompleted == true
+        ? LocalizationService.Get("FocusCompletedState")
+        : State switch
+        {
+            SessionState.Active => LocalizationService.Get("StateActive"),
+            SessionState.Paused => LocalizationService.Get("StatePaused"),
+            SessionState.TimeExpired => LocalizationService.Get("StateExpired"),
+            SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("StateClockProtection"),
+            SessionState.OutsideSchedule => LocalizationService.Get("StateOutside"),
+            _ => LocalizationService.Get("StateReady")
+        };
 
-    public string Headline => State switch
-    {
-        SessionState.Paused => LocalizationService.Get("HeadlinePaused"),
-        SessionState.TimeExpired => LocalizationService.Get("HeadlineExpired"),
-        SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("HeadlineClockRollback"),
-        SessionState.OutsideSchedule => LocalizationService.Get("HeadlineOutside"),
-        SessionState.Active => LocalizationService.Get("HeadlineActive"),
-        _ => LocalizationService.Get("HeadlineReady")
-    };
+    public string Headline => _focusGoal?.IsCompleted == true
+        ? LocalizationService.Get("FocusCompletedHeadline")
+        : State switch
+        {
+            SessionState.Paused => LocalizationService.Get("HeadlinePaused"),
+            SessionState.TimeExpired => LocalizationService.Get("HeadlineExpired"),
+            SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("HeadlineClockRollback"),
+            SessionState.OutsideSchedule => LocalizationService.Get("HeadlineOutside"),
+            SessionState.Active => LocalizationService.Get("HeadlineActive"),
+            _ => LocalizationService.Get("HeadlineReady")
+        };
 
-    public string Description => _persistenceWarning ?? _snapshot?.Reason ?? "Kullanım bilgileri yükleniyor…";
-    public bool HasCountdown => !IsFlexiblePersonalMode;
+    public string Description => _focusGoal?.IsCompleted == true
+        ? LocalizationService.Get("FocusCompletedDescription")
+        : _persistenceWarning ?? _snapshot?.Reason ?? "Kullanım bilgileri yükleniyor…";
+    public bool HasCountdown => _focusGoal is not null || !IsFlexiblePersonalMode;
     public string TimeMetricLabel => LocalizationService.Get(
-        IsFlexiblePersonalMode ? "ElapsedTimeLong" : "RemainingTimeLong");
+        _focusGoal is null && IsFlexiblePersonalMode ? "ElapsedTimeLong" : "RemainingTimeLong");
     public string TimeMetricLabelShort => LocalizationService.Get(
-        IsFlexiblePersonalMode ? "KvietaElapsed" : "KvietaRemaining");
-    public string RemainingText => IsFlexiblePersonalMode
+        _focusGoal is null && IsFlexiblePersonalMode ? "KvietaElapsed" : "KvietaRemaining");
+    public string RemainingText => _focusGoal is not null
+        ? FormatClock(FocusRemainingSeconds())
+        : IsFlexiblePersonalMode
         ? FormatClock(Math.Max(0, (_snapshot?.UsedSeconds ?? 0) - _flexibleSessionBaselineSeconds))
         : FormatClock(_snapshot?.RemainingSeconds ?? 0);
     public string UsedText => FormatDuration(_snapshot?.UsedSeconds ?? 0);
@@ -104,6 +118,11 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
     {
         get
         {
+            if (_focusGoal is not null)
+            {
+                return _focusGoal.ProgressPercent(_snapshot?.UsedSeconds ?? 0);
+            }
+
             long limit = _snapshot?.LimitSeconds ?? 0;
             return limit == 0 ? 0 : Math.Clamp((double)(_snapshot?.UsedSeconds ?? 0) / limit * 100, 0, 100);
         }
@@ -123,12 +142,13 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         }
         _settings = settings;
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
-        OnPropertyChanged(nameof(IsGuardedPersonalMode));
+        OnPropertyChanged(nameof(IsProtectedPersonalMode));
         _settingsLastWriteUtc = GetSettingsLastWriteUtc();
         _pendingApplyAfterUtc = settings.PendingChange?.ApplyAfterUtc;
         UsageLedger ledger = await _usageStore.LoadAsync();
         _engine = new SessionEngine(settings, ledger, DateTimeOffset.Now);
         _flexibleSessionBaselineSeconds = ledger.UsedSeconds;
+        _focusGoal?.Start(ledger.UsedSeconds);
         _engine.ObserveClock(DateTimeOffset.Now, WindowsMonotonicClock.Uptime, WindowsMonotonicClock.GetBootId());
         _tickWatch.Restart();
         RefreshSnapshot(notifyStateChange: false);
@@ -193,7 +213,7 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         {
             _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
         }
-        if ((_settings?.AwarenessTrackingEnabled == true || _settings?.Mode == ControlMode.Awareness) &&
+        if ((_settings?.AwarenessTrackingEnabled == true || _settings?.Mode == UsageMode.Insights) &&
             _foregroundApplicationTracker.Sample(_engine.Ledger, elapsed))
         {
             _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
@@ -209,6 +229,14 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         }
 
         RefreshSnapshot(notifyStateChange: true);
+
+        if (_focusGoal?.CompleteIfReached(_engine.Ledger.UsedSeconds) == true)
+        {
+            _engine.EndSession(DateTimeOffset.Now);
+            RefreshSnapshot(notifyStateChange: true);
+            await SaveAsync();
+            return;
+        }
 
         if (_secondsSinceSave >= 5)
         {
@@ -243,10 +271,15 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
     }
 
     public static bool ShouldEnforceApplicationRules(ControlSettings settings, SessionState state) =>
-        settings.Mode != ControlMode.Awareness &&
-        (settings.Mode != ControlMode.Personal ||
+            settings.Mode != UsageMode.Insights &&
+            (settings.Mode != UsageMode.Personal ||
          settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible ||
          state == SessionState.Active);
+
+    public static bool ShouldAllowExtraTimeRequest(ControlSettings settings, SessionState state) =>
+        settings.Mode == UsageMode.Family && state is SessionState.Active or SessionState.Paused or SessionState.TimeExpired ||
+        state == SessionState.TimeExpired &&
+        (settings.Mode != UsageMode.Personal || settings.StrictPersonalMode == false);
 
     public void SuspendUsageForAdministration()
     {
@@ -323,7 +356,7 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
 
     public async Task AddBonusMinutesAsync(int minutes)
     {
-        if (_engine is null || (_settings?.Mode == ControlMode.Personal && _settings.StrictPersonalMode))
+        if (_engine is null || (_settings?.Mode == UsageMode.Personal && _settings.StrictPersonalMode))
         {
             return;
         }
@@ -418,7 +451,7 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         }
         _settings = settings;
         OnPropertyChanged(nameof(ShouldShowSessionSurfaces));
-        OnPropertyChanged(nameof(IsGuardedPersonalMode));
+        OnPropertyChanged(nameof(IsProtectedPersonalMode));
         OnPropertyChanged(nameof(IsFlexiblePersonalMode));
         _settingsLastWriteUtc = GetSettingsLastWriteUtc();
         _pendingApplyAfterUtc = settings.PendingChange?.ApplyAfterUtc;
@@ -455,7 +488,7 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         bool wasActive = IsActive;
         UsageLedger ledger = await _usageStore.LoadAsync();
         _engine = new SessionEngine(_settings, ledger, DateTimeOffset.Now);
-        if (wasActive || _settings.Mode == ControlMode.Awareness)
+        if (wasActive || _settings.Mode == UsageMode.Insights)
         {
             _engine.StartOrResume(DateTimeOffset.Now);
         }
@@ -545,7 +578,7 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
         ControlSettings settings = new()
         {
             SetupCompleted = true,
-            Mode = ControlMode.Protected,
+            Mode = UsageMode.Family,
             DefaultDailyLimitMinutes = 0
         };
         foreach (DaySchedule day in settings.Schedule)
@@ -554,6 +587,22 @@ public sealed class CafeViewModel : ObservableObject, IDisposable
             day.DailyLimitMinutes = 0;
         }
         return settings;
+    }
+
+    private long FocusRemainingSeconds()
+    {
+        if (_focusGoal is null)
+        {
+            return 0;
+        }
+
+        long focusRemaining = _focusGoal.RemainingSeconds(_snapshot?.UsedSeconds ?? 0);
+        if (IsFlexiblePersonalMode || _snapshot is null)
+        {
+            return focusRemaining;
+        }
+
+        return Math.Min(focusRemaining, Math.Max(0, _snapshot.RemainingSeconds));
     }
 
     private static string FormatClock(long seconds)

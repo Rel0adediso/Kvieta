@@ -55,7 +55,7 @@ public sealed class JsonSettingsStore
             settings.SchemaVersion = 9;
             NormalizePersonalProtection(settings);
             settings.SetupCompleted = true;
-            settings.AwarenessTrackingEnabled = settings.Mode == ControlMode.Awareness || settings.AwarenessTrackingEnabled;
+            settings.AwarenessTrackingEnabled = settings.Mode == UsageMode.Insights || settings.AwarenessTrackingEnabled;
             await SaveAsync(settings, cancellationToken);
         }
 
@@ -97,7 +97,7 @@ public sealed class JsonSettingsStore
             if (settings.SchemaVersion < 2)
             {
                 settings.SetupCompleted = true;
-                settings.Mode = ControlMode.Protected;
+                settings.Mode = UsageMode.Family;
             }
 
             if (settings.SchemaVersion < 9)
@@ -122,7 +122,7 @@ public sealed class JsonSettingsStore
                 changed |= NormalizePersonalProtection(pendingTarget);
                 changed |= NormalizeLimitAction(pendingTarget);
             }
-            if (settings.Mode == ControlMode.Awareness)
+            if (settings.Mode == UsageMode.Insights)
             {
                 changed |= !settings.AwarenessTrackingEnabled || settings.PendingChange is not null;
                 settings.AwarenessTrackingEnabled = true;
@@ -150,10 +150,10 @@ public sealed class JsonSettingsStore
 
     private static bool NormalizePersonalProtection(ControlSettings settings)
     {
-        PersonalProtectionLevel level = settings.Mode == ControlMode.Personal
+        PersonalProtectionLevel level = settings.Mode == UsageMode.Personal
             ? settings.PersonalProtectionLevel
             : PersonalProtectionLevel.Balanced;
-        bool strict = settings.Mode == ControlMode.Personal && level != PersonalProtectionLevel.Flexible;
+        bool strict = settings.Mode == UsageMode.Personal && level != PersonalProtectionLevel.Flexible;
         bool changed = settings.PersonalProtectionLevel != level || settings.StrictPersonalMode != strict;
         settings.PersonalProtectionLevel = level;
         settings.StrictPersonalMode = strict;

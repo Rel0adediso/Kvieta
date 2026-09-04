@@ -14,9 +14,13 @@ Kvieta varsayılan olarak `C:\Program Files\Kvieta` altına kurulur. Kullanıcı
 
 ## İlk kullanım biçimleri
 
-- **Sadece takip:** Kısıtlama olmadan, yapılandırılan uygulamaların kullanımını cihazda ölçer.
-- **Kendim için:** Plan ve limitleri kişinin kendi düzeni için uygular. Flexible kullanıcı kontrollüdür; Balanced aktif zaman penceresinde oturum yüzeyini korur.
-- **Yönettiğim biri için:** Ayrı bir Windows yöneticisinin yönettiği standart hesap içindir. Yönetici PIN'i ve Guardian ile kuralları korur.
+- **Farkındalık:** Kısıtlama olmadan, yapılandırılan uygulamaların kullanımını cihazda ölçer.
+- **Kişisel:** Plan ve limitleri kişinin kendi düzeni için uygular. Esnek kullanıcı kontrollüdür; Dengeli aktif zaman penceresinde oturum yüzeyini korur.
+- **Aile:** Bir aile üyesinin ayrı bir Windows yöneticisince yönetilen standart hesabı içindir. Yönetici PIN'i ve Guardian ile kuralları korur.
+
+Kişisel kullanımda **Hızlı odak**, Bugün ekranından veya tray menüsünden 25, 50 ya da 90 dakikalık oturum başlatır. Odak hedefi günlük limiti veya izin verilen planı uzatmaz.
+
+Aile modunda yönetici, oturum aktifken veya moladayken mevcut PIN korumalı eylemle ek süre verebilir; günlük sürenin tamamen dolmasını beklemek gerekmez.
 
 Haftalık planı, günlük limiti ve uygulama kurallarını gözden geçirip **Kaydet** düğmesine basın. Korumalı kullanımda yönetici PIN'i ile tek kullanımlık kurtarma kodlarını güvenli ve ayrı bir yerde saklayın.
 

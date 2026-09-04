@@ -6,7 +6,7 @@ namespace Kvieta.App;
 
 public partial class ModeSelectionWindow : Window
 {
-    public ModeSelectionWindow(ControlMode? currentMode = null, PersonalProtectionLevel currentPersonalLevel = PersonalProtectionLevel.Balanced)
+    public ModeSelectionWindow(UsageMode? currentMode = null, PersonalProtectionLevel currentPersonalLevel = PersonalProtectionLevel.Balanced)
     {
         InitializeComponent();
         SelectedMode = currentMode;
@@ -15,7 +15,7 @@ public partial class ModeSelectionWindow : Window
         UpdatePersonalSelectionStyles();
     }
 
-    public ControlMode? SelectedMode { get; private set; }
+    public UsageMode? SelectedMode { get; private set; }
     public PersonalProtectionLevel SelectedPersonalProtectionLevel { get; private set; }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -29,11 +29,11 @@ public partial class ModeSelectionWindow : Window
         Height = Math.Min(Height, MaxHeight);
     }
 
-    private void Awareness_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Awareness);
-    private void Personal_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Personal);
-    private void Protected_Click(object sender, RoutedEventArgs e) => SelectMode(ControlMode.Protected);
+    private void Insights_Click(object sender, RoutedEventArgs e) => SelectMode(UsageMode.Insights);
+    private void Personal_Click(object sender, RoutedEventArgs e) => SelectMode(UsageMode.Personal);
+    private void Family_Click(object sender, RoutedEventArgs e) => SelectMode(UsageMode.Family);
 
-    private void SelectMode(ControlMode mode)
+    private void SelectMode(UsageMode mode)
     {
         SelectedMode = mode;
         UpdateSelectionStyles();
@@ -41,17 +41,17 @@ public partial class ModeSelectionWindow : Window
 
     private void UpdateSelectionStyles()
     {
-        Style normal = (Style)AwarenessButton.FindResource("ModeCardStyle");
-        Style selected = (Style)AwarenessButton.FindResource("SelectedModeCardStyle");
-        AwarenessButton.Style = SelectedMode == ControlMode.Awareness ? selected : normal;
-        PersonalButton.Style = SelectedMode == ControlMode.Personal ? selected : normal;
-        ProtectedButton.Style = SelectedMode == ControlMode.Protected ? selected : normal;
+        Style normal = (Style)InsightsButton.FindResource("ModeCardStyle");
+        Style selected = (Style)InsightsButton.FindResource("SelectedModeCardStyle");
+        InsightsButton.Style = SelectedMode == UsageMode.Insights ? selected : normal;
+        PersonalButton.Style = SelectedMode == UsageMode.Personal ? selected : normal;
+        FamilyButton.Style = SelectedMode == UsageMode.Family ? selected : normal;
         ConfirmModeButton.IsEnabled = SelectedMode is not null;
     }
 
     private void Flexible_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Flexible);
     private void Balanced_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Balanced);
-    private void Guarded_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Guarded);
+    private void ProtectedLevel_Click(object sender, RoutedEventArgs e) => SelectPersonalLevel(PersonalProtectionLevel.Protected);
 
     private void SelectPersonalLevel(PersonalProtectionLevel level)
     {
@@ -65,12 +65,12 @@ public partial class ModeSelectionWindow : Window
         Style selected = (Style)FlexibleButton.FindResource("SelectedModeCardStyle");
         FlexibleButton.Style = SelectedPersonalProtectionLevel == PersonalProtectionLevel.Flexible ? selected : normal;
         BalancedButton.Style = SelectedPersonalProtectionLevel == PersonalProtectionLevel.Balanced ? selected : normal;
-        GuardedButton.Style = SelectedPersonalProtectionLevel == PersonalProtectionLevel.Guarded ? selected : normal;
+        ProtectedLevelButton.Style = SelectedPersonalProtectionLevel == PersonalProtectionLevel.Protected ? selected : normal;
     }
 
     private void Confirm_Click(object sender, RoutedEventArgs e)
     {
-        if (SelectedMode == ControlMode.Personal)
+        if (SelectedMode == UsageMode.Personal)
         {
             UsageStepPanel.Visibility = Visibility.Collapsed;
             PersonalStepPanel.Visibility = Visibility.Visible;

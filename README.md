@@ -38,9 +38,9 @@ limitations are on the [Kvieta Alpha 2.1 release page](https://github.com/Rel0ad
 
 | Mode | Designed for | Experience |
 |---|---|---|
-| **Tracking only** | Understanding your habits | Records configured app usage locally without restricting anything. |
-| **For myself** | Building a routine of your own | Adds schedules, limits, breaks, focus sessions, and optional personal protection. |
-| **For someone I manage** | A standard Windows account managed by another administrator | Protects policy with an administrator PIN and the Kvieta Guardian service. |
+| **Insights** | Understanding your habits | Records configured app usage locally without restricting anything. |
+| **Personal** | Building a routine of your own | Adds schedules, limits, breaks, focus sessions, and optional personal protection. |
+| **Family** | A family member's standard Windows account | Protects policy with an administrator PIN and the Kvieta Guardian service. |
 
 ## What Kvieta can do
 

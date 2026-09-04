@@ -38,9 +38,9 @@ sınırlar [Kvieta Alpha 2.1 yayın sayfasında](https://github.com/Rel0adediso/
 
 | Biçim | Kime göre? | Deneyim |
 |---|---|---|
-| **Sadece takip** | Alışkanlıklarını anlamak isteyenlere | Yapılandırılan uygulamaların kullanımını yalnızca cihazda kaydeder; hiçbir kısıtlama uygulamaz. |
-| **Kendim için** | Kendi düzenini kurmak isteyenlere | Plan, limit, mola, odak oturumu ve isteğe bağlı kişisel koruma ekler. |
-| **Yönettiğim biri için** | Ayrı bir yöneticinin yönettiği standart Windows hesabına | Kuralları yönetici PIN'i ve Kvieta Guardian servisiyle korur. |
+| **Farkındalık** | Alışkanlıklarını anlamak isteyenlere | Yapılandırılan uygulamaların kullanımını yalnızca cihazda kaydeder; hiçbir kısıtlama uygulamaz. |
+| **Kişisel** | Kendi düzenini kurmak isteyenlere | Plan, limit, mola, odak oturumu ve isteğe bağlı kişisel koruma ekler. |
+| **Aile** | Bir aile üyesinin standart Windows hesabına | Kuralları yönetici PIN'i ve Kvieta Guardian servisiyle korur. |
 
 ## Kvieta neler yapar?
 

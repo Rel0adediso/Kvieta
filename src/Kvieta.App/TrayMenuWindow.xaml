@@ -56,6 +56,9 @@
                     <Path Grid.Column="2" Data="{StaticResource TrayChevronIconGeometry}" Stroke="{DynamicResource FaintTextBrush}" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="8" Height="12" Stretch="Uniform" VerticalAlignment="Center" />
                 </Grid>
             </Button>
+            <Border x:Name="QuickFocusPanel" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="2,4,2,0" Padding="3,8,3,1">
+                <StackPanel><TextBlock Text="{DynamicResource QuickFocus}" Foreground="{DynamicResource MutedTextBrush}" FontSize="10.5" FontWeight="SemiBold" Margin="3,0,0,6"/><UniformGrid Columns="3"><Button Tag="25" Click="QuickFocus_Click" Style="{StaticResource TrayActionStyle}" Height="34" HorizontalContentAlignment="Center"><TextBlock><Run Text="25 "/><Run Text="{DynamicResource MinuteShort}"/></TextBlock></Button><Button Tag="50" Click="QuickFocus_Click" Style="{StaticResource TrayActionStyle}" Height="34" HorizontalContentAlignment="Center"><TextBlock><Run Text="50 "/><Run Text="{DynamicResource MinuteShort}"/></TextBlock></Button><Button Tag="90" Click="QuickFocus_Click" Style="{StaticResource TrayActionStyle}" Height="34" HorizontalContentAlignment="Center"><TextBlock><Run Text="90 "/><Run Text="{DynamicResource MinuteShort}"/></TextBlock></Button></UniformGrid></StackPanel>
+            </Border>
         </StackPanel>
     </Border>
 </Window>

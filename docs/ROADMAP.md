@@ -1,8 +1,8 @@
 # Kvieta — Ürün ve Release Yol Haritası
 
-**Son güncelleme:** 3 Eylül 2026
+**Son güncelleme:** 4 Eylül 2026
 
-**Mevcut yayın adayı:** **Kvieta Alpha 2.1** community prerelease
+**Mevcut yayın:** **Kvieta Alpha 2.1** community prerelease
 
 **Aktif hedef:** Alpha 2.1 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
 
@@ -13,7 +13,7 @@ kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalış
 bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği için
 öncelikle **Aktif çalışma planı** bölümü esas alınır.
 
-## Kvieta Alpha 2.1 yayın adayı
+## Kvieta Alpha 2.1 — yayımlandı; saha testinde
 
 Alpha 2.1; Alpha 2 üzerine kurulumda haftalık planlama, okunabilir kullanım
 görselleştirmeleri, kontrollü kaldırma, yönetilen cihaz akışları ve arayüz
@@ -24,20 +24,23 @@ iyileştirmelerini ekler. Paket etiketi `Alpha-2.1`, GitHub etiketi
 - [x] Yedi günlük kullanım grafiği ve uygulama kartları iyileştirildi.
 - [x] Kontrollü kaldırma, isteğe bağlı veri temizliği ve sonuç ekranı eklendi.
 - [x] Yönetilen cihaz, Guardian ve yerel companion akışları sertleştirildi.
-- [ ] Temiz kaynak commit'inden Alpha 2.1 community paketi üretilip doğrulanmalı.
-- [ ] GitHub kalite hattı Alpha 2.1 etiketiyle çalıştırılmalı.
-- [ ] `kvieta-alpha-2.1` prerelease'i ve doğrulama dosyaları yayımlanmalı.
+- [x] Temiz kaynak commit'inden Alpha 2.1 community paketi üretildi ve doğrulandı.
+- [x] GitHub kalite hattı Alpha 2.1 release commit'inde başarıyla çalıştı.
+- [x] `kvieta-alpha-2.1` prerelease'i ve doğrulama dosyaları yayımlandı.
 - [ ] Alpha 2.1 gerçek cihaz yükseltme ve kullanım testi tamamlanmalı.
 
 ## Ürün ilkeleri
 
 - Kvieta hesap veya bulut zorunluluğu olmadan yerel çalışır.
 - Kullanım verisi, planlar, kurallar ve tanılama kayıtları varsayılan olarak cihazda kalır.
-- **Sadece takip** hiçbir kısıtlama uygulamadan kullanım farkındalığı sağlar.
-- **Kendim için** kullanıcıyı cezalandırmadan kendi kararına sadık kalmasına yardım eder.
-- **Yönettiğim biri için** standart Windows kullanıcısının yaygın kaçış yollarına direnç gösterir.
+- **Farkındalık** hiçbir kısıtlama uygulamadan kullanımı anlamayı sağlar.
+- **Kişisel** kullanım, kişiyi cezalandırmadan kendi kararına sadık kalmasına yardım eder.
+- **Aile** kullanımı, ayrı bir yöneticinin yönettiği standart Windows
+  hesabında yaygın kaçış yollarına direnç gösterir.
 - Güvenlik iddiaları açık, test edilebilir ve belgelenmiş sınırlar içinde tutulur.
 - Arayüz krem/haki ve zeytin/grafit kimliğini, sakin ürün dilini ve kompakt bilgi hiyerarşisini korur.
+- Günlük deneyim **Gör → Seç → Yap → Sürdür → Değerlendir → Uyarla** döngüsünü izler.
+- Devamlılık mekanikleri kullanıcıyı suçlamaz, dinlenmeyi cezalandırmaz ve hiçbir güvenlik kuralını gevşetmez.
 - Public paketler test geçidi, belgelenmemiş veri toplama veya sessiz güvenlik gevşetmesi içermez.
 
 ## Doğrulanmış mevcut durum
@@ -58,12 +61,22 @@ Bu sonuçlar çekirdek ve kaynak build sağlığını doğrular. Gerçek Windows
 döngüsü, Guardian, installer ve ekran davranışlarının tamamının doğrulandığı
 anlamına gelmez.
 
-## Kvieta Alpha 1 yayın planı
+3 Eylül 2026 tarihinde Alpha 2.1 release commit'i `4928649` için ek olarak:
 
-İlk Kvieta markalı community preview kullanıcıya **Kvieta Alpha 1** adıyla sunulur. Git tag
-`alpha-1`, paket etiketi `Alpha-1` olur; `v1.0.0-alpha.1` kullanıcıya görünen yayın
-adı olarak kullanılmaz. Windows Installer ürün sürümü yükseltme/onarım uyumluluğu
-için `1.0.0` kalır.
+- Debug/Release build ve smoke testleri geçti.
+- Dokümantasyon ve public-build bypass kontrolleri geçti.
+- Community Setup EXE/MSI metadata'sı ile release manifesti kaynak commit'ine karşı doğrulandı.
+- `kvieta-alpha-2.1` etiketiyle imzasız community prerelease ve doğrulama dosyaları yayımlandı.
+
+Bu release kanıtı paket hattını kapatır; ayrı cihazdaki gerçek yükseltme,
+Guardian ve uzun kullanım doğrulaması açık kalır.
+
+## Kvieta Alpha 1 yayın arşivi
+
+İlk Kvieta markalı community preview kullanıcıya **Kvieta Alpha 1** adıyla sunuldu.
+Git tag `alpha-1`, paket etiketi `Alpha-1` olarak kullanıldı; `v1.0.0-alpha.1`
+kullanıcıya görünen ürün adı yapılmadı. Windows Installer ürün sürümü
+yükseltme/onarım uyumluluğu için `1.0.0` kaldı.
 
 ### Alpha 1 kapsamı
 
@@ -169,11 +182,139 @@ Aşağıdaki maddeler alpha kullanım testini başlatmaya engel değildir; final
 
 Bu bölümdeki bütün maddeler kapanmadan final `v1.0.0` etiketi oluşturulmaz.
 
-#### 1. Balanced oturum yüzeyi ve masaüstü kaçışları
+#### 1. Ürün dili ve kavram bütünlüğü
+
+**Durum:** Tamamlandı; uygulama, kurulum, belgeler ve geriye uyumlu JSON
+sözleşmesi yeni sözlüğe taşındı. Setup ve App ortak ürün sözlüğünü kullanıyor.
+
+Kullanıcının Kvieta'yı neden kullandığı ile korumanın teknik seviyesi ayrı
+kavramlar olarak sunulur. Güncel arayüzdeki “Yönettiğim biri için”,
+“Gözetimli/Guarded” ve eski `Cafe` adları V1 öncesinde kaldırılır.
+
+Bağlayıcı kullanıcı dili:
+
+- **Farkındalık / Insights:** kurulum kartı “Kullanımımı görmek istiyorum” olur.
+- **Kişisel / Personal:** kurulum kartı “Kendi düzenimi kurmak istiyorum” olur.
+- **Aile / Family:** kurulum kartı “Bir aile üyesi için kuruyorum” olur.
+- Kişisel koruma seviyeleri **Esnek / Flexible**, **Dengeli / Balanced** ve
+  **Korumalı / Protected** olur.
+- Aile kullanımında ayrı seviye seçilmez; yönetici PIN'i ve Guardian koruması
+  bu kullanım amacının zorunlu davranışıdır.
+
+Kod ve kaynak temizliği:
+
+- [x] `ControlMode` kavramı `UsageMode` olarak; değerleri `Insights`, `Personal`
+  ve `Family` olarak yeniden adlandırılmalı.
+- [x] `PersonalProtectionLevel.Guarded`, `PersonalProtectionLevel.Protected` olarak
+  yeniden adlandırılmalı.
+- [x] `CafeWindow`, `SessionSurfaceWindow`; `CafeViewModel`, `SessionViewModel`
+  olarak güvenli semantic refactor ile taşınmalı.
+- [x] `SessionWidgetWindow`, Kontrol Merkezi ve Oturum Yüzeyi adları birbirinden
+  açıkça ayrılmalı.
+- [x] Setup ve App metinleri merkezi Türkçe/English kaynaklardan gelmeli; aynı
+  kavramın kod içinde yinelenen çevirileri kaldırılmalı.
+- [x] Eski JSON, protected policy ve Guardian enrollment verileri için enum sırası,
+  şema migration'ı ve IPC uyumluluğu korunmalı. Kullanıcıya görünmeyen
+  `sync-guarded` gibi mevcut wire değerleri uyumluluk gerekçesi olmadan değiştirilmemeli.
+
+Kabul kriteri:
+
+- Güncel arayüz ve kullanıcı belgelerinde eski ürün terimleri bulunmuyor.
+- Türkçe ve English adlar aynı amacı ve aynı güvenlik sonucunu anlatıyor.
+- Alpha 2.1 ayarları, protected policy'si ve Guardian kaydı veri kaybı olmadan açılıyor.
+- Yeniden adlandırma sonrasında Debug/Release build ve ilgili regresyon testleri geçiyor.
+- Dokümantasyon kapısı tarihsel release notes dışında eski terimlerin geri dönmesini engelliyor.
+
+#### 2. Bugün deneyimi ve hızlı eylemler
+
+**Durum:** Devam ediyor; ortak ürün sözlüğü tamamlandı. Kişisel mod için
+policy değiştirmeyen `25/50/90` dakika hızlı odak ve tray kısayolları eklendi;
+özel süre, son oturumu tekrarlama ve günlük hiyerarşinin kalan parçaları bekliyor.
+
+Kvieta'nın ana yüzü ayar listesi değil, kullanıcının birkaç saniyede
+“Bugün neredeyim ve şimdi ne yapabilirim?” sorusunu yanıtlayan günlük merkez olur.
+
+Yapılacaklar:
+
+- Bugün toplam kullanımı, kalan süre, en çok kullanılan uygulamalar,
+  önceki döneme göre değişim, sıradaki plan ve aktif oturumu tek hiyerarşide gösterme.
+- [x] `25`, `50`, `90` dakika odak hedeflerini Bugün ve tray yüzeyinden başlatma.
+- [ ] Özel süre ve son oturumu tekrarlama seçeneklerini hızlı odağa ekleme.
+- “Kullanımımı gör”, “Odaklan”, “Oyun süremi düzenle”, “Akşam
+  bilgisayarı bırak” ve “Aile düzeni kur” niyetlerine uygun başlangıç şablonları sunma.
+- Uygulama kullanım kartından ayrı ayar ekranında dosya aratmadan günlük
+  limit, plan içi izin, odakta engelleme, sınırsız veya kalıcı engel kuralı oluşturma.
+- Mevcut `15/5/1` dakika uyarılarını işi kaydetme, kontrollü mola, ek süre
+  isteme ve yarının planını düzenleme eylemleriyle nazik bir süre bitişine bağlama.
+- [x] Aile modunda mevcut PIN doğrulamalı ek süre akışını süre dolmadan,
+  aktif veya moladaki oturumdan da erişilebilir yapma.
+
+Kullanım amacına göre ana deneyim:
+
+- **Farkındalık:** analiz, yerel ölçüm ve isteğe bağlı küçük hedef; kısıtlama yok.
+- **Kişisel · Esnek:** hızlı ve tamamen kullanıcı kontrollü odak oturumları.
+- **Kişisel · Dengeli/Korumalı:** plan, limit, bekletilen gevşetme ve günlük denge.
+- **Aile:** yönetici korumalı plan, ek süre isteği, geçici izin ve açık uyarılar.
+
+Kabul kriteri:
+
+- Yeni kullanıcı iki dakika içinde amacını seçip ilk anlamlı eylemini başlatabiliyor.
+- İlk odak oturumu en fazla iki ana etkileşimle başlatılabiliyor.
+- Bugün ekranı her kullanım amacında yalnız ilgili bilgi ve eylemleri gösteriyor.
+- Hızlı eylemler kaydedilmeden policy veya Guardian davranışını değiştirmiyor.
+
+#### 3. Ritim Serisi ve haftalık değerlendirme
+
+**Durum:** Açık; `RhythmAnalyzer`, günlük ledger, haftalık karşılaştırma ve
+küçük azaltma hedefleri yeniden kullanılacak.
+
+Ritim Serisi kullanıcıyı Kvieta'yı açtığı için değil, kendi seçtiği
+anlamlı davranışı tamamladığı için ödüllendirir. V1'de aynı anda tek aktif
+günlük ritim hedefi bulunur.
+
+Hedef türleri:
+
+- **Farkındalık Serisi:** günlük özeti inceleme veya isteğe bağlı azaltma hedefi.
+- **Odak Serisi:** seçilen günlük odak süresini ya da oturum sayısını tamamlama.
+- **Denge Serisi:** günlük limit, plan veya bırakma saati hedefine uyma.
+- **Dengeli Günler:** Aile kullanımında ceza veya pazarlık aracı olmayan olumlu ilerleme.
+
+Seri kuralları:
+
+- Mevcut seri ve en iyi seri ayrı tutulur; `3/7/14/30/50/100` gün kilometre
+  taşları Kvieta'nın filiz/yaprak/çiçek diliyle sakin biçimde kutlanır.
+- Planlı dinlenme günü seriyi bozmaz ve sayıyı artırmaz. Bilgisayarın hiç
+  kullanılmadığı gün denge hedefinde başarılı; odak hedefinde dinlenme sayılır.
+- Her yedi başarılı gün bir **Ritim Koruyucu** kazandırır; en fazla iki
+  tane tutulur. Korunan gün seriyi ilerletmez, yalnız kırılmasını önler.
+- Yönetici onaylı ek süre, planlı izin, Kvieta/Guardian arızası veya geçerli
+  veri recovery işlemi kullanıcıyı haksız yere cezalandırmaz.
+- Seri bozulduğunda en iyi sonuç korunur; suçlayıcı metin, panik geri sayımı,
+  XP, sanal para, liderlik tablosu veya ücretli koruyucu kullanılmaz.
+- Seri verisi cihazda kalır, güvenilir saat korumasına uyar ve doğrulanmış
+  günlük kayıtlardan deterministik olarak yeniden hesaplanabilir.
+
+Haftalık Ritim Özeti:
+
+- Toplam kullanım, önceki haftaya göre değişim, odak süresi, planla uyumlu
+  günler, en çok artan/azalan uygulama ve kazanılan ritim günlerini birleştirme.
+- Yalnız bir açıklanabilir yerel öneri sunma; kullanıcının uygulamasına,
+  gizlemesine veya daha sonra hatırlatmasına izin verme.
+- İsteğe bağlı, uygulama adları gizlenebilen ve cihazda üretilen temel
+  haftalık paylaşım kartı sağlama; hiçbir içeriği otomatik paylaşmama.
+
+Kabul kriteri:
+
+- Her kullanım amacında hedefin neden ilerlediği veya ilerlemediği açıklanabiliyor.
+- Seri, dinlenme ve recovery kuralları gece yarısı, saat geri alma ve eşzamanlı yazmada test ediliyor.
+- Seri kazanmak veya kaybetmek hiçbir policy, PIN, Guardian ya da ek süre kuralını değiştirmiyor.
+- Türkçe/English metinler teşvik edici fakat suçlamayan aynı anlamı taşıyor.
+
+#### 4. Dengeli oturum yüzeyi ve masaüstü kaçışları
 
 **Durum:** Devam ediyor; ilk pencere recovery sertleştirmesi uygulandı, gerçek Windows matrisi açık.
 
-Balanced kişisel modda gösterilen oturum yüzeyi yalnız `Topmost` ve `Maximized`
+Dengeli kişisel kullanımda gösterilen oturum yüzeyi yalnız `Topmost` ve `Maximized`
 pencere davranışına dayanıyor. Pencere küçültülebiliyor, arkaya gönderilebiliyor
 veya masaüstü geçişleriyle aşılabiliyor.
 
@@ -182,7 +323,7 @@ veya masaüstü geçişleriyle aşılabiliyor.
 - Zorunlu tam ekran yüzey minimize edildiğinde anında maximize durumuna dönüyor.
 - Pencere odağı kaybedildiğinde recovery işlemi UI kuyruğundan tekrar değerlendiriliyor.
 - Recovery kararı ayrı ve test edilebilir bir policy'ye taşındı.
-- Aktif oturum widget'ı, Sadece takip, Kontrol Merkezi, modal doğrulama ve yüzey geçişleri recovery dışında tutuldu.
+- Aktif oturum widget'ı, Farkındalık, Kontrol Merkezi, modal doğrulama ve yüzey geçişleri recovery dışında tutuldu.
 - Debug/Release build ve yeni policy regresyon testleri geçti.
 
 Kalan doğrulama:
@@ -203,11 +344,11 @@ Kabul kriteri:
 
 - Kullanıcı izin verilen akış dışında masaüstüne ulaşamıyor.
 - Koruma döngüsü normal kullanım veya yönetici doğrulama pencerelerini kilitlemiyor.
-- Flexible modun kullanıcı kontrollü davranışı yanlışlıkla sertleştirilmiyor.
+- Esnek seviyenin kullanıcı kontrollü davranışı yanlışlıkla sertleştirilmiyor.
 
-#### 2. Çoklu monitör, DPI ve ekran yaşam döngüsü
+#### 5. Çoklu monitör, DPI ve ekran yaşam döngüsü
 
-**Durum:** Devam ediyor; temel iki fiziksel ekran testi geçti, genişletilmiş topoloji ve DPI matrisi alpha.1 sonrasına ertelendi.
+**Durum:** Devam ediyor; temel iki fiziksel ekran testi geçti, genişletilmiş topoloji ve DPI matrisi final V1 için açık.
 
 26 Ağustos 2026'da ikincil ekranları görev çubuğu dahil kaplayan, monitör
 takma/çıkarma ve çözünürlük değişiminde kendini yenileyen ekran kalkanı altyapısı
@@ -238,10 +379,10 @@ Kabul kriteri:
 - Ekran topolojisi değiştiğinde koruma güvenli biçimde yeniden kuruluyor.
 - DPI değişimi kırpılmış metin, erişilemeyen düğme veya görünmeyen modal pencere üretmiyor.
 
-#### 3. Installer üretim hattı
+#### 6. Installer üretim hattı
 
-**Alpha.1 güncellemesi:** Development bypass içermeyen Release community-alpha
-hattı hazır. Alpha yayın kapısı için minimum gerçek kurulum testi; final V1 için
+**Alpha 2.1 güncellemesi:** Development bypass içermeyen Release community hattı
+çalıştırıldı ve yayın paketi doğrulandı. Final V1 için gerçek kurulum ve
 tam installer yaşam döngüsü matrisi bekliyor.
 
 **Durum:** Devam ediyor; MSI gömülü tek dosyalık test kurucusu hazır, gerçek kurulum yaşam döngüsü testi bekliyor.
@@ -267,7 +408,7 @@ paket türünü, dosya boyutlarını ve iki artifact'in SHA-256 değerini birbir
 
 Yapılacaklar:
 
-- Alpha.1 community paketinde temiz kurulum, açılış, Guardian, repair ve kaldırma akışını doğrulama.
+- Alpha 2.1 community paketinde temiz kurulum, açılış, Guardian, repair ve kaldırma akışını doğrulama.
 - Build süresini release raporuna ekleme; EXE/MSI boyutları artık manifestte kayıtlı.
 - Community paketinin kullanıcı tarafı SHA-256 doğrulama adımlarını yayın metnine bağlama.
 - Temiz kurulum, upgrade, repair, uninstall, rollback ve downgrade engelini tekrar çalıştırma.
@@ -279,7 +420,7 @@ Kabul kriteri:
 - Paketleme takılmadan tamamlanıyor ve hatada açık tanılama veriyor.
 - Dosya, manifest, boyut, SHA-256 ve sürüm bilgileri birbiriyle eşleşiyor.
 
-#### 4. Açıklamalı kurulum sihirbazı
+#### 7. Açıklamalı kurulum sihirbazı
 
 **Durum:** Devam ediyor; tam sihirbaz uygulandı, gerçek temiz kurulum/upgrade doğrulaması bekliyor.
 
@@ -301,11 +442,14 @@ paketin daha yeni kurulumu düşürmesini engeller.
 
 Yapılacaklar:
 
-- İlk kurulum sihirbazına haftanın günlerini ve izin verilen saat aralıklarını
-  seçmeye yarayan plan oluşturma/düzenleme adımı ekleme; özet ekranında seçilen
-  planı kurulumdan önce açıkça gösterme.
-- Temiz kurulum ve 1.0.0 → 1.0.1 upgrade akışını gerçek kurucu üzerinden doğrulama.
-- Korumalı/Gözetimli seçimde MSI sonrası Guardian enrollment ve oturum açılışını doğrulama.
+- Alpha 2.1'de eklenen haftalık planın özet, kaydetme ve ilk açılış sonucunu
+  gerçek temiz kurulumda doğrulama.
+- Kullanıcıya teknik mod adı sormak yerine Farkındalık, Kişisel ve Aile
+  amaçlarını eylem odaklı kartlarla seçtirme; amaca uygun başlangıç şablonu ve
+  ilk ritim hedefini kurulum tamamlanmadan özetleme.
+- Temiz kurulum ve Alpha 2.1 → V1 upgrade akışını gerçek kurucu üzerinden doğrulama.
+- Kişisel · Korumalı ve Aile seçimlerinde MSI sonrası Guardian enrollment ve
+  doğru oturum yüzeyi açılışını doğrulama.
 - Kurulum iptali/hatasında ayarların değişmediğini ve tanılama logunun kaldığını doğrulama.
 - Upgrade, repair ve uninstall öncesinde kullanıcı verisine ne olacağını açıklama.
 
@@ -314,11 +458,11 @@ Kabul kriteri:
 - İlk kullanıcı Guardian, kullanım biçimi ve veri sonuçlarını anlayarak seçim yapabiliyor.
 - Sessiz kurulum ve kurumsal `msiexec` özellikleri korunuyor.
 
-#### 5. Public paket güveni
+#### 8. Public paket güveni
 
-**Alpha.1 güncellemesi:** İmzasız Release community paketi Debug/test paketinden
-teknik olarak ayrıldı. Son release commit'inde bütünlük doğrulamasının yeniden
-çalıştırılması ve SmartScreen/SHA-256 yayın metni bekliyor.
+**Alpha 2.1 güncellemesi:** İmzasız Release community paketi Debug/test paketinden
+teknik olarak ayrıldı; release commit'i, manifest, SHA-256 ve paket metadata'sı
+yayın öncesinde doğrulandı. Gerçek kurulu paket kimliği ve V1 geçiş testi açık.
 
 **Durum:** Kod modeli uygulandı; gerçek kurulu community paket testi bekliyor. Ticari sertifika satın alınmayacak.
 
@@ -336,6 +480,10 @@ Yapılacaklar:
 - Guardian'ın Development bypass kullanmadan yalnız installer'ın kurduğu beklenen istemciyi kabul edeceği bütünlük modelini tamamlama.
 - Değiştirilmiş veya farklı kaynaktan gelen istemcinin Guardian tarafından reddedildiğini test etme.
 - SmartScreen uyarısını ve SHA-256 doğrulamasını Türkçe/İngilizce belgeleme.
+- `SECURITY.md` ve Türkçe eşini gerçek unsigned-community Guardian kimlik
+  modeliyle eşleme; eski yalnız Authenticode imzalayanına dayalı iddiayı kaldırma.
+- GitHub private vulnerability reporting kanalını açma ve iki dilli ilk temas
+  yolunu hassas ayrıntıları public issue'ya taşımayacak biçimde güncelleme.
 - İleride ücretsiz veya uygun bir güvenilir imzalama yolu oluşursa Authenticode'u ek sertleştirme olarak yeniden değerlendirme.
 
 Kabul kriteri:
@@ -345,7 +493,7 @@ Kabul kriteri:
 - Guardian değiştirilmiş veya installer dışı istemciyi reddeder; community build için belgelenen kimlik modeli gerçek Windows testinden geçer.
 - Kullanıcı imzasız dağıtımın SmartScreen ve yayıncı kimliği sonuçlarını kurmadan önce görebilir.
 
-#### 6. Gerçek Windows yaşam döngüsü matrisi
+#### 9. Gerçek Windows yaşam döngüsü matrisi
 
 **Durum:** Kısmen tamamlandı; final matris açık.
 
@@ -410,15 +558,39 @@ edilerek gereksiz kaynak tüketimi önlenir.
 - Satır/branch coverage ölçümü ve kritik güvenlik yolu kapsamı ekleme.
 - Flaky Windows testleri için etiket, tekrar stratejisi ve tanılama çıktısı belirleme.
 
+#### Erişilebilirlik ve sunum tabanı
+
+**Durum:** V1 kapsamına alındı; temel klavye, büyük metin ve yardımcı teknoloji doğrulaması bekliyor.
+
+- Ana kullanıcı yolculuklarının fare olmadan tamamlanabilmesini sağlama.
+- Mantıklı odak sırası, görünür odak durumu ve modal pencere odağını doğrulama.
+- Buton, alan, grafik ve durum göstergelerine anlamlı erişilebilir adlar ekleme.
+- Windows yüksek kontrast, yüzde 200 DPI/büyük metin ve Reduce Motion davranışını test etme.
+- Türkçe ve English metinlerde kırpılma, taşma veya erişilemeyen eylem bırakmama.
+
+#### Performans ve uzun kullanım dayanıklılığı
+
+**Durum:** V1 kapsamına alındı; ölçüm bütçesi ve uzun koşu kanıtı bekliyor.
+
+- Soğuk/sıcak uygulama açılışı, Kontrol Merkezi ve Oturum Yüzeyi açılış
+  sürelerini aynı donanım ve build bilgisiyle kaydetme.
+- Normal takip, odak ve Guardian kullanımında bellek, handle, CPU ve disk yazımını
+  ölçme; sürekli büyüme veya agresif polling bırakmama.
+- Gece yarısı, hafta değişimi, kilit, uyku, uygulama/Guardian restart ve
+  birkaç günlük gerçek kullanımda çift sayım veya restart döngüsü oluşmadığını doğrulama.
+- V1 için ölçülmüş kabul bütçelerini test makinesi bilgisiyle belgeleyip
+  belirgin regresyonları release engeli olarak ele alma.
+
 #### Açık kaynak ve proje yönetişimi
 
-**Durum:** Temel yönetişim tamamlandı; özel güvenlik kanalı daha sonra eklenecek.
+**Durum:** Temel yönetişim tamamlandı; özel güvenlik kanalı V1 öncesinde eklenecek.
 
 - MIT lisansı `LICENSE` dosyasıyla eklendi.
 - README, contribution ve destek belgelerinde lisans, destek ve güvenlik yolları belirtildi.
 - İki dilli issue şablonları ve güvenlik/kalite kontrol listeli pull request şablonu eklendi.
 - Katkıların test, güvenlik, gizlilik ve iki dilli belge eşliği gereksinimleri netleştirildi.
-- Özel güvenlik bildirim kanalı bulunana kadar hassas ayrıntı içermeyen ilk temas yolu belgelendi.
+- GitHub private vulnerability reporting etkinleştirilecek; iki dilli güvenlik
+  belgeleri public issue'ya hassas ayrıntı yazmadan kullanılacak ilk temas yolunu gösterecek.
 
 #### Dokümantasyon tutarlılığı
 
@@ -430,6 +602,10 @@ edilerek gereksiz kaynak tüketimi önlenir.
 - Eski iki-mod/RC iddialarını ve eksik iki dilli rehberleri yakalayan dokümantasyon kalite kapısı CI'a eklendi.
 - Desteklenen Windows sürümleri, gerçek cihaz matrisi tamamlandığında kanıtla belirtilecek.
 - Release notes, tag ve GitHub Release metinleri her yayın öncesinde ayrıca eşitlenecek.
+- Farkındalık/Kişisel/Aile ile Esnek/Dengeli/Korumalı sözlüğü güncel
+  kullanıcı belgelerinde zorunlu tutulacak; tarihsel release notes kapsam dışı kalacak.
+- Yayın sonrası checklist gerçekliğini ROADMAP ile uzlaştıran zorunlu docs-only
+  kapanış adımı release sürecine eklenecek.
 
 #### Gözlemlenebilirlik ve desteklenebilirlik
 
@@ -446,30 +622,50 @@ edilerek gereksiz kaynak tüketimi önlenir.
 Final sürüm ancak aşağıdaki koşulların tamamı sağlandığında yayınlanır:
 
 - P0 release engellerinin tamamı kapalı ve kanıtlıdır.
+- Farkındalık, Kişisel ve Aile amaçları ile Esnek, Dengeli ve Korumalı
+  seviyeler arayüz, kod, migration ve belgelerde tutarlıdır.
+- Bugün ekranı, hızlı odak eylemleri, başlangıç şablonları, uygulama kartından
+  kural oluşturma, Ritim Serisi ve Haftalık Ritim Özeti kabul kriterlerini geçer.
+- Ritim Serisi dinlenme, koruyucu, recovery ve güvenilir saat senaryolarında
+  doğru çalışır; güvenlik politikasını veya yönetici yetkisini etkilemez.
 - Build, format, smoke, birim ve zorunlu entegrasyon testleri geçer.
-- Balanced ve Protected kaçış matrisi geçer.
+- Dengeli, Kişisel · Korumalı ve Aile kaçış matrisi geçer.
 - Çoklu monitör/DPI ve Windows yaşam döngüsü matrisi tamamlanır.
 - Installer kurulum, upgrade, repair, uninstall ve rollback testlerini geçer.
+- Alpha 2.1 → V1 ayar, geçmiş, recovery ve protected policy migration'ı veri kaybı olmadan geçer.
+- Temel klavye, ekran okuyucu, yüksek kontrast, büyük metin ve Reduce Motion matrisi geçer.
+- Belgelenmiş performans bütçesi ve birkaç günlük uzun kullanım koşusu engelleyici regresyon göstermez.
 - Public community paketinin manifest, SHA-256, commit ve Guardian istemci kimliği doğrulaması geçer.
 - Public build development/test unlock geçidi içermez.
-- Lisans, güvenlik, kurulum, kullanım ve recovery belgeleri hazırdır.
+- Lisans, güvenlik, kurulum, kullanım ve recovery belgeleri ile private güvenlik bildirim yolu hazırdır.
 - GitHub Release doğru notları, SHA-256, manifest, installer ve imzasız dağıtım uyarısını içerir.
 - `v1.0.0` etiketi test edilen release commit'ine atanır.
 
 ## Önerilen uygulama sırası
 
-1. Alpha 1 release notes, iki dilli durum metinleri ve yayın adını kesinleştir.
-2. Çalışma ağacında gizli, geçici veya makineye özel dosya olmadığını doğrula.
-3. Build, smoke, format, NuGet audit, dokümantasyon ve public bypass kapılarını
-   çalıştır; `Alpha-1` etiketli community paket hattını sınama amacıyla doğrula.
-4. Değişiklikleri tek release commit'inde birleştir.
-5. Community Setup EXE'yi temiz commit'ten yeniden üret; manifest, SHA-256 ve
-   kaynak commit eşleşmesini doğrula.
-6. `alpha-1` annotated tag'ini oluştur ve **Kvieta Alpha 1** GitHub prerelease'ini
-   paket varlıkları, imzasız yayın uyarısı ve bilinen sınırlarla yayınla.
-7. README indirme bağlantısı ile SHA-256 değerini yayımlanan paketle eşitle.
-8. Alpha 1 geri bildirimlerinden sonra kalan Windows yaşam döngüsü, DPI,
-   kaçış-yolu ve installer matrisini tamamlayıp final `v1.0.0` kapısına devam et.
+1. Alpha 2.1'i ayrı Windows cihazında yükseltme, kullanım ve Guardian saha testinden geçir; bulguları kaydet.
+2. Ürün sözlüğünü Farkındalık/Kişisel/Aile ve Esnek/Dengeli/Korumalı
+   olarak uygula; `CafeWindow`/`CafeViewModel` dahil eski teknik adları migration güvencesiyle temizle.
+3. Bugün deneyimi, hızlı odak, başlangıç şablonları ve uygulama kartından
+   kural oluşturma akışlarını tamamla.
+4. Tek aktif hedefli Ritim Serisi, dinlenme günü, Ritim Koruyucu, kilometre
+   taşları ve Haftalık Ritim Özeti'ni yerel-first olarak tamamla.
+5. Kullanıcı özelliklerini Türkçe/English, klavye, yüksek kontrast, Reduce Motion
+   ve yüzde 100–200 DPI matrisinde doğrula.
+6. Dengeli/Korumalı/Aile kaçış, Guardian, Windows yaşam döngüsü, çoklu
+   monitör ve installer/migration matrisini gerçek Windows üzerinde tamamla.
+7. Açılış/kaynak bütçesini ve birkaç günlük uzun kullanım koşusunu kaydet;
+   engelleyici performans, sayaç veya restart regresyonlarını kapat.
+8. Private güvenlik bildirimini aç; SECURITY, README, kullanım rehberleri,
+   release notes ve ROADMAP'i gerçek davranışla iki dilde eşitle.
+9. Özellik kapsamını dondurup `v1.0.0-rc.1` paketini temiz commit'ten üret;
+   format, audit, build, test, manifest, SHA-256 ve public bypass kapılarını çalıştır.
+10. V1 test matrisini gerçek RC paketiyle doldur; yalnız blocker ve regresyon
+    düzeltmeleri için gerekirse `rc.2` üret.
+11. Final paketi test edilen commit'ten üretip tag, manifest, hash ve Guardian
+    kimliğini yeniden doğrula; `v1.0.0` release'ini yayınla.
+12. Yayın sonrası ROADMAP checklist'ini gerçek release kanıtıyla kapatan ayrı
+    dokümantasyon uzlaştırmasını tamamla.
 
 ## v1 sonrası plan
 
@@ -481,16 +677,15 @@ yeniden sıralanabilir. Yerel çalışma ve hesap zorunluluğu olmaması ilkesi 
 - Public sürümden gelen crash, installer ve Guardian regresyonlarını düzeltme.
 - Desteklenen Windows sürümleri için uyumluluk tablosunu genişletme.
 - ARM64 teknik fizibilitesi ve paketleme değerlendirmesi.
-- Yüksek kontrast, ekran okuyucu, klavye navigasyonu ve büyük metin iyileştirmeleri.
-- Installer ve uygulama açılış süresini ölçme ve iyileştirme.
-- Migration ve rollback senaryolarını her patch release'te doğrulama.
+- V1 erişilebilirlik ve performans tabanını yeni ekranlar ve Windows sürümleri için genişletme.
+- Migration ve rollback senaryolarını her patch release'te yeniden doğrulama.
 
 ### v1.1 — Daha yararlı yerel farkındalık
 
-- Yeterli yerel veri olduğunda tek tık uygulama kuralı önerileri.
-- Güvenilir canlı öneri yenileme ve öneri nedenini açıklama.
-- Haftalık eğilimleri suçlayıcı olmayan özetlere dönüştürme.
-- Kullanıcı onaylı azaltma hedeflerini düzenleme ve duraklatma.
+- Birden fazla isteğe bağlı hedef ve daha ayrıntılı hedef geçmişi.
+- Haftalık görevler ve gelişmiş, açıklanabilir yerel öneriler.
+- Ritim geçmişi takvimi, ek filiz/yaprak/çiçek görselleri ve paylaşım kartı çeşitleri.
+- Kullanıcı kontrollü bildirim zamanı ve hedef duraklatma davranışı.
 - Bütün analizleri cihazda tutma.
 
 ### v1.2 — Tarayıcı ve site kuralları

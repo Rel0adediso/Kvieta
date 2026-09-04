@@ -41,7 +41,7 @@ public sealed class SetupPlan
 
     public SetupLanguage Language { get; set; } = SetupLanguage.Turkish;
     public SetupChoice ExistingChoice { get; set; } = SetupChoice.ConfigureNew;
-    public ControlMode Mode { get; set; } = ControlMode.Personal;
+    public UsageMode Mode { get; set; } = UsageMode.Personal;
     public PersonalProtectionLevel PersonalLevel { get; set; } = PersonalProtectionLevel.Balanced;
     public string DeviceName { get; set; } = Environment.MachineName;
     public int DailyLimitMinutes { get; set; } = 180;
@@ -55,13 +55,13 @@ public sealed class SetupPlan
         .ToList();
     public bool HasCustomSchedule { get; set; }
 
-    public bool RequiresUserPin => Mode == ControlMode.Protected;
+    public bool RequiresUserPin => Mode == UsageMode.Family;
     public bool RequiresGuardian =>
-        Mode == ControlMode.Protected ||
-        Mode == ControlMode.Personal && PersonalLevel == PersonalProtectionLevel.Guarded;
+        Mode == UsageMode.Family ||
+        Mode == UsageMode.Personal && PersonalLevel == PersonalProtectionLevel.Protected;
     public bool UsesScheduledPlan =>
-        Mode == ControlMode.Protected ||
-        Mode == ControlMode.Personal && PersonalLevel != PersonalProtectionLevel.Flexible;
+        Mode == UsageMode.Family ||
+        Mode == UsageMode.Personal && PersonalLevel != PersonalProtectionLevel.Flexible;
 
     public IReadOnlyList<string> EnsureRecoveryCodes()
     {
@@ -105,28 +105,28 @@ public sealed class SetupPlan
             SchemaVersion = 9,
             SetupCompleted = true,
             Mode = Mode,
-            PersonalProtectionLevel = Mode == ControlMode.Personal
+            PersonalProtectionLevel = Mode == UsageMode.Personal
                 ? PersonalLevel
                 : PersonalProtectionLevel.Balanced,
-            StrictPersonalMode = Mode == ControlMode.Personal &&
+            StrictPersonalMode = Mode == UsageMode.Personal &&
                 PersonalLevel != PersonalProtectionLevel.Flexible,
             DeviceName = string.IsNullOrWhiteSpace(DeviceName) ? Environment.MachineName : DeviceName.Trim(),
             DefaultDailyLimitMinutes = defaultDailyLimit,
             Language = ToLanguagePreference(Language),
             StartWithWindows = StartWithWindows,
-            AwarenessTrackingEnabled = Mode == ControlMode.Awareness || AwarenessTracking,
+            AwarenessTrackingEnabled = Mode == UsageMode.Insights || AwarenessTracking,
             Schedule = schedule
         };
 
         settings.AdminPin = Mode switch
         {
-            ControlMode.Protected when AdminPinService.IsValidFormat(AdminPin ?? string.Empty) =>
+            UsageMode.Family when AdminPinService.IsValidFormat(AdminPin ?? string.Empty) =>
                 AdminPinService.Create(AdminPin!),
-            ControlMode.Personal when PersonalLevel == PersonalProtectionLevel.Guarded =>
+            UsageMode.Personal when PersonalLevel == PersonalProtectionLevel.Protected =>
                 AdminPinService.CreateInternalCredential(),
             _ => new AdminCredential()
         };
-        if (Mode == ControlMode.Protected)
+        if (Mode == UsageMode.Family)
         {
             EnsureRecoveryCodes();
             settings.RecoveryCodes = CloneRecoveryCodes(_recoveryCodeRecords);

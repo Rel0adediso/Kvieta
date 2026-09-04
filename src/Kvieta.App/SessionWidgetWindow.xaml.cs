@@ -10,7 +10,7 @@ public partial class SessionWidgetWindow : Window
 {
     private bool _allowClose;
 
-    public SessionWidgetWindow(CafeViewModel viewModel)
+    public SessionWidgetWindow(SessionViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;

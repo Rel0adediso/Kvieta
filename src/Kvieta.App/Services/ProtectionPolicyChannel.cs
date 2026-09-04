@@ -448,11 +448,11 @@ public static class ProtectionPolicyChannel
             return;
         }
 
-        bool remainsGuardedPersonal = candidate.Mode == ControlMode.Personal &&
-            candidate.PersonalProtectionLevel == PersonalProtectionLevel.Guarded;
+        bool remainsProtectedPersonal = candidate.Mode == UsageMode.Personal &&
+                                        candidate.PersonalProtectionLevel == PersonalProtectionLevel.Protected;
         if (guardedSync &&
-            (!remainsGuardedPersonal && candidate.Mode != ControlMode.Protected ||
-             remainsGuardedPersonal && !CredentialsEqual(enrollment.AdminPin, candidate.AdminPin)))
+            (!remainsProtectedPersonal && candidate.Mode != UsageMode.Family ||
+             remainsProtectedPersonal && !CredentialsEqual(enrollment.AdminPin, candidate.AdminPin)))
         {
             await writer.WriteLineAsync("ERR".AsMemory(), requestTimeout.Token);
             return;
@@ -986,9 +986,9 @@ public static class ProtectionPolicyChannel
             ControlSettings? current = JsonSerializer.Deserialize<ControlSettings>(
                 File.ReadAllBytes(ProtectionServiceManager.ProtectedSettingsPath),
                 JsonOptions);
-            return current?.Mode == ControlMode.Personal &&
-                current.PersonalProtectionLevel == PersonalProtectionLevel.Guarded &&
-                CredentialsEqual(enrollment.AdminPin, current.AdminPin);
+            return current?.Mode == UsageMode.Personal &&
+                   current.PersonalProtectionLevel == PersonalProtectionLevel.Protected &&
+                    CredentialsEqual(enrollment.AdminPin, current.AdminPin);
         }
         catch
         {
@@ -1013,12 +1013,12 @@ public static class ProtectionPolicyChannel
     }
 
     private static bool ContainsUnredactedProtectedCredential(ControlSettings settings) =>
-        settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured && !settings.AdminPin.IsPublicMarker ||
+        settings.Mode == UsageMode.Family && settings.AdminPin.IsConfigured && !settings.AdminPin.IsPublicMarker ||
         settings.PendingChange?.TargetSettings is { } target && ContainsUnredactedProtectedCredential(target);
 
     private static void RedactProtectedCredential(ControlSettings settings)
     {
-        if (settings.Mode == ControlMode.Protected && settings.AdminPin.IsConfigured && !settings.AdminPin.IsPublicMarker)
+        if (settings.Mode == UsageMode.Family && settings.AdminPin.IsConfigured && !settings.AdminPin.IsPublicMarker)
         {
             settings.AdminPin = AdminPinService.CreatePublicMarker(settings.AdminPin);
         }

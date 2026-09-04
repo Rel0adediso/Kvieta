@@ -13,7 +13,7 @@ public static class ScheduleEvaluator
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        if (settings.Mode == ControlMode.Personal &&
+        if (settings.Mode == UsageMode.Personal &&
             settings.PersonalProtectionLevel == PersonalProtectionLevel.Flexible)
         {
             return new ScheduleStatus(
