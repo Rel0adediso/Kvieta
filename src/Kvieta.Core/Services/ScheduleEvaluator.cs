@@ -5,7 +5,8 @@ public sealed record ScheduleStatus(
     bool IsAllowed,
     int DailyLimitMinutes,
     string Reason,
-    DateTimeOffset? AllowedUntil);
+    DateTimeOffset? AllowedUntil,
+    bool IsTemporaryAllowanceActive = false);
 
 public static class ScheduleEvaluator
 {
@@ -80,7 +81,8 @@ public static class ScheduleEvaluator
             activeAllowances.Count > 0
                 ? Localize(settings.Language, "Geçici izin etkin.", "Temporary allowance is active.")
                 : Localize(settings.Language, "Kullanıma izin veriliyor.", "Usage is allowed."),
-            endings.Max());
+            endings.Max(),
+            activeAllowances.Count > 0);
     }
 
     private static string Localize(LanguagePreference language, string turkish, string english) =>

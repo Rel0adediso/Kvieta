@@ -19,6 +19,9 @@ namespace Kvieta.App;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel = new();
+    private readonly JsonFocusPreferencesStore _focusPreferencesStore = new();
+    private readonly JsonRhythmPreferencesStore _rhythmPreferencesStore = new();
+    private int _lastFocusDurationMinutes = 25;
     private string? _managementPin;
     private readonly DispatcherTimer _overviewTimer;
     private SessionSurfaceWindow? _backgroundSessionWindow;
@@ -137,6 +140,28 @@ public partial class MainWindow : Window
         }
 
         await _viewModel.InitializeAsync();
+        try
+        {
+            FocusPreferences focusPreferences = await _focusPreferencesStore.LoadAsync();
+            _lastFocusDurationMinutes = focusPreferences.LastDurationMinutes;
+            RepeatLastDurationRun.Text = _lastFocusDurationMinutes.ToString();
+        }
+        catch
+        {
+            _lastFocusDurationMinutes = 25;
+            RepeatLastDurationRun.Text = "25";
+        }
+        try
+        {
+            RhythmPreferences rhythmPreferences = await _rhythmPreferencesStore.LoadAsync();
+            RhythmInsightCard.Visibility = rhythmPreferences.ShouldShowSuggestion(DateTimeOffset.UtcNow)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+        catch
+        {
+            RhythmInsightCard.Visibility = Visibility.Visible;
+        }
         if (!await EnsureGuardianForFamilyModeAsync(_viewModel.CreateSettingsSnapshot()))
         {
             _isInitializing = false;
@@ -718,6 +743,59 @@ public partial class MainWindow : Window
         _viewModel.StatusMessage = LocalizationService.Get("RecoveryCodesGenerated");
     }
 
+    private void ApplyRhythmSuggestion_Click(object sender, RoutedEventArgs e)
+    {
+        string? gentleGoal = _viewModel.ReductionGoalOptions.Skip(1).FirstOrDefault();
+        if (gentleGoal is not null) _viewModel.ReductionGoal = gentleGoal;
+        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? "A gentle rhythm goal is ready. Press Save to apply it."
+            : "Nazik ritim hedefi hazır. Uygulamak için Kaydet'e bas.";
+    }
+
+    private async void RhythmSuggestionLater_Click(object sender, RoutedEventArgs e)
+    {
+        RhythmInsightCard.Visibility = Visibility.Collapsed;
+        await _rhythmPreferencesStore.SaveAsync(
+            RhythmSuggestionPreference.RemindLater,
+            DateTimeOffset.UtcNow.AddDays(1));
+        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? "The rhythm suggestion will return tomorrow."
+            : "Ritim önerisi yarın yeniden görünecek.";
+    }
+
+    private async void HideRhythmSuggestion_Click(object sender, RoutedEventArgs e)
+    {
+        RhythmInsightCard.Visibility = Visibility.Collapsed;
+        await _rhythmPreferencesStore.SaveAsync(RhythmSuggestionPreference.Hidden);
+        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+            ? "Rhythm suggestions are hidden on this device."
+            : "Ritim önerileri bu cihazda gizlendi.";
+    }
+
+    private void ShareRhythm_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Windows.Media.Imaging.BitmapSource card = RhythmShareCardRenderer.Create(
+                LocalizationService.CurrentLanguage == LanguagePreference.English ? "My Weekly Rhythm" : "Haftalık Ritimim",
+                _viewModel.RhythmStreakText,
+                _viewModel.RhythmBestStreakText,
+                _viewModel.RhythmWeekChangeText,
+                _viewModel.RhythmFocusText,
+                LocalizationService.CurrentLanguage == LanguagePreference.English);
+            System.Windows.Clipboard.SetImage(card);
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "Privacy-safe weekly rhythm card copied as an image."
+                : "Gizlilik güvenli haftalık ritim kartı görsel olarak kopyalandı.";
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? $"The rhythm card could not be copied: {exception.Message}"
+                : $"Ritim kartı kopyalanamadı: {exception.Message}";
+        }
+    }
+
     private async void ManagerDevice_Click(object sender, RoutedEventArgs e) =>
         await TryOpenManagerDeviceAsync();
 
@@ -1054,6 +1132,7 @@ public partial class MainWindow : Window
         }
         else
         {
+            await _viewModel.MarkTodayRhythmExcusedAsync();
             _viewModel.StatusMessage = LocalizationService.Get("InstallationRepaired");
         }
         RefreshProtectionStatus();
@@ -1444,6 +1523,7 @@ public partial class MainWindow : Window
 
         if (rollbackSettings.RequiresGuardian)
         {
+            await _viewModel.MarkTodayRhythmExcusedAsync();
             bool returnsToProtectedSession = _backgroundSessionWindow is not null;
             System.Windows.MessageBox.Show(
                 this,
@@ -1464,6 +1544,7 @@ public partial class MainWindow : Window
         }
 
         await _viewModel.RestoreSettingsAsync(rollbackSettings);
+        await _viewModel.MarkTodayRhythmExcusedAsync();
         RefreshProtectionStatus();
         _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
             ? "Protected mode was not enabled because Guardian could not be installed."
@@ -1576,11 +1657,12 @@ public partial class MainWindow : Window
         await window.CloseFromControllerAsync();
     }
 
-    private async void BackgroundSession_ControlCenterRequested(object? sender, EventArgs e)
+    private async void BackgroundSession_ControlCenterRequested(object? sender, ControlCenterRequestEventArgs e)
     {
         RestoreControlCenter();
         await _viewModel.InitializeAsync();
         _viewModel.RefreshOverview();
+        if (e.OpenPlan && _viewModel.HasScheduledPlan) _viewModel.SelectedPageIndex = 1;
         ResetSettingsScrollPosition();
     }
 
@@ -1700,6 +1782,78 @@ public partial class MainWindow : Window
         await StartQuickFocusAsync(durationMinutes);
     }
 
+    private async void CustomFocus_Click(object sender, RoutedEventArgs e)
+    {
+        BonusTimeWindow selector = new(selectFocusDuration: true) { Owner = this };
+        if (selector.ShowDialog() == true)
+        {
+            await StartQuickFocusAsync(selector.SelectedMinutes);
+        }
+    }
+
+    private async void RepeatLastFocus_Click(object sender, RoutedEventArgs e) =>
+        await StartQuickFocusAsync(_lastFocusDurationMinutes);
+
+    private void CreateRuleMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_viewModel.HasRestrictions)
+        {
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "Application rules are available in Personal and Family modes."
+                : "Uygulama kuralları Kişisel ve Aile kullanımında kullanılabilir.";
+            return;
+        }
+
+        if (sender is not System.Windows.Controls.Button button || button.ContextMenu is null) return;
+        button.ContextMenu.DataContext = button.DataContext;
+        button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.IsOpen = true;
+    }
+
+    private void UsageRule_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.MenuItem { Tag: string modeName, DataContext: AppUsageHistoryRow application } ||
+            !Enum.TryParse(modeName, out AppRuleMode mode)) return;
+
+        string? existingRulePath = _viewModel.FindApplicationRulePath(application.Name);
+        if (mode == AppRuleMode.Unlimited && string.IsNullOrWhiteSpace(existingRulePath))
+        {
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? $"{application.Name} is already unrestricted."
+                : $"{application.Name} zaten sınırsız.";
+            return;
+        }
+
+        string? executablePath = existingRulePath ??
+            ApplicationIdentityService.TryResolveRunningExecutablePath(application.ApplicationId);
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? $"Open {application.Name}, then try creating the rule again. Kvieta does not store executable paths in usage history."
+                : $"{application.Name} uygulamasını açıp kuralı yeniden dene. Kvieta kullanım geçmişinde dosya yolu saklamaz.";
+            return;
+        }
+
+        int dailyLimitMinutes = 60;
+        if (mode == AppRuleMode.Limited)
+        {
+            BonusTimeWindow selector = new(selectAppLimit: true) { Owner = this };
+            if (selector.ShowDialog() != true) return;
+            dailyLimitMinutes = selector.SelectedMinutes;
+        }
+
+        try
+        {
+            _viewModel.AddApplication(executablePath, mode, dailyLimitMinutes);
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? $"The application rule could not be created: {exception.Message}"
+                : $"Uygulama kuralı oluşturulamadı: {exception.Message}";
+        }
+    }
+
     private async Task StartQuickFocusAsync(int durationMinutes)
     {
         if (_sessionSurfaceTransitionInProgress || !_viewModel.IsPersonalMode)
@@ -1713,6 +1867,17 @@ public partial class MainWindow : Window
             if (!await _viewModel.SaveAsync())
             {
                 return;
+            }
+
+            _lastFocusDurationMinutes = Math.Clamp(durationMinutes, 1, 24 * 60);
+            RepeatLastDurationRun.Text = _lastFocusDurationMinutes.ToString();
+            try
+            {
+                await _focusPreferencesStore.SaveLastDurationAsync(_lastFocusDurationMinutes);
+            }
+            catch
+            {
+                // A convenience preference must never prevent a focus session from starting.
             }
 
             await CloseOwnedBackgroundSessionAsync();
@@ -1772,9 +1937,10 @@ public partial class MainWindow : Window
         Topmost = false;
     }
 
-    public void ActivateFromExternalRequest()
+    public void ActivateFromExternalRequest(bool openPlan = false)
     {
         RestoreControlCenter();
+        if (openPlan && _viewModel.HasScheduledPlan) _viewModel.SelectedPageIndex = 1;
     }
 
     private void DisposeTrayIcon()

@@ -1,6 +1,6 @@
 # Kvieta kullanım ve kurtarma rehberi
 
-> Mevcut durum: **Kvieta Alpha 2.1**. Community paketleri doğrulama amaçlı imzasız önizlemelerdir; final public sürüm değildir.
+> Mevcut durum: **Kvieta Alpha 3**. Community paketleri doğrulama amaçlı imzasız önizlemelerdir; final public sürüm değildir.
 
 ## Kurulum ve güncelleme
 
@@ -18,7 +18,17 @@ Kvieta varsayılan olarak `C:\Program Files\Kvieta` altına kurulur. Kullanıcı
 - **Kişisel:** Plan ve limitleri kişinin kendi düzeni için uygular. Esnek kullanıcı kontrollüdür; Dengeli aktif zaman penceresinde oturum yüzeyini korur.
 - **Aile:** Bir aile üyesinin ayrı bir Windows yöneticisince yönetilen standart hesabı içindir. Yönetici PIN'i ve Guardian ile kuralları korur.
 
-Kişisel kullanımda **Hızlı odak**, Bugün ekranından veya tray menüsünden 25, 50 ya da 90 dakikalık oturum başlatır. Odak hedefi günlük limiti veya izin verilen planı uzatmaz.
+Kişisel kullanımda **Hızlı odak**, Bugün ekranından veya tray menüsünden 25, 50 ya da 90 dakikalık oturum başlatır. Bugün ekranında özel süre seçilebilir ve yalnız ayrı bir yerel tercih dosyasında tutulan son odak süresi tekrarlanabilir. Odak hedefi günlük limiti veya izin verilen planı uzatmaz.
+
+Bugün ekranı mevcut kullanım ve kalan süreyi; en çok kullanılan üç uygulama, düne göre değişim ve aktif ya da sıradaki plan penceresiyle birleştirir. Veri yoksa veya ilk günse uydurma karşılaştırma gösterilmez.
+
+Ölçülen bir uygulamadaki **Kural oluştur** eylemi dosya seçici açmadan günlük limit, yalnız plan içinde kullanım, odakta engelleme, sınırsız kullanım veya kalıcı engel seçeneklerini sunar. Kullanım geçmişi tam dosya yolu yerine yalnız çalıştırılabilir dosya adını sakladığı için mevcut kuralı olmayan uygulama ilk kural oluşturulurken açık olmalıdır. Değişiklik **Kaydet** sonrasında ve Kişisel/Aile onay kurallarına uygun biçimde uygulanır.
+
+Sürenin bitmesine 15, 5 ve 1 dakika kala oturum yüzeyi sakin bir toparlanma kartı sunar: işi kaydettiğini onaylama, kontrollü mola verme, kullanım biçimi izin veriyorsa ek süre isteme veya yarını planlamak için Kontrol Merkezi'ni açma.
+
+**Ritim Serisi** her gün tek bir anlamlı sonucu ödüllendirir: Farkındalıkta günlük özeti inceleme, Kişisel · Esnek kullanımda bir odak oturumu tamamlama veya planlı Kişisel/Aile kullanımında günlük dengeyi koruma. Dinlenme günleri seriyi bozmaz ya da ilerletmez. Her yedi başarılı gün en fazla iki tane tutulabilen bir Ritim Koruyucu kazandırır; 3, 7, 14, 30, 50 ve 100 günlük kilometre taşları gösterilir. Yönetici onaylı geçici izin ve kurtarma günleri koruyucu tüketmez, seriyi bozmaz. Haftalık özet odak süresini ve en çok artan/azalan uygulama eğilimlerini içerir. İsteğe bağlı 1200×630 paylaşım kartı cihazda üretilir ve uygulama adı içermez. Öneri uygulanabilir, ertesi güne bırakılabilir veya bu cihazda kalıcı gizlenebilir.
+
+Kurulum sırasında beş düzenlenebilir niyet şablonu yararlı bir başlangıç sunar: Kullanımımı gör, Odaklan, Oyun düzeni, Akşam bırak ve Aile düzeni. Şablon uygun kullanım biçimini seçer ve gerektiğinde kurulum tamamlanmadan değiştirilebilen haftalık planı doldurur.
 
 Aile modunda yönetici, oturum aktifken veya moladayken mevcut PIN korumalı eylemle ek süre verebilir; günlük sürenin tamamen dolmasını beklemek gerekmez.
 

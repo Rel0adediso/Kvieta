@@ -2,18 +2,31 @@
 
 **Son güncelleme:** 4 Eylül 2026
 
-**Mevcut yayın:** **Kvieta Alpha 2.1** community prerelease
+**Mevcut yayın:** **Kvieta Alpha 3** community prerelease
 
-**Aktif hedef:** Alpha 2.1 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
+**Aktif hedef:** Alpha 3 saha geri bildirimi ve final `v1.0.0` Windows doğrulama matrisi
 
-**Yayın:** [Kvieta Alpha 2.1](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-2.1)
+**Yayın:** [Kvieta Alpha 3](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-3)
 
 Bu belge Kvieta'nın bağlayıcı geliştirme sırasını, bilinen eksiklerini, release
 kriterlerini ve v1 sonrasındaki ürün yönünü tanımlar. Tamamlanan çalışmalar kısa
 bir tarihçe olarak belgenin sonunda tutulur; günlük geliştirme önceliği için
 öncelikle **Aktif çalışma planı** bölümü esas alınır.
 
-## Kvieta Alpha 2.1 — yayımlandı; saha testinde
+## Kvieta Alpha 3 — yayımlandı; saha testinde
+
+Alpha 3, V1 öncesi kullanıcı deneyimini amaç odaklı kurulum, yenilenen Bugün
+ekranı, genişletilmiş uygulama kuralları, sakin süre uyarıları ve yerel Ritim
+Serisi çevresinde birleştirir. Paket etiketi `Alpha-3`, GitHub etiketi
+`kvieta-alpha-3`; numerik MSI sürümü upgrade uyumluluğu için `1.0.0` kalır.
+
+- [x] Kullanıcı odaklı yazılım kapsamı ve regresyon testleri tamamlandı.
+- [x] Temiz release commit'inden Alpha 3 community paketi üretildi ve doğrulandı.
+- [x] Debug/Release, smoke, belge, public-build, paket metadata ve manifest kapıları geçti.
+- [x] `kvieta-alpha-3` prerelease'i Setup, MSI, checksum ve manifestle yayımlandı.
+- [ ] Alpha 3 gerçek cihaz yükseltme, Guardian ve uzun kullanım testi tamamlanmalı.
+
+## Kvieta Alpha 2.1 — önceki community preview
 
 Alpha 2.1; Alpha 2 üzerine kurulumda haftalık planlama, okunabilir kullanım
 görselleştirmeleri, kontrollü kaldırma, yönetilen cihaz akışları ve arayüz
@@ -229,22 +242,23 @@ Kabul kriteri:
 
 **Durum:** Devam ediyor; ortak ürün sözlüğü tamamlandı. Kişisel mod için
 policy değiştirmeyen `25/50/90` dakika hızlı odak ve tray kısayolları eklendi;
-özel süre, son oturumu tekrarlama ve günlük hiyerarşinin kalan parçaları bekliyor.
+özel süre, son oturumu tekrarlama, Bugün özet hiyerarşisi ve başlangıç
+şablonları, uygulama kartı kural akışı ve nazik süre bitişi tamamlandı.
 
 Kvieta'nın ana yüzü ayar listesi değil, kullanıcının birkaç saniyede
 “Bugün neredeyim ve şimdi ne yapabilirim?” sorusunu yanıtlayan günlük merkez olur.
 
 Yapılacaklar:
 
-- Bugün toplam kullanımı, kalan süre, en çok kullanılan uygulamalar,
+- [x] Bugün toplam kullanımı, kalan süre, en çok kullanılan uygulamalar,
   önceki döneme göre değişim, sıradaki plan ve aktif oturumu tek hiyerarşide gösterme.
 - [x] `25`, `50`, `90` dakika odak hedeflerini Bugün ve tray yüzeyinden başlatma.
-- [ ] Özel süre ve son oturumu tekrarlama seçeneklerini hızlı odağa ekleme.
-- “Kullanımımı gör”, “Odaklan”, “Oyun süremi düzenle”, “Akşam
+- [x] Özel süre ve son oturumu tekrarlama seçeneklerini hızlı odağa ekleme.
+- [x] “Kullanımımı gör”, “Odaklan”, “Oyun süremi düzenle”, “Akşam
   bilgisayarı bırak” ve “Aile düzeni kur” niyetlerine uygun başlangıç şablonları sunma.
-- Uygulama kullanım kartından ayrı ayar ekranında dosya aratmadan günlük
+- [x] Uygulama kullanım kartından ayrı ayar ekranında dosya aratmadan günlük
   limit, plan içi izin, odakta engelleme, sınırsız veya kalıcı engel kuralı oluşturma.
-- Mevcut `15/5/1` dakika uyarılarını işi kaydetme, kontrollü mola, ek süre
+- [x] Mevcut `15/5/1` dakika uyarılarını işi kaydetme, kontrollü mola, ek süre
   isteme ve yarının planını düzenleme eylemleriyle nazik bir süre bitişine bağlama.
 - [x] Aile modunda mevcut PIN doğrulamalı ek süre akışını süre dolmadan,
   aktif veya moladaki oturumdan da erişilebilir yapma.
@@ -265,8 +279,10 @@ Kabul kriteri:
 
 #### 3. Ritim Serisi ve haftalık değerlendirme
 
-**Durum:** Açık; `RhythmAnalyzer`, günlük ledger, haftalık karşılaştırma ve
-küçük azaltma hedefleri yeniden kullanılacak.
+**Durum:** Yazılım kapsamı tamamlandı; deterministik seri hesabı, dinlenme günü,
+görünür Ritim Koruyucu sonucu, izin/kurtarma adilliği, kilometre taşları, odak
+süreli haftalık özet, kalıcı öneri tercihleri ve gizlilik güvenli görsel paylaşım
+kartı uygulandı. Gerçek kullanım ve saat/lifecycle matrisi test fazında doğrulanacak.
 
 Ritim Serisi kullanıcıyı Kvieta'yı açtığı için değil, kendi seçtiği
 anlamlı davranışı tamamladığı için ödüllendirir. V1'de aynı anda tek aktif

@@ -14,25 +14,25 @@ Windows'ta ekran süresini anlamanın ve yönetmenin sakin, yerel yolu.
 ![.NET](https://img.shields.io/badge/.NET-10-87946B?style=flat-square&labelColor=292B26)
 ![WPF](https://img.shields.io/badge/UI-WPF-C9B98E?style=flat-square&labelColor=292B26)
 ![Privacy](https://img.shields.io/badge/gizlilik-yerel--öncelikli-87946B?style=flat-square&labelColor=292B26)
-![Status](https://img.shields.io/badge/durum-Alpha_2.1-C9B98E?style=flat-square&labelColor=292B26)
+![Status](https://img.shields.io/badge/durum-Alpha_3-C9B98E?style=flat-square&labelColor=292B26)
 ![License](https://img.shields.io/badge/lisans-MIT-87946B?style=flat-square&labelColor=292B26)
 
 </div>
 
 Kvieta, bilgisayar kullanımını cezaya çevirmeden zamanı görünür ve bilinçli hale getirir. Planlar, kurallar, kullanım geçmişi, kimlik bilgileri ve kurtarma verileri Windows cihazında kalır. Kvieta hesabı gerekmez.
 
-## Kvieta Alpha 2.1'i indir
+## Kvieta Alpha 3'ü indir
 
-[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/kvieta-app/releases/download/kvieta-alpha-2.1/Kvieta-Setup-Alpha-2.1.exe)
+[**Windows x64 için Kvieta Setup'ı indir**](https://github.com/Rel0adediso/kvieta-app/releases/download/kvieta-alpha-3/Kvieta-Setup-Alpha-3.exe)
 
 Self-contained kurucu Türkçe ve English destekler; .NET SDK gerektirmez. Bu
 community preview bilerek imzasızdır, bu nedenle Windows SmartScreen
 **Bilinmeyen yayıncı** uyarısı gösterebilir.
 
 Bağımsız MSI, checksum dosyaları, release manifesti, ayrıntılı notlar ve bilinen
-sınırlar [Kvieta Alpha 2.1 yayın sayfasında](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-2.1) bulunur. Çalıştırmadan önce Setup EXE'yi ekli `.sha256` dosyasıyla doğrulayın.
+sınırlar [Kvieta Alpha 3 yayın sayfasında](https://github.com/Rel0adediso/kvieta-app/releases/tag/kvieta-alpha-3) bulunur. Çalıştırmadan önce Setup EXE'yi ekli `.sha256` dosyasıyla doğrulayın.
 
-> **Önemli:** Alpha 2.1, önceki Alpha paketlerinin yerini alır. Mevcut Kvieta kurulumunun üzerine doğrudan kurulabilir; ayarlar, kullanım geçmişi ve korunan policy korunur.
+> **Önemli:** Alpha 3, önceki Alpha paketlerinin yerini alır. Mevcut Kvieta kurulumunun üzerine doğrudan kurulabilir; ayarlar, kullanım geçmişi, kurtarma verileri ve korunan policy korunur.
 
 ## Zamanla nasıl bir ilişki kuracağını seç
 
@@ -53,14 +53,14 @@ sınırlar [Kvieta Alpha 2.1 yayın sayfasında](https://github.com/Rel0adediso/
 | **Kuralları korur** | Guardian gözetimi, korumalı policy alanı, sağlık kontrolleri, onarım yolları ve doğrulanmış yönetici çıkışı. |
 | **Gerçek hayata dayanır** | Atomik kayıt, son sağlam yedek, bozulma kurtarması, saat geri alma algısı ve eşzamanlı yazma koruması. |
 
-## Kvieta Alpha 2.1 ile gelenler
+## Kvieta Alpha 3 ile gelenler
 
-- Okunaklı yedi günlük kullanım çubukları ve uygulama kartlarıyla daha ferah Kontrol Merkezi.
-- Plan kullanan biçimler için doğrudan kurulum sırasında haftalık planlama.
-- Daha güvenilir güvenilir-cihaz kaydı, aktarımı ve yönetici onay akışları.
-- Her iki temada iyileştirilen yönetici, ek süre, tepsi, oturum ve kurulum ekranları.
-- İsteğe bağlı yerel veri temizliği ve açık tamamlanma sonucuyla kontrollü kaldırma akışı.
-- Planlama, Guardian kimliği ve yerel telefon yardımcısı için ek regresyon kontrolleri.
+- Beş düzenlenebilir başlangıç şablonu ve kurulumdan önce gösterilen ilk Ritim hedefiyle amaç odaklı kurulum.
+- En çok kullanılan uygulamalar, gün karşılaştırması, sıradaki plan, özel Hızlı Odak ve son odağı tekrarlamayla yenilenen Bugün deneyimi.
+- Günlük limit, yalnız plan içinde kullanım, odakta engelleme, serbest kullanım ve kalıcı engel seçenekleriyle kullanım kartından doğrudan kural oluşturma.
+- Kontrollü mola, onaylı ek süre ve yarını doğrudan planlama eylemleriyle sakin 15/5/1 dakika uyarıları.
+- Dinlenme günleri, kilometre taşları, Ritim Koruyucular, izin/kurtarma adilliği ve haftalık odak süresi içeren yerel Ritim Serisi.
+- Gizlilik güvenli haftalık görsel kartlar ve yerel öneriler için kalıcı uygula, sonra hatırlat ve gizle kontrolleri.
 
 ## Gizlilik tasarımın parçası
 
@@ -68,12 +68,12 @@ Kvieta zorunlu bulut hesabı kullanmaz ve ekran süresi geçmişini bir Kvieta s
 
 ## Projenin durumu
 
-**Kvieta Alpha 2.1 güncel community preview'dur.**
+**Kvieta Alpha 3 güncel community preview'dur.**
 
 - Kaynak kod bugün çalıştırılabilir; Windows paket hattı hazırdır.
 - Debug ve Release derlemeleri, smoke testleri, belge kontrolleri ve public-build bypass kontrolleri kalite kapısı olarak çalışır.
 - Community kurucular bilerek imzasızdır; Windows SmartScreen **Bilinmeyen yayıncı** uyarısı gösterebilir.
-- Alpha 2.1 Setup EXE, MSI, checksum ve manifest tam kaynak commit'ini belirtir.
+- Alpha 3 Setup EXE, MSI, checksum ve manifest tam kaynak commit'ini belirtir.
 - Geniş kurucu, DPI, Guardian, kaçış yolu ve Windows yaşam döngüsü matrisi final `v1.0.0` öncesinde açıktır.
 
 Kalan doğrulamalar için [yol haritasına](ROADMAP.md), ayrıntılı geçmiş için [sürüm notlarına](RELEASE_NOTES.md) bakın.

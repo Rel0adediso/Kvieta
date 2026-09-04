@@ -26,6 +26,7 @@ public sealed class UsageHistoryDayRow : ObservableObject
 public sealed class AppUsageHistoryRow
 {
     public int Rank { get; init; }
+    public string ApplicationId { get; init; } = string.Empty;
     public required string Name { get; init; }
     public long UsedSeconds { get; init; }
     public double RelativePercent { get; init; }

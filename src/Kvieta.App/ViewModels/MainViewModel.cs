@@ -51,6 +51,7 @@ public sealed class MainViewModel : ObservableObject
     private UsageLedger? _lastUsageLedger;
     private string _selectedHistoryDaySummaryText = "—";
     private AdminCredential? _stagedAdminCredential;
+    private bool _summaryReviewRecorded;
 
     public MainViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
@@ -68,6 +69,7 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<string> ReductionGoalOptions { get; } = [];
     public ObservableCollection<string> RetentionOptions { get; } = [];
     public ObservableCollection<UsageHistoryDayRow> HistoryDays { get; } = [];
+    public ObservableCollection<AppUsageHistoryRow> TodayApplications { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryApplications { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryAllApplications { get; } = [];
     public ObservableCollection<UsageHistoryEventRow> HistoryEvents { get; } = [];
@@ -331,20 +333,28 @@ public sealed class MainViewModel : ObservableObject
     public string HistoryWeekTotalText { get; private set; } = "—";
     public string HistoryDailyAverageText { get; private set; } = "—";
     public string HistoryMostUsedAppText { get; private set; } = "—";
+    public string TodayChangeText { get; private set; } = "—";
+    public string NextPlanText { get; private set; } = "—";
     public string RhythmBaselineText { get; private set; } = "0/7";
     public string RhythmWeekChangeText { get; private set; } = "—";
     public string RhythmPlanAlignedText { get; private set; } = "—";
     public string RhythmReclaimedText { get; private set; } = "—";
+    public string RhythmFocusText { get; private set; } = "—";
     public string RhythmInsightText { get; private set; } = "—";
     public string RhythmGoalStatusText { get; private set; } = "—";
     public string RhythmPeakHourText { get; private set; } = "—";
     public string RhythmPeakHourDetailText { get; private set; } = "—";
     public string RhythmWeekPatternText { get; private set; } = "—";
     public string RhythmWeekPatternDetailText { get; private set; } = "—";
+    public string RhythmStreakText { get; private set; } = "0";
+    public string RhythmBestStreakText { get; private set; } = "0";
+    public string RhythmProtectorText { get; private set; } = "0/2";
     public bool HasHistoryApplications => HistoryApplications.Count > 0;
     public bool HasNoHistoryApplications => !HasHistoryApplications;
     public bool HasHistoryEvents => HistoryEvents.Count > 0;
     public bool HasNoHistoryEvents => !HasHistoryEvents;
+    public bool HasTodayApplications => TodayApplications.Count > 0;
+    public bool HasNoTodayApplications => !HasTodayApplications;
     public string SelectedHistoryDaySummaryText
     {
         get => _selectedHistoryDaySummaryText;
@@ -400,8 +410,15 @@ public sealed class MainViewModel : ObservableObject
     public async Task ReloadUsageAsync()
     {
         UsageLedger ledger = await _usageStore.LoadAsync();
+        DateOnly today = DateOnly.FromDateTime(DateTime.Today);
+        if (!_summaryReviewRecorded && SelectedPageIndex == 0)
+        {
+            _summaryReviewRecorded = true;
+            await _usageStore.MarkSummaryReviewedAsync(today);
+            ledger = await _usageStore.LoadAsync();
+        }
         _lastUsageLedger = ledger;
-        UsedTodayMinutes = ledger.LocalDay == DateOnly.FromDateTime(DateTime.Today)
+        UsedTodayMinutes = ledger.LocalDay == today
             ? (int)((IsInsightsMode ? ledger.AwarenessUsedSeconds : ledger.UsedSeconds) / 60)
             : 0;
         BuildUsageHistory(ledger);
@@ -558,21 +575,50 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    public void AddApplication(string executablePath)
+    public void AddApplication(string executablePath) =>
+        AddApplication(executablePath, AppRuleMode.Blocked, 60);
+
+    public void AddApplication(string executablePath, AppRuleMode mode, int dailyLimitMinutes)
     {
-        if (AppRules.Any(rule => string.Equals(rule.ExecutablePath, executablePath, StringComparison.OrdinalIgnoreCase)))
+        AppRuleRow? existingRule = AppRules.FirstOrDefault(rule =>
+            string.Equals(rule.ExecutablePath, executablePath, StringComparison.OrdinalIgnoreCase));
+        if (mode == AppRuleMode.Unlimited)
         {
-            StatusMessage = L("Bu uygulama zaten listede.", "This application is already in the list.");
+            if (existingRule is not null) AppRules.Remove(existingRule);
+            RefreshOverview();
+            StatusMessage = L(
+                "Uygulama sınırsız bırakıldı · Uygulamak için Kaydet'e bas.",
+                "Application left unrestricted · Press Save to apply it.");
             return;
         }
 
-        AppRules.Add(new AppRuleRow(ApplicationIdentityService.CaptureRule(executablePath)));
+        AppRule rule = ApplicationIdentityService.CaptureRule(executablePath);
+        rule.Mode = mode;
+        rule.DailyLimitMinutes = Math.Clamp(dailyLimitMinutes, 0, 1440);
+        if (existingRule is not null)
+        {
+            int index = AppRules.IndexOf(existingRule);
+            rule.Id = existingRule.Id;
+            AppRules[index] = new AppRuleRow(rule);
+        }
+        else
+        {
+            AppRules.Add(new AppRuleRow(rule));
+        }
 
         RefreshOverview();
         StatusMessage = L(
-            "Program kalıcı kapalı olarak eklendi · Kuralı uygulamak için Kaydet'e bas.",
-            "Program added as permanently blocked · Press Save to apply the rule.");
+            "Uygulama kuralı hazır · Uygulamak için Kaydet'e bas.",
+            "Application rule is ready · Press Save to apply it.");
     }
+
+    public string? FindApplicationRulePath(string applicationName) => AppRules
+        .FirstOrDefault(rule => string.Equals(rule.Name, applicationName, StringComparison.CurrentCultureIgnoreCase))
+        ?.ExecutablePath;
+
+    public string BuildRhythmShareText() => L(
+        $"Kvieta Haftalık Ritim · Seri {RhythmStreakText} · En iyi {RhythmBestStreakText} · Haftalık değişim {RhythmWeekChangeText} · Veriler yalnız cihazımda işlendi.",
+        $"Kvieta Weekly Rhythm · Streak {RhythmStreakText} · Best {RhythmBestStreakText} · Weekly change {RhythmWeekChangeText} · Data processed only on my device.");
 
     public void AddTemporaryAllowance(TemporaryAllowance allowance)
     {
@@ -635,8 +681,12 @@ public sealed class MainViewModel : ObservableObject
     public async Task RestoreLastKnownGoodSettingsAsync()
     {
         await _settingsStore.RestoreBackupAsync();
+        await MarkTodayRhythmExcusedAsync();
         await InitializeAsync();
     }
+
+    public Task MarkTodayRhythmExcusedAsync() =>
+        _usageStore.MarkRhythmExcusedAsync(DateOnly.FromDateTime(DateTime.Today));
 
     public async Task ClearClockAnomalyAsync()
     {
@@ -644,6 +694,7 @@ public sealed class MainViewModel : ObservableObject
             DateTimeOffset.Now,
             WindowsMonotonicClock.Uptime,
             WindowsMonotonicClock.GetBootId());
+        await MarkTodayRhythmExcusedAsync();
         await ReloadUsageAsync();
     }
 
@@ -1015,6 +1066,7 @@ public sealed class MainViewModel : ObservableObject
         Dictionary<DateOnly, DailyUsageRecord> byDay = records
             .GroupBy(item => item.LocalDay)
             .ToDictionary(group => group.Key, group => group.Last());
+        BuildTodayOverview(byDay, today);
         long maximum = Math.Max(1, byDay.Values.Select(item => IsInsightsMode ? item.AwarenessUsedSeconds : item.UsedSeconds).DefaultIfEmpty(0).Max());
         HistoryDays.Clear();
         for (int offset = 6; offset >= 0; offset--)
@@ -1105,11 +1157,88 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    private void BuildTodayOverview(IReadOnlyDictionary<DateOnly, DailyUsageRecord> byDay, DateOnly today)
+    {
+        DailyUsageRecord current = byDay.GetValueOrDefault(today) ?? new DailyUsageRecord { LocalDay = today };
+        DailyUsageRecord previous = byDay.GetValueOrDefault(today.AddDays(-1)) ?? new DailyUsageRecord { LocalDay = today.AddDays(-1) };
+        long currentSeconds = IsInsightsMode ? current.AwarenessUsedSeconds : current.UsedSeconds;
+        long previousSeconds = IsInsightsMode ? previous.AwarenessUsedSeconds : previous.UsedSeconds;
+
+        TodayChangeText = previousSeconds <= 0
+            ? currentSeconds <= 0
+                ? L("Henüz karşılaştırma yok", "No comparison yet")
+                : L("Bugünün ilk kullanım verisi oluşuyor", "Today's first usage data is taking shape")
+            : $"{(currentSeconds <= previousSeconds ? "↓" : "↑")} %{Math.Abs(currentSeconds - previousSeconds) * 100d / previousSeconds:0} · {L("düne göre", "vs yesterday")}";
+
+        IEnumerable<(string ApplicationId, string Name, long UsedSeconds)> currentApplications = current.ForegroundApplications.Count > 0
+            ? current.ForegroundApplications.Select(item => (item.ApplicationId, item.Name, item.UsedSeconds))
+            : current.Applications.Select(item => (string.Empty, item.Name, item.UsedSeconds));
+        List<(string ApplicationId, string Name, long UsedSeconds)> ranked = currentApplications
+            .GroupBy(item => (item.ApplicationId, item.Name))
+            .Select(group => (group.Key.ApplicationId, group.Key.Name, UsedSeconds: group.Sum(item => item.UsedSeconds)))
+            .OrderByDescending(item => item.UsedSeconds)
+            .Take(3)
+            .ToList();
+        long maximum = Math.Max(1, ranked.Select(item => item.UsedSeconds).DefaultIfEmpty(0).Max());
+        TodayApplications.Clear();
+        foreach (((string applicationId, string name, long usedSeconds), int index) in ranked.Select((item, index) => (item, index)))
+        {
+            TodayApplications.Add(CreateAppUsageRow(
+                index + 1,
+                name,
+                usedSeconds,
+                Math.Clamp(usedSeconds * 100d / maximum, 0, 100),
+                applicationId: applicationId));
+        }
+
+        NextPlanText = BuildNextPlanText(DateTimeOffset.Now);
+        OnPropertyChanged(nameof(TodayChangeText));
+        OnPropertyChanged(nameof(NextPlanText));
+        OnPropertyChanged(nameof(HasTodayApplications));
+        OnPropertyChanged(nameof(HasNoTodayApplications));
+    }
+
+    private string BuildNextPlanText(DateTimeOffset now)
+    {
+        ControlSettings previewSettings = BuildPreviewSettings();
+        if (IsInsightsMode)
+        {
+            return L("Yerel ölçüm gün boyu açık", "Local measurement is on all day");
+        }
+        if (IsFlexiblePersonalMode)
+        {
+            return L("İstediğin zaman odak başlat", "Start a focus whenever you want");
+        }
+
+        ScheduleStatus status = ScheduleEvaluator.Evaluate(previewSettings, now);
+        if (status.IsAllowed && status.AllowedUntil is { } allowedUntil)
+        {
+            return $"{L("Şimdi açık", "Open now")} · {allowedUntil:HH:mm} {L("kadar", "until")}";
+        }
+
+        DateTimeOffset? nextStart = previewSettings.Schedule
+            .Where(day => day.IsEnabled)
+            .SelectMany(day => Enumerable.Range(0, 8)
+                .Select(offset => now.Date.AddDays(offset))
+                .Where(date => date.DayOfWeek == day.Day)
+                .Select(date => new DateTimeOffset(date.Add(day.AllowedFrom.ToTimeSpan()), now.Offset)))
+            .Concat(previewSettings.TemporaryAllowances
+                .Select(item => new DateTimeOffset(item.Date.ToDateTime(item.AllowedFrom), now.Offset)))
+            .Where(candidate => candidate > now)
+            .OrderBy(candidate => candidate)
+            .Cast<DateTimeOffset?>()
+            .FirstOrDefault();
+        return nextStart is { } start
+            ? $"{L("Sıradaki plan", "Next plan")} · {start:ddd HH:mm}"
+            : L("Yaklaşan plan yok", "No upcoming plan");
+    }
+
     private void BuildRhythm(UsageLedger ledger)
     {
         ControlSettings rhythmSettings = CloneSettings(_settings);
         rhythmSettings.WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal);
         RhythmSummary summary = RhythmAnalyzer.Analyze(rhythmSettings, ledger, DateOnly.FromDateTime(DateTime.Today));
+        RhythmStreakSummary streak = RhythmStreakAnalyzer.Analyze(rhythmSettings, ledger, DateOnly.FromDateTime(DateTime.Today));
         if (_isRhythmBaselineReady != summary.IsBaselineReady)
         {
             _isRhythmBaselineReady = summary.IsBaselineReady;
@@ -1139,6 +1268,12 @@ public sealed class MainViewModel : ObservableObject
         RhythmReclaimedText = summary.IsBaselineReady
             ? UsageHistoryFormatting.FormatDuration(summary.ReclaimedSeconds)
             : "—";
+        RhythmFocusText = summary.FocusCompletedSeconds > 0
+            ? UsageHistoryFormatting.FormatDuration(summary.FocusCompletedSeconds)
+            : "—";
+        RhythmStreakText = $"{streak.CurrentStreak} {L("gün", "days")}";
+        RhythmBestStreakText = $"{streak.BestStreak} {L("gün", "days")}";
+        RhythmProtectorText = $"{streak.Protectors}/2";
 
         if (!_settings.AwarenessTrackingEnabled)
         {
@@ -1167,9 +1302,13 @@ public sealed class MainViewModel : ObservableObject
         {
             RhythmInsightText += L($" En çok yükselen: {rising}.", $" Biggest increase: {rising}.");
         }
+        if (summary.FallingApplication is { } falling && summary.IsBaselineReady)
+        {
+            RhythmInsightText += L($" En çok azalan: {falling}.", $" Biggest decrease: {falling}.");
+        }
 
         RhythmGoalStatusText = FromDisplayGoal(ReductionGoal) == 0
-            ? L("Küçük bir hedef seçmek isteğe bağlıdır.", "Choosing a small goal is optional.")
+            ? BuildStreakStatus(streak)
             : !summary.IsBaselineReady
                 ? L("Hedefin başlangıç ritmi tamamlanınca devreye girecek.", "Your goal will begin after the starting rhythm is ready.")
                 : summary.IsGoalMet
@@ -1197,12 +1336,38 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(RhythmWeekChangeText));
         OnPropertyChanged(nameof(RhythmPlanAlignedText));
         OnPropertyChanged(nameof(RhythmReclaimedText));
+        OnPropertyChanged(nameof(RhythmFocusText));
         OnPropertyChanged(nameof(RhythmInsightText));
         OnPropertyChanged(nameof(RhythmGoalStatusText));
         OnPropertyChanged(nameof(RhythmPeakHourText));
         OnPropertyChanged(nameof(RhythmPeakHourDetailText));
         OnPropertyChanged(nameof(RhythmWeekPatternText));
         OnPropertyChanged(nameof(RhythmWeekPatternDetailText));
+        OnPropertyChanged(nameof(RhythmStreakText));
+        OnPropertyChanged(nameof(RhythmBestStreakText));
+        OnPropertyChanged(nameof(RhythmProtectorText));
+    }
+
+    private string BuildStreakStatus(RhythmStreakSummary streak)
+    {
+        string goal = streak.Goal switch
+        {
+            RhythmGoalKind.ReviewSummary => L("günlük özeti incele", "review the daily summary"),
+            RhythmGoalKind.CompleteFocus => L("bir odak oturumu tamamla", "complete a focus session"),
+            _ => L("günlük dengeni koru", "keep your daily balance")
+        };
+        string today = streak.TodayOutcome switch
+        {
+            RhythmDayOutcome.Success => L("Bugünün ritmi tamamlandı", "Today's rhythm is complete"),
+            RhythmDayOutcome.Rest => L("Bugün dinlenme günü", "Today is a rest day"),
+            RhythmDayOutcome.Excused => L("Bugün ritmi etkilemeyecek", "Today will not affect your rhythm"),
+            RhythmDayOutcome.Protected => L("Ritim Koruyucu kullanıldı", "Rhythm Protector used"),
+            _ => L($"Bugünün hedefi: {goal}", $"Today's goal: {goal}")
+        };
+        string milestone = streak.ReachedMilestone is { } value
+            ? L($" · {value} günlük filiz", $" · {value}-day sprout")
+            : string.Empty;
+        return $"{today} · {L("Seri", "Streak")} {streak.CurrentStreak} · {L("En iyi", "Best")} {streak.BestStreak} · {L("Koruyucu", "Protector")} {streak.Protectors}/2{milestone}";
     }
 
     private async Task RecordPolicyChangeAsync()
@@ -1237,10 +1402,12 @@ public sealed class MainViewModel : ObservableObject
         string name,
         long usedSeconds,
         double relativePercent,
-        DoubleCollection? trendValues = null) =>
+        DoubleCollection? trendValues = null,
+        string applicationId = "") =>
         new()
         {
             Rank = rank,
+            ApplicationId = applicationId,
             Name = name,
             UsedSeconds = usedSeconds,
             RelativePercent = relativePercent,

@@ -56,10 +56,18 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         _settings.PersonalProtectionLevel == PersonalProtectionLevel.Flexible;
     public bool CanRequestExtraTime => _settings is not null &&
         ShouldAllowExtraTimeRequest(_settings, State);
+    public bool CanPlanTomorrow => _settings is not null &&
+        (_settings.Mode == UsageMode.Family ||
+         _settings.Mode == UsageMode.Personal &&
+         _settings.PersonalProtectionLevel != PersonalProtectionLevel.Flexible);
     public bool IsOutsideSchedule => State == SessionState.OutsideSchedule;
     public bool IsClockRollbackDetected => _engine?.Ledger.ClockRollbackUntilUtc is { } until && until > DateTimeOffset.UtcNow;
     public bool IsRegularOutsideSchedule => IsOutsideSchedule && !IsClockRollbackDetected;
     public LimitReachedAction LimitAction => _settings?.LimitAction ?? LimitReachedAction.ShowBlockScreen;
+    public long RemainingSeconds => _focusGoal is not null
+        ? FocusRemainingSeconds()
+        : Math.Max(0, _snapshot?.RemainingSeconds ?? 0);
+    public IReadOnlyList<int> WarningMinutes => _settings?.WarningMinutes ?? [15, 5, 1];
     public string BlockedReasonText => State switch
     {
         SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("ClockRollbackBlocked"),
@@ -209,7 +217,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         ControlSettings? activeSettings = _settings;
         if (activeSettings is not null &&
             ShouldEnforceApplicationRules(activeSettings, _engine.Ledger.State) &&
-            _applicationRuleEnforcer.Enforce(activeSettings, _engine.Ledger, elapsed))
+            _applicationRuleEnforcer.Enforce(activeSettings, _engine.Ledger, elapsed, _engine.Ledger.State))
         {
             _secondsSinceSave = Math.Max(_secondsSinceSave, 5);
         }
@@ -232,6 +240,8 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
 
         if (_focusGoal?.CompleteIfReached(_engine.Ledger.UsedSeconds) == true)
         {
+            _engine.Ledger.FocusSessionCount++;
+            _engine.Ledger.FocusCompletedSeconds += _focusGoal.DurationSeconds;
             _engine.EndSession(DateTimeOffset.Now);
             RefreshSnapshot(notifyStateChange: true);
             await SaveAsync();
@@ -548,6 +558,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(CanEndSession));
         OnPropertyChanged(nameof(IsBlocked));
         OnPropertyChanged(nameof(CanRequestExtraTime));
+        OnPropertyChanged(nameof(CanPlanTomorrow));
         OnPropertyChanged(nameof(IsOutsideSchedule));
         OnPropertyChanged(nameof(IsClockRollbackDetected));
         OnPropertyChanged(nameof(IsRegularOutsideSchedule));

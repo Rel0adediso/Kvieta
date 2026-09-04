@@ -213,6 +213,10 @@ public sealed class SessionEngine
             Ledger.BreakCount = 0;
             Ledger.LimitReachedCount = 0;
             Ledger.ExtraTimeGrantCount = 0;
+            Ledger.SummaryReviewed = false;
+            Ledger.FocusSessionCount = 0;
+            Ledger.FocusCompletedSeconds = 0;
+            Ledger.RhythmExcused = false;
             Ledger.State = SessionState.Ready;
             Touch(now);
         }
@@ -236,6 +240,7 @@ public sealed class SessionEngine
         }
 
         ScheduleStatus schedule = ScheduleEvaluator.Evaluate(_settings, now);
+        Ledger.RhythmExcused |= schedule.IsTemporaryAllowanceActive;
         if (!schedule.IsAllowed)
         {
             Ledger.State = SessionState.OutsideSchedule;
@@ -281,7 +286,7 @@ public sealed class SessionEngine
     private void ArchiveCurrentDay(DateOnly retentionReferenceDay)
     {
         if (Ledger.UsedSeconds <= 0 && Ledger.AppUsedSeconds.Count == 0 && Ledger.AwarenessUsedSeconds <= 0 && Ledger.BreakCount == 0 &&
-            Ledger.LimitReachedCount == 0 && Ledger.ExtraTimeGrantCount == 0)
+            Ledger.LimitReachedCount == 0 && Ledger.ExtraTimeGrantCount == 0 && !Ledger.SummaryReviewed && Ledger.FocusSessionCount == 0 && !Ledger.RhythmExcused)
         {
             return;
         }
@@ -295,6 +300,10 @@ public sealed class SessionEngine
             BreakCount = Ledger.BreakCount,
             LimitReachedCount = Ledger.LimitReachedCount,
             ExtraTimeGrantCount = Ledger.ExtraTimeGrantCount,
+            SummaryReviewed = Ledger.SummaryReviewed,
+            FocusSessionCount = Ledger.FocusSessionCount,
+            FocusCompletedSeconds = Ledger.FocusCompletedSeconds,
+            RhythmExcused = Ledger.RhythmExcused,
             AwarenessUsedSeconds = Ledger.AwarenessUsedSeconds,
             AwarenessHourlyUsedSeconds = new Dictionary<int, long>(Ledger.AwarenessHourlyUsedSeconds),
             Applications = Ledger.AppUsedSeconds

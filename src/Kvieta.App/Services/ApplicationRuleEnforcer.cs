@@ -32,7 +32,7 @@ public sealed class ApplicationRuleEnforcer : IDisposable
         }
     }
 
-    public bool Enforce(ControlSettings settings, UsageLedger ledger, TimeSpan elapsed)
+    public bool Enforce(ControlSettings settings, UsageLedger ledger, TimeSpan elapsed, SessionState sessionState)
     {
         lock (_observationGate)
         {
@@ -141,9 +141,10 @@ public sealed class ApplicationRuleEnforcer : IDisposable
             {
                 if (!matched.TryGetValue(process.Process.Id, out AppRule? rule)) continue;
                 long usedSeconds = ledger.AppUsedSeconds.GetValueOrDefault(rule.Id);
-                bool limitReached = rule.Mode == AppRuleMode.Limited &&
-                    usedSeconds >= Math.Max(0, rule.DailyLimitMinutes) * 60L;
-                if (rule.Mode == AppRuleMode.Blocked || limitReached) TryTerminate(process.Process);
+                if (ShouldBlock(rule, usedSeconds, sessionState))
+                {
+                    TryTerminate(process.Process);
+                }
                 else runningTrackedRules.Add(rule.Id);
             }
 
@@ -159,6 +160,13 @@ public sealed class ApplicationRuleEnforcer : IDisposable
             foreach (ProcessSnapshot process in processes) process.Process.Dispose();
         }
     }
+
+    public static bool ShouldBlock(AppRule rule, long usedSeconds, SessionState sessionState) =>
+        rule.Mode == AppRuleMode.Blocked ||
+        rule.Mode == AppRuleMode.Limited && usedSeconds >= Math.Max(0, rule.DailyLimitMinutes) * 60L ||
+        rule.Mode == AppRuleMode.FocusBlocked && sessionState == SessionState.Active ||
+        rule.Mode == AppRuleMode.ScheduleOnly &&
+            sessionState is SessionState.OutsideSchedule or SessionState.TimeExpired;
 
     public void Dispose()
     {

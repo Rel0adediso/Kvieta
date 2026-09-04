@@ -7,16 +7,20 @@ namespace Kvieta.App;
 
 public partial class BonusTimeWindow : Window
 {
-    public BonusTimeWindow()
+    public BonusTimeWindow(bool selectFocusDuration = false, bool selectAppLimit = false)
     {
         InitializeComponent();
         string unit = Services.LocalizationService.Get("MinuteShort");
-        Minutes15.Content = $"+15 {unit}";
-        Minutes30.Content = $"+30 {unit}";
-        Minutes60.Content = $"+60 {unit}";
-        CustomMinutesButton.Content = LocalizationService.CurrentLanguage == LanguagePreference.English
-            ? "Grant time"
-            : "Süreyi ver";
+        string prefix = selectFocusDuration ? string.Empty : "+";
+        Minutes15.Content = $"{prefix}15 {unit}";
+        Minutes30.Content = $"{prefix}30 {unit}";
+        Minutes60.Content = $"{prefix}60 {unit}";
+        string titleKey = selectAppLimit ? "DailyAppLimit" : selectFocusDuration ? "CustomFocusTitle" : "GrantExtraTime";
+        string descriptionKey = selectAppLimit ? "DailyAppLimitDescription" : selectFocusDuration ? "CustomFocusDescription" : "GrantExtraTimeDescription";
+        string actionKey = selectAppLimit ? "CreateRule" : selectFocusDuration ? "StartFocus" : "GrantTime";
+        TitleText.Text = LocalizationService.Get(titleKey);
+        DescriptionText.Text = LocalizationService.Get(descriptionKey);
+        CustomMinutesButton.Content = LocalizationService.Get(actionKey);
     }
     public int SelectedMinutes { get; private set; }
     private void Select_Click(object sender, RoutedEventArgs e)

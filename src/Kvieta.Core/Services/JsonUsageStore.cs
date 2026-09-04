@@ -51,7 +51,7 @@ public sealed class JsonUsageStore
     public Task<UsageLedger> ClearAsync(CancellationToken cancellationToken = default) =>
         _file.UpdateAsync(current => new UsageLedger
         {
-            SchemaVersion = 6,
+            SchemaVersion = 7,
             DataGeneration = checked(current.DataGeneration + 1),
             RetainedFromDay = current.RetainedFromDay,
             LocalDay = DateOnly.FromDateTime(DateTime.Today),
@@ -66,6 +66,36 @@ public sealed class JsonUsageStore
         _file.UpdateAsync(ledger =>
         {
             ClockIntegrityMonitor.ClearAnomaly(ledger, now, systemUptime, bootId);
+            return ledger;
+        }, cancellationToken);
+
+    public Task MarkSummaryReviewedAsync(DateOnly day, CancellationToken cancellationToken = default) =>
+        _file.UpdateAsync(ledger =>
+        {
+            if (ledger.LocalDay == day)
+            {
+                ledger.SummaryReviewed = true;
+            }
+            else
+            {
+                DailyUsageRecord? record = ledger.History.FirstOrDefault(item => item.LocalDay == day);
+                if (record is not null) record.SummaryReviewed = true;
+            }
+            return ledger;
+        }, cancellationToken);
+
+    public Task MarkRhythmExcusedAsync(DateOnly day, CancellationToken cancellationToken = default) =>
+        _file.UpdateAsync(ledger =>
+        {
+            if (ledger.LocalDay == day)
+            {
+                ledger.RhythmExcused = true;
+            }
+            else
+            {
+                DailyUsageRecord? record = ledger.History.FirstOrDefault(item => item.LocalDay == day);
+                if (record is not null) record.RhythmExcused = true;
+            }
             return ledger;
         }, cancellationToken);
 
@@ -109,13 +139,17 @@ public sealed class JsonUsageStore
 
         UsageLedger newest = incoming.LastUpdatedUtc >= current.LastUpdatedUtc ? incoming : current;
         UsageLedger other = ReferenceEquals(newest, incoming) ? current : incoming;
-        newest.SchemaVersion = 6;
+        newest.SchemaVersion = 7;
         newest.RetainedFromDay = retainedFromDay;
         newest.UsedSeconds = Math.Max(newest.UsedSeconds, other.UsedSeconds);
         newest.BonusMinutes = Math.Max(newest.BonusMinutes, other.BonusMinutes);
         newest.BreakCount = Math.Max(newest.BreakCount, other.BreakCount);
         newest.LimitReachedCount = Math.Max(newest.LimitReachedCount, other.LimitReachedCount);
         newest.ExtraTimeGrantCount = Math.Max(newest.ExtraTimeGrantCount, other.ExtraTimeGrantCount);
+        newest.SummaryReviewed |= other.SummaryReviewed;
+        newest.FocusSessionCount = Math.Max(newest.FocusSessionCount, other.FocusSessionCount);
+        newest.FocusCompletedSeconds = Math.Max(newest.FocusCompletedSeconds, other.FocusCompletedSeconds);
+        newest.RhythmExcused |= other.RhythmExcused;
         newest.AwarenessUsedSeconds = Math.Max(newest.AwarenessUsedSeconds, other.AwarenessUsedSeconds);
         newest.LastUpdatedUtc = newest.LastUpdatedUtc >= other.LastUpdatedUtc ? newest.LastUpdatedUtc : other.LastUpdatedUtc;
         if (other.ClockRollbackUntilUtc is { } otherRollback &&
@@ -207,7 +241,7 @@ public sealed class JsonUsageStore
     private static void AddCurrentDayToHistory(UsageLedger target, UsageLedger source)
     {
         if (source.UsedSeconds <= 0 && source.AppUsedSeconds.Count == 0 && source.AwarenessUsedSeconds <= 0 && source.BreakCount == 0 &&
-            source.LimitReachedCount == 0 && source.ExtraTimeGrantCount == 0)
+            source.LimitReachedCount == 0 && source.ExtraTimeGrantCount == 0 && !source.SummaryReviewed && source.FocusSessionCount == 0 && !source.RhythmExcused)
         {
             return;
         }
@@ -220,6 +254,10 @@ public sealed class JsonUsageStore
             BreakCount = source.BreakCount,
             LimitReachedCount = source.LimitReachedCount,
             ExtraTimeGrantCount = source.ExtraTimeGrantCount,
+            SummaryReviewed = source.SummaryReviewed,
+            FocusSessionCount = source.FocusSessionCount,
+            FocusCompletedSeconds = source.FocusCompletedSeconds,
+            RhythmExcused = source.RhythmExcused,
             AwarenessUsedSeconds = source.AwarenessUsedSeconds,
             AwarenessHourlyUsedSeconds = new Dictionary<int, long>(source.AwarenessHourlyUsedSeconds),
             Applications = source.AppUsedSeconds.Select(item => new AppUsageRecord
@@ -248,6 +286,10 @@ public sealed class JsonUsageStore
             BreakCount = values.Max(item => item.BreakCount),
             LimitReachedCount = values.Max(item => item.LimitReachedCount),
             ExtraTimeGrantCount = values.Max(item => item.ExtraTimeGrantCount),
+            SummaryReviewed = values.Any(item => item.SummaryReviewed),
+            FocusSessionCount = values.Max(item => item.FocusSessionCount),
+            FocusCompletedSeconds = values.Max(item => item.FocusCompletedSeconds),
+            RhythmExcused = values.Any(item => item.RhythmExcused),
             AwarenessUsedSeconds = values.Max(item => item.AwarenessUsedSeconds),
             AwarenessHourlyUsedSeconds = values
                 .SelectMany(item => item.AwarenessHourlyUsedSeconds)
@@ -284,13 +326,13 @@ public sealed class JsonUsageStore
         static () => new UsageLedger(),
         static ledger =>
         {
-            if (ledger.SchemaVersion > 6)
+            if (ledger.SchemaVersion > 7)
             {
                 throw new InvalidDataException($"Desteklenmeyen kullanım şeması: {ledger.SchemaVersion}");
             }
 
-            bool changed = ledger.SchemaVersion < 6;
-            ledger.SchemaVersion = 6;
+            bool changed = ledger.SchemaVersion < 7;
+            ledger.SchemaVersion = 7;
             ledger.AppUsedSeconds ??= [];
             ledger.ForegroundAppUsedSeconds ??= new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
             ledger.AwarenessHourlyUsedSeconds ??= [];

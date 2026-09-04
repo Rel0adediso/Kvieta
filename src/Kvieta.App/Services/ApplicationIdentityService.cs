@@ -12,6 +12,31 @@ public static class ApplicationIdentityService
     private static readonly ConcurrentDictionary<string, string> OriginalFileNameCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, string> PublisherCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, string> HashCache = new(StringComparer.OrdinalIgnoreCase);
+
+    public static string? TryResolveRunningExecutablePath(string applicationId)
+    {
+        string processName = Path.GetFileNameWithoutExtension(applicationId.Trim()) ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(processName)) return null;
+
+        foreach (Process process in Process.GetProcessesByName(processName))
+        {
+            using (process)
+            {
+                try
+                {
+                    string? path = process.MainModule?.FileName;
+                    if (!string.IsNullOrWhiteSpace(path) && File.Exists(path)) return path;
+                }
+                catch
+                {
+                    // Another matching process may still be inspectable.
+                }
+            }
+        }
+
+        return null;
+    }
+
     public static AppRule CaptureRule(string executablePath)
     {
         string fullPath = Path.GetFullPath(executablePath);

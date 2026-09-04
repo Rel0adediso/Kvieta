@@ -25,6 +25,8 @@ public sealed class AppRuleRow : ObservableObject
         [
             new(AppRuleMode.Blocked, LocalizationService.Get("Blocked"), LocalizationService.Get("PermanentBlockModeDescription")),
             new(AppRuleMode.Limited, LocalizationService.Get("Limited"), LocalizationService.Get("LimitedModeDescription")),
+            new(AppRuleMode.ScheduleOnly, LocalizationService.Get("ScheduleOnly"), LocalizationService.Get("ScheduleOnlyModeDescription")),
+            new(AppRuleMode.FocusBlocked, LocalizationService.Get("FocusBlocked"), LocalizationService.Get("FocusBlockedModeDescription")),
             new(AppRuleMode.Unlimited, LocalizationService.Get("Remove"), LocalizationService.Get("RemoveRuleDescription"), IsRemove: true)
         ];
         _mode = _modes.Single(option => option.Value == rule.Mode);

@@ -11,7 +11,7 @@ public enum SessionState
 
 public sealed class UsageLedger
 {
-    public int SchemaVersion { get; set; } = 6;
+    public int SchemaVersion { get; set; } = 7;
     public long DataGeneration { get; set; }
     public DateOnly? RetainedFromDay { get; set; }
     public DateOnly LocalDay { get; set; } = DateOnly.FromDateTime(DateTime.Today);
@@ -24,6 +24,10 @@ public sealed class UsageLedger
     public int BreakCount { get; set; }
     public int LimitReachedCount { get; set; }
     public int ExtraTimeGrantCount { get; set; }
+    public bool SummaryReviewed { get; set; }
+    public int FocusSessionCount { get; set; }
+    public long FocusCompletedSeconds { get; set; }
+    public bool RhythmExcused { get; set; }
     public List<DailyUsageRecord> History { get; set; } = [];
     public List<UsageEventRecord> RecentEvents { get; set; } = [];
     public SessionState State { get; set; } = SessionState.Ready;
@@ -71,6 +75,10 @@ public sealed class DailyUsageRecord
     public int BreakCount { get; set; }
     public int LimitReachedCount { get; set; }
     public int ExtraTimeGrantCount { get; set; }
+    public bool SummaryReviewed { get; set; }
+    public int FocusSessionCount { get; set; }
+    public long FocusCompletedSeconds { get; set; }
+    public bool RhythmExcused { get; set; }
     public List<AppUsageRecord> Applications { get; set; } = [];
     public long AwarenessUsedSeconds { get; set; }
     public List<AwarenessAppUsageRecord> ForegroundApplications { get; set; } = [];

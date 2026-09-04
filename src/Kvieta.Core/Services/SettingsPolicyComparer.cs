@@ -95,7 +95,9 @@ public static class SettingsPolicyComparer
                 continue;
             }
 
-            if (ModeRank(desiredRule.Mode) > ModeRank(currentRule.Mode))
+            if (currentRule.Mode != desiredRule.Mode &&
+                currentRule.Mode != AppRuleMode.Unlimited &&
+                desiredRule.Mode != AppRuleMode.Blocked)
             {
                 return true;
             }
@@ -166,11 +168,4 @@ public static class SettingsPolicyComparer
 
         return from < until ? time >= from && time < until : time >= from || time < until;
     }
-
-    private static int ModeRank(AppRuleMode mode) => mode switch
-    {
-        AppRuleMode.Blocked => 0,
-        AppRuleMode.Limited => 1,
-        _ => 2
-    };
 }

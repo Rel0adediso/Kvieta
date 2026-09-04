@@ -1,6 +1,63 @@
 # Kvieta release notes
 
-## Kvieta Alpha 2.1 — Current community preview
+## Kvieta Alpha 3 — Current community preview
+
+Kvieta Alpha 3 brings the pre-V1 product experience into one coherent,
+purpose-led flow. It keeps the numeric MSI version at `1.0.0` so existing Alpha
+installations can be serviced in place. The public package label is `Alpha-3`
+and the GitHub tag is `kvieta-alpha-3`.
+
+### Highlights
+
+- Added five editable setup templates for usage awareness, focus, gaming,
+  winding down, and family routines; setup now previews the first Rhythm goal.
+- Reworked Today around the user's next useful action: top applications, a
+  comparison with yesterday, the current or next plan, custom Quick Focus, and
+  repeat-last-focus.
+- Added direct rule creation from measured application cards for daily limits,
+  plan-only access, focus blocking, unrestricted use, and permanent blocking.
+- Added calm 15, 5, and 1-minute wrap-up prompts with work-saved, controlled
+  break, permitted extra-time, and direct tomorrow-planning actions.
+
+### Rhythm Streak and weekly review
+
+- Added a local Rhythm Streak with one mode-appropriate daily goal, rest days,
+  best-streak tracking, milestones, and up to two earned Rhythm Protectors.
+- Made Protector use visible and kept approved temporary allowances, extra time,
+  Guardian failures, and recovery actions from unfairly breaking the streak.
+- Expanded the weekly review with completed focus time and the most increased
+  and decreased application trends.
+- Added persistent apply, remind-tomorrow, and hide choices for local
+  suggestions.
+- Replaced plain-text sharing with an on-device 1200×630 image card that excludes
+  application names and is never uploaded automatically.
+
+### Behavior, security, and migration
+
+- Extra time can be requested before the daily allowance reaches zero, while
+  Family and protected flows retain their existing administrator checks.
+- Session warnings now appear on the active session surface; warning actions
+  cannot bypass permission checks and tomorrow planning opens the Plan page.
+- Application identity and enforcement cover the new rule behaviors without
+  storing full executable paths in usage history.
+- Existing settings and protected policy remain compatible. Usage history is
+  migrated locally to schema 7 to preserve focus completion and Rhythm fairness
+  markers; separate focus and Rhythm preference files contain convenience state
+  only.
+
+### Validation and known limitations
+
+- Formatting verification, Debug and Release builds, Debug and Release smoke
+  tests, bilingual documentation checks, public-build bypass inspection, package
+  metadata checks, release-manifest verification, and SHA-256 generation are
+  required for this package.
+- This is an intentionally unsigned community prerelease. Windows SmartScreen
+  may display an unknown-publisher warning.
+- Broad physical-device coverage for clean install and Alpha upgrade, Guardian
+  lifecycle, multi-monitor/DPI, sleep/hibernate, repair/uninstall, and extended
+  real-world use remains open before final `v1.0.0`.
+
+## Kvieta Alpha 2.1 — Previous community preview
 
 Kvieta Alpha 2.1 is a usability and reliability update built from the Alpha 2
 field-feedback branch. It keeps the numeric MSI version at `1.0.0` so existing

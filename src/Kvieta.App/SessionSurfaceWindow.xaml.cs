@@ -34,6 +34,9 @@ public partial class SessionSurfaceWindow : Window
     private bool _surfaceTransitionInProgress;
     private bool _surfaceRecoveryQueued;
     private bool _surfaceRecoveryInProgress;
+    private readonly HashSet<int> _shownWarningMinutes = [];
+    private DateOnly _warningDay = DateOnly.FromDateTime(DateTime.Today);
+    private bool _openPlanOnControlCenter;
 
     public SessionSurfaceWindow(
         bool isDirectSession = false,
@@ -108,6 +111,7 @@ public partial class SessionSurfaceWindow : Window
         {
             await _viewModel.TickAsync();
             EnsureCorrectSurface();
+            ShowWarningIfDue();
             await HandleLimitReachedAsync();
         }
         catch (Exception exception)
@@ -350,6 +354,75 @@ public partial class SessionSurfaceWindow : Window
                 EnsureCorrectSurface();
             }
         }
+    }
+
+    private void ShowWarningIfDue()
+    {
+        DateOnly today = DateOnly.FromDateTime(DateTime.Today);
+        if (_warningDay != today)
+        {
+            _warningDay = today;
+            _shownWarningMinutes.Clear();
+        }
+
+        if (!_viewModel.IsActive)
+        {
+            GentleWarningPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        int? due = SessionWarningPolicy.GetDueWarningMinutes(
+            _viewModel.RemainingSeconds,
+            _viewModel.WarningMinutes,
+            _shownWarningMinutes);
+        if (due is null) return;
+
+        _shownWarningMinutes.Add(due.Value);
+        GentleWarningTitle.Text = IsEnglish
+            ? $"{due.Value} minutes left"
+            : $"{due.Value} dakika kaldı";
+        GentleWarningDescription.Text = IsEnglish
+            ? "Wrap up calmly or choose what should happen next."
+            : "İşini sakince toparla veya sıradaki adımı seç.";
+        GentleWarningPanel.Visibility = Visibility.Visible;
+        _forceSurfaceVisible = true;
+        MotionService.Enter(GentleWarningPanel, 0, 6, 180);
+        EnsureCorrectSurface();
+    }
+
+    private void WorkSaved_Click(object sender, RoutedEventArgs e)
+    {
+        GentleWarningPanel.Visibility = Visibility.Collapsed;
+        _forceSurfaceVisible = false;
+        EnsureCorrectSurface();
+    }
+
+    private async void WarningBreak_Click(object sender, RoutedEventArgs e)
+    {
+        GentleWarningPanel.Visibility = Visibility.Collapsed;
+        _forceSurfaceVisible = false;
+        if (await _viewModel.PauseAsync())
+        {
+            _forceSurfaceVisible = true;
+            await ShowBreakSurfaceAsync();
+        }
+        EnsureCorrectSurface();
+    }
+
+    private void WarningExtraTime_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_viewModel.CanRequestExtraTime) return;
+        GentleWarningPanel.Visibility = Visibility.Collapsed;
+        _forceSurfaceVisible = false;
+        RequestTime_Click(sender, e);
+    }
+
+    private void WarningTomorrowPlan_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_viewModel.CanPlanTomorrow) return;
+        GentleWarningPanel.Visibility = Visibility.Collapsed;
+        _openPlanOnControlCenter = true;
+        ExitPrototype_Click(sender, e);
     }
 
     private async void TrustCurrentClock_Click(object sender, RoutedEventArgs e)
@@ -746,6 +819,8 @@ public partial class SessionSurfaceWindow : Window
 
     private async void ExitPrototype_Click(object sender, RoutedEventArgs e)
     {
+        bool openPlan = _openPlanOnControlCenter;
+        _openPlanOnControlCenter = false;
         try
         {
             string? verifiedPin = null;
@@ -793,14 +868,14 @@ public partial class SessionSurfaceWindow : Window
                 {
                     ControlCenterRequested?.Invoke(
                         this,
-                        new ControlCenterRequestEventArgs(verifiedPin, _requirePinToExit));
+                        new ControlCenterRequestEventArgs(verifiedPin, _requirePinToExit, openPlan));
                     return;
                 }
 
                 SuspendForControlCenter();
                 ControlCenterRequested?.Invoke(
                     this,
-                    new ControlCenterRequestEventArgs(verifiedPin, _requirePinToExit));
+                    new ControlCenterRequestEventArgs(verifiedPin, _requirePinToExit, openPlan));
                 return;
             }
 
@@ -992,8 +1067,10 @@ public partial class SessionSurfaceWindow : Window
 
 public sealed class ControlCenterRequestEventArgs(
     string? verifiedPin = null,
-    bool administratorVerified = false) : EventArgs
+    bool administratorVerified = false,
+    bool openPlan = false) : EventArgs
 {
     public string? VerifiedPin { get; } = verifiedPin;
     public bool AdministratorVerified { get; } = administratorVerified;
+    public bool OpenPlan { get; } = openPlan;
 }

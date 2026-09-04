@@ -1,6 +1,6 @@
 # Kvieta usage and recovery guide
 
-> Current status: **Kvieta Alpha 2.1**. Community packages are unsigned previews intended for validation; they are not final public releases.
+> Current status: **Kvieta Alpha 3**. Community packages are unsigned previews intended for validation; they are not final public releases.
 
 ## Installation and update
 
@@ -18,7 +18,17 @@ Kvieta is installed under `C:\Program Files\Kvieta` by default. User settings an
 - **Personal:** Applies schedules and limits as a personal routine. Flexible remains user-controlled; Balanced maintains a session surface during an active time window.
 - **Family:** Intended for a family member's standard Windows account managed through a separate administrator account. An administrator PIN and Guardian protect policy.
 
-In Personal mode, **Quick focus** starts a 25, 50, or 90-minute session from Today or the tray menu. The focus target never extends the daily limit or the allowed schedule.
+In Personal mode, **Quick focus** starts a 25, 50, or 90-minute session from Today or the tray menu. Today also accepts a custom duration and can repeat the last focus duration, stored only in a separate local preference file. The focus target never extends the daily limit or the allowed schedule.
+
+Today combines current use and remaining time with the three most-used applications, the change from yesterday, and the active or next scheduled window. Empty and first-day states are shown without inventing a comparison.
+
+For a measured application, **Create rule** offers a daily limit, availability only inside the plan, blocking during focus, unrestricted use, or a permanent block without opening a file picker. Because usage history deliberately stores the executable name rather than its full path, an application that has no existing rule must be running while its first rule is created. Changes take effect after **Save** and continue to follow Personal/Family approval rules.
+
+At 15, 5, and 1 minute remaining, the session surface offers a calm wrap-up card: confirm that work is saved, take a controlled break, request more time when the mode permits it, or open Control Center to plan tomorrow.
+
+**Rhythm Streak** rewards one meaningful daily outcome: reviewing the daily summary in Insights, completing a focus session in Flexible Personal, or keeping the daily balance in planned Personal and Family use. Rest days do not break or advance the streak. Every seven successful days earns one of up to two Rhythm Protectors, and milestones appear at 3, 7, 14, 30, 50, and 100 days. Approved temporary allowances and recovery days do not consume a Protector or break the streak. The weekly summary includes focus time and rising/falling application trends. Its optional 1200×630 share card is generated locally and excludes application names. Suggestions can be applied, hidden permanently on the device, or postponed until the next day.
+
+During setup, five editable intent templates provide a useful starting point: See my usage, Focus, Gaming routine, Wind down, and Family routine. A template selects the matching usage mode and, when relevant, fills a weekly schedule that can still be changed before installation.
 
 In Family mode, an administrator can grant extra time with the existing PIN-protected action while a session is active or paused; waiting for the daily limit to expire is not required.
 

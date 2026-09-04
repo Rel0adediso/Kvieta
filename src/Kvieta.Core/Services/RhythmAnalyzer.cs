@@ -13,6 +13,7 @@ public sealed record RhythmSummary(
     double? WeekChangePercent,
     int PlanAlignedDays,
     long ReclaimedSeconds,
+    long FocusCompletedSeconds,
     long GoalDailySeconds,
     bool IsGoalEnabled,
     bool IsGoalMet,
@@ -45,6 +46,10 @@ public static class RhythmAnalyzer
                 UsedSeconds = ledger.UsedSeconds,
                 BonusMinutes = ledger.BonusMinutes,
                 AwarenessUsedSeconds = ledger.AwarenessUsedSeconds,
+                SummaryReviewed = ledger.SummaryReviewed,
+                FocusSessionCount = ledger.FocusSessionCount,
+                FocusCompletedSeconds = ledger.FocusCompletedSeconds,
+                RhythmExcused = ledger.RhythmExcused,
                 AwarenessHourlyUsedSeconds = new Dictionary<int, long>(ledger.AwarenessHourlyUsedSeconds),
                 ForegroundApplications = ledger.ForegroundAppUsedSeconds.Select(item => new AwarenessAppUsageRecord
                 {
@@ -90,6 +95,11 @@ public static class RhythmAnalyzer
                 return false;
             }
 
+            if (record.RhythmExcused)
+            {
+                return true;
+            }
+
             DaySchedule? schedule = settings.Schedule.FirstOrDefault(day => day.Day == record.LocalDay.DayOfWeek);
             long plannedSeconds = ((schedule is { IsEnabled: true } ? schedule.DailyLimitMinutes : 0) + record.BonusMinutes) * 60L;
             return record.UsedSeconds <= plannedSeconds;
@@ -98,6 +108,7 @@ public static class RhythmAnalyzer
         long reclaimed = baselineReady && currentObservedDays > 0
             ? Math.Max(0, (baselineAverage * currentObservedDays) - currentSeconds)
             : 0;
+        long focusCompletedSeconds = current.Sum(record => record.FocusCompletedSeconds);
         bool goalEnabled = settings.WeeklyReductionGoalPercent > 0 && baselineReady;
         long goalDailySeconds = goalEnabled
             ? (long)Math.Round(baselineAverage * (1 - settings.WeeklyReductionGoalPercent / 100d))
@@ -137,6 +148,7 @@ public static class RhythmAnalyzer
             changePercent,
             alignedDays,
             reclaimed,
+            focusCompletedSeconds,
             goalDailySeconds,
             goalEnabled,
             goalEnabled && currentObservedDays > 0 && currentAverage <= goalDailySeconds,

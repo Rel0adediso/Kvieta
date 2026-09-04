@@ -4,6 +4,8 @@ public enum AppRuleMode
 {
     Blocked,
     Limited,
+    ScheduleOnly,
+    FocusBlocked,
     Unlimited
 }
 

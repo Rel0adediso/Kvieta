@@ -300,8 +300,26 @@ public partial class SetupWindow : Window
     private void Personal_Click(object sender, RoutedEventArgs e) => SelectMode(UsageMode.Personal);
     private void Family_Click(object sender, RoutedEventArgs e) => SelectMode(UsageMode.Family);
 
+    private void Template_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string templateName } ||
+            !Enum.TryParse(templateName, out SetupTemplate template))
+        {
+            return;
+        }
+
+        _plan.ApplyTemplate(template);
+        ModeNextButton.IsEnabled = true;
+        TrackingBox.IsChecked = true;
+        TrackingBox.IsEnabled = _plan.Mode != UsageMode.Insights;
+        UpdateModeDependentPreferences();
+        ScheduleDaysControl.Items.Refresh();
+        UpdateSelectionStyles();
+    }
+
     private void SelectMode(UsageMode mode)
     {
+        _plan.ClearSelectedTemplate();
         _plan.Mode = mode;
         ModeNextButton.IsEnabled = true;
         TrackingBox.IsChecked = true;
@@ -332,6 +350,7 @@ public partial class SetupWindow : Window
 
     private void SelectPersonalLevel(PersonalProtectionLevel level)
     {
+        _plan.ClearSelectedTemplate();
         _plan.PersonalLevel = level;
         UpdateSelectionStyles();
     }
@@ -816,6 +835,13 @@ public partial class SetupWindow : Window
         if (_plan.StartWithWindows) options.Add(T("Windows ile başlangıç", "Start with Windows"));
         if (_plan.DesktopShortcut) options.Add(T("masaüstü kısayolu", "desktop shortcut"));
         if (_plan.AwarenessTracking || _plan.Mode == UsageMode.Insights) options.Add(T("yerel ölçüm", "local tracking"));
+        options.Add(_plan.Mode switch
+        {
+            UsageMode.Insights => T("ilk ritim hedefi: günlük özeti incele", "first rhythm goal: review the daily summary"),
+            UsageMode.Personal when _plan.PersonalLevel == PersonalProtectionLevel.Flexible =>
+                T("ilk ritim hedefi: bir odak oturumu tamamla", "first rhythm goal: complete one focus session"),
+            _ => T("ilk ritim hedefi: günlük dengeni koru", "first rhythm goal: keep your daily balance")
+        });
         if (_plan.RequiresGuardian) options.Add("Guardian");
         if (_plan.RequiresUserPin) options.Add(T("8 tek kullanımlık kurtarma kodu", "8 one-time recovery codes"));
         if (_plan.RequiresUserPin && _plan.PairManagerDeviceAfterInstall) options.Add(T("isteğe bağlı telefon eşleştirme", "optional phone pairing"));
@@ -950,6 +976,11 @@ public partial class SetupWindow : Window
         }
         ExistingBackButton.Content = _openedForExistingInstallation ? T("İptal", "Cancel") : BackText;
         ModeTitle.Text = ProductText("ChooseModeTitle"); ModeDescription.Text = ProductText("ChooseModeDescription");
+        UnderstandTemplateButton.Content = T("Kullanımımı gör", "See my usage");
+        FocusTemplateButton.Content = T("Odaklan", "Focus");
+        GamingTemplateButton.Content = T("Oyun düzeni", "Gaming routine");
+        EveningTemplateButton.Content = T("Akşam bırak", "Wind down");
+        FamilyTemplateButton.Content = T("Aile düzeni", "Family routine");
         InsightsTitle.Text = ProductText("InsightsMode"); InsightsText.Text = ProductText("InsightsModeDescription");
         PersonalTitle.Text = ProductText("PersonalMode"); PersonalText.Text = ProductText("PersonalModeDescription");
         FamilyTitle.Text = ProductText("FamilyMode"); FamilyText.Text = ProductText("FamilyModeDescription");
@@ -1008,6 +1039,11 @@ public partial class SetupWindow : Window
         SetSelected(InsightsButton, ModeNextButton.IsEnabled && _plan.Mode == UsageMode.Insights);
         SetSelected(PersonalButton, ModeNextButton.IsEnabled && _plan.Mode == UsageMode.Personal);
         SetSelected(FamilyButton, ModeNextButton.IsEnabled && _plan.Mode == UsageMode.Family);
+        SetSelected(UnderstandTemplateButton, _plan.SelectedTemplate == SetupTemplate.UnderstandUsage);
+        SetSelected(FocusTemplateButton, _plan.SelectedTemplate == SetupTemplate.Focus);
+        SetSelected(GamingTemplateButton, _plan.SelectedTemplate == SetupTemplate.GamingRoutine);
+        SetSelected(EveningTemplateButton, _plan.SelectedTemplate == SetupTemplate.EveningWindDown);
+        SetSelected(FamilyTemplateButton, _plan.SelectedTemplate == SetupTemplate.FamilyRoutine);
         SetSelected(FlexibleButton, _plan.PersonalLevel == PersonalProtectionLevel.Flexible);
         SetSelected(BalancedButton, _plan.PersonalLevel == PersonalProtectionLevel.Balanced);
         SetSelected(ProtectedLevelButton, _plan.PersonalLevel == PersonalProtectionLevel.Protected);

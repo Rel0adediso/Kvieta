@@ -23,6 +23,15 @@ public enum SetupPackageAction
     DowngradeBlocked
 }
 
+public enum SetupTemplate
+{
+    UnderstandUsage,
+    Focus,
+    GamingRoutine,
+    EveningWindDown,
+    FamilyRoutine
+}
+
 public sealed class SetupPlan
 {
     private IReadOnlyList<string>? _plainRecoveryCodes;
@@ -54,6 +63,7 @@ public sealed class SetupPlan
         .Select(SetupScheduleDayRow.FromModel)
         .ToList();
     public bool HasCustomSchedule { get; set; }
+    public SetupTemplate? SelectedTemplate { get; private set; }
 
     public bool RequiresUserPin => Mode == UsageMode.Family;
     public bool RequiresGuardian =>
@@ -62,6 +72,72 @@ public sealed class SetupPlan
     public bool UsesScheduledPlan =>
         Mode == UsageMode.Family ||
         Mode == UsageMode.Personal && PersonalLevel != PersonalProtectionLevel.Flexible;
+
+    public void ApplyTemplate(SetupTemplate template)
+    {
+        SelectedTemplate = template;
+        AwarenessTracking = true;
+        PairManagerDeviceAfterInstall = false;
+
+        switch (template)
+        {
+            case SetupTemplate.UnderstandUsage:
+                Mode = UsageMode.Insights;
+                PersonalLevel = PersonalProtectionLevel.Flexible;
+                HasCustomSchedule = false;
+                break;
+            case SetupTemplate.Focus:
+                Mode = UsageMode.Personal;
+                PersonalLevel = PersonalProtectionLevel.Flexible;
+                HasCustomSchedule = false;
+                break;
+            case SetupTemplate.GamingRoutine:
+                Mode = UsageMode.Personal;
+                PersonalLevel = PersonalProtectionLevel.Balanced;
+                ApplySchedule(
+                    weekdayFrom: "17:00", weekdayUntil: "22:00", weekdayMinutes: 120,
+                    weekendFrom: "10:00", weekendUntil: "23:00", weekendMinutes: 180);
+                break;
+            case SetupTemplate.EveningWindDown:
+                Mode = UsageMode.Personal;
+                PersonalLevel = PersonalProtectionLevel.Balanced;
+                ApplySchedule(
+                    weekdayFrom: "08:00", weekdayUntil: "21:30", weekdayMinutes: 180,
+                    weekendFrom: "08:00", weekendUntil: "21:30", weekendMinutes: 180);
+                break;
+            case SetupTemplate.FamilyRoutine:
+                Mode = UsageMode.Family;
+                PersonalLevel = PersonalProtectionLevel.Balanced;
+                ApplySchedule(
+                    weekdayFrom: "08:00", weekdayUntil: "20:00", weekdayMinutes: 120,
+                    weekendFrom: "09:00", weekendUntil: "21:00", weekendMinutes: 180);
+                break;
+        }
+    }
+
+    public void ClearSelectedTemplate() => SelectedTemplate = null;
+
+    private void ApplySchedule(
+        string weekdayFrom,
+        string weekdayUntil,
+        int weekdayMinutes,
+        string weekendFrom,
+        string weekendUntil,
+        int weekendMinutes)
+    {
+        foreach (SetupScheduleDayRow day in Schedule)
+        {
+            bool weekend = day.Day is DayOfWeek.Saturday or DayOfWeek.Sunday;
+            day.IsEnabled = true;
+            day.AllowedFromText = weekend ? weekendFrom : weekdayFrom;
+            day.AllowedUntilText = weekend ? weekendUntil : weekdayUntil;
+            day.DailyLimitText = (weekend ? weekendMinutes : weekdayMinutes)
+                .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        DailyLimitMinutes = weekdayMinutes;
+        HasCustomSchedule = true;
+    }
 
     public IReadOnlyList<string> EnsureRecoveryCodes()
     {

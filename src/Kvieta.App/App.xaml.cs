@@ -344,23 +344,24 @@ public partial class App : System.Windows.Application
 
     private async Task OpenControlCenterFromExternalRequestAsync(
         string? verifiedPin = null,
-        bool administratorVerified = false)
+        bool administratorVerified = false,
+        bool openPlan = false)
     {
         if (MainWindow is MainWindow controlCenter && controlCenter.IsLoaded)
         {
-            controlCenter.ActivateFromExternalRequest();
+            controlCenter.ActivateFromExternalRequest(openPlan);
             return;
         }
 
         if (_activatedControlCenter is not null && _activatedControlCenter.IsLoaded)
         {
-            _activatedControlCenter.ActivateFromExternalRequest();
+            _activatedControlCenter.ActivateFromExternalRequest(openPlan);
             return;
         }
 
         if (MainWindow is not SessionSurfaceWindow sessionWindow || !sessionWindow.IsLoaded)
         {
-            await OpenRecoveredControlCenterAsync();
+            await OpenRecoveredControlCenterAsync(openPlan);
             return;
         }
 
@@ -438,7 +439,7 @@ public partial class App : System.Windows.Application
                 sessionWindow.ResumeFromControlCenter();
             };
             _activatedControlCenter.Show();
-            _activatedControlCenter.Activate();
+            _activatedControlCenter.ActivateFromExternalRequest(openPlan);
         }
         catch (Exception exception)
         {
@@ -488,7 +489,7 @@ public partial class App : System.Windows.Application
         _controlCenterWindowInstance = null;
     }
 
-    private async Task OpenRecoveredControlCenterAsync()
+    private async Task OpenRecoveredControlCenterAsync(bool openPlan = false)
     {
         if (_controlCenterActivationInProgress)
         {
@@ -531,7 +532,7 @@ public partial class App : System.Windows.Application
             MainWindow = recoveredControlCenter;
             ShutdownMode = ShutdownMode.OnMainWindowClose;
             recoveredControlCenter.Show();
-            recoveredControlCenter.ActivateFromExternalRequest();
+            recoveredControlCenter.ActivateFromExternalRequest(openPlan);
         }
         catch (Exception exception)
         {
@@ -555,14 +556,16 @@ public partial class App : System.Windows.Application
             {
                 await OpenControlCenterFromExternalRequestAsync(
                     e.VerifiedPin,
-                    e.AdministratorVerified);
+                    e.AdministratorVerified,
+                    e.OpenPlan);
             }
             else
             {
                 Task activation = await Dispatcher.InvokeAsync(
                     () => OpenControlCenterFromExternalRequestAsync(
                         e.VerifiedPin,
-                        e.AdministratorVerified));
+                        e.AdministratorVerified,
+                        e.OpenPlan));
                 await activation;
             }
         }
