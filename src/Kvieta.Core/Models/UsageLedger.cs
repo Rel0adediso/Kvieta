@@ -11,7 +11,7 @@ public enum SessionState
 
 public sealed class UsageLedger
 {
-    public int SchemaVersion { get; set; } = 7;
+    public int SchemaVersion { get; set; } = 8;
     public long DataGeneration { get; set; }
     public DateOnly? RetainedFromDay { get; set; }
     public DateOnly LocalDay { get; set; } = DateOnly.FromDateTime(DateTime.Today);
@@ -27,7 +27,18 @@ public sealed class UsageLedger
     public bool SummaryReviewed { get; set; }
     public int FocusSessionCount { get; set; }
     public long FocusCompletedSeconds { get; set; }
+    public Guid? ActiveFocusSessionId { get; set; }
+    public long ActiveFocusTargetSeconds { get; set; }
+    public long ActiveFocusElapsedSeconds { get; set; }
     public bool RhythmExcused { get; set; }
+    public RhythmGoalKind? RhythmGoal { get; set; }
+    public FocusRhythmTargetKind? RhythmFocusTargetKind { get; set; }
+    public int RhythmGoalTarget { get; set; }
+    public int? RhythmDailyLimitMinutes { get; set; }
+    public int RhythmApprovedMinutes { get; set; }
+    public bool RhythmPlannedRest { get; set; }
+    public bool RhythmMeasurementAvailable { get; set; }
+    public RhythmCheckpoint RhythmCheckpoint { get; set; } = new();
     public List<DailyUsageRecord> History { get; set; } = [];
     public List<UsageEventRecord> RecentEvents { get; set; } = [];
     public SessionState State { get; set; } = SessionState.Ready;
@@ -50,6 +61,33 @@ public enum ClockChangeKind
     TimeZoneChanged,
     ForwardJump,
     Rollback
+}
+
+public enum RhythmGoalKind
+{
+    ReviewSummary,
+    CompleteFocus,
+    KeepBalance
+}
+
+public enum RhythmDayOutcome
+{
+    Pending,
+    Success,
+    Rest,
+    Excused,
+    Protected,
+    Missed,
+    Unobserved
+}
+
+public sealed class RhythmCheckpoint
+{
+    public DateOnly? ProcessedThroughDay { get; set; }
+    public int CurrentStreak { get; set; }
+    public int BestStreak { get; set; }
+    public int Protectors { get; set; }
+    public int SuccessfulDays { get; set; }
 }
 
 public enum UsageEventKind
@@ -79,6 +117,14 @@ public sealed class DailyUsageRecord
     public int FocusSessionCount { get; set; }
     public long FocusCompletedSeconds { get; set; }
     public bool RhythmExcused { get; set; }
+    public RhythmGoalKind? RhythmGoal { get; set; }
+    public FocusRhythmTargetKind? RhythmFocusTargetKind { get; set; }
+    public int RhythmGoalTarget { get; set; }
+    public RhythmDayOutcome? RhythmOutcome { get; set; }
+    public int? RhythmDailyLimitMinutes { get; set; }
+    public int RhythmApprovedMinutes { get; set; }
+    public bool RhythmPlannedRest { get; set; }
+    public bool RhythmMeasurementAvailable { get; set; }
     public List<AppUsageRecord> Applications { get; set; } = [];
     public long AwarenessUsedSeconds { get; set; }
     public List<AwarenessAppUsageRecord> ForegroundApplications { get; set; } = [];

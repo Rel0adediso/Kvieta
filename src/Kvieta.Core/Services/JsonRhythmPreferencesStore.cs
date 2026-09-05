@@ -24,8 +24,8 @@ public sealed class JsonRhythmPreferencesStore
             () => new RhythmPreferences(),
             preferences =>
             {
-                bool changed = preferences.SchemaVersion != 1;
-                preferences.SchemaVersion = 1;
+                bool changed = preferences.SchemaVersion != 2;
+                preferences.SchemaVersion = 2;
                 return new MigrationResult<RhythmPreferences>(preferences, changed);
             });
     }
@@ -39,9 +39,17 @@ public sealed class JsonRhythmPreferencesStore
         RhythmSuggestionPreference preference,
         DateTimeOffset? remindAfterUtc = null,
         CancellationToken cancellationToken = default) =>
-        _file.SaveAsync(new RhythmPreferences
+        _file.UpdateAsync(current =>
         {
-            SuggestionPreference = preference,
-            RemindAfterUtc = remindAfterUtc?.ToUniversalTime()
+            current.SuggestionPreference = preference;
+            current.RemindAfterUtc = remindAfterUtc?.ToUniversalTime();
+            return current;
+        }, cancellationToken);
+
+    public Task MarkMilestoneCelebratedAsync(int milestone, CancellationToken cancellationToken = default) =>
+        _file.UpdateAsync(current =>
+        {
+            current.LastCelebratedStreakMilestone = Math.Max(current.LastCelebratedStreakMilestone, milestone);
+            return current;
         }, cancellationToken);
 }

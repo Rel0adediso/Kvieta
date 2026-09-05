@@ -650,14 +650,32 @@ Assert(SessionWarningPolicy.GetDueWarningMinutes(50, [15, 5, 1], shownWarnings) 
     "Nazik süre uyarısı son dakika veya süre bitişini yanlış değerlendirdi.");
 ControlCenterRequestEventArgs planRequest = new(openPlan: true);
 Assert(planRequest.OpenPlan, "Süre uyarısından Plan ekranına yönlendirme isteği taşınmadı.");
-focusGoal.Start(3_600);
-Assert(focusGoal.RemainingSeconds(3_600) == 1_500 &&
-       focusGoal.RemainingSeconds(4_350) == 750 &&
-       Math.Abs(focusGoal.ProgressPercent(4_350) - 50) < 0.001 &&
-       !focusGoal.CompleteIfReached(5_099) &&
-       focusGoal.CompleteIfReached(5_100) &&
+focusGoal.Start();
+Assert(focusGoal.RemainingSeconds() == 1_500 &&
+       focusGoal.Accrue(750) == 750 && focusGoal.RemainingSeconds() == 750 &&
+       Math.Abs(focusGoal.ProgressPercent() - 50) < 0.001 &&
+       !focusGoal.CompleteIfReached() && focusGoal.Accrue(750) == 750 &&
+       focusGoal.CompleteIfReached() &&
        focusGoal.IsCompleted,
-    "Hızlı odak hedefi günlük kullanım tabanından bağımsız ve deterministik ilerlemiyor.");
+    "Hızlı odak hedefi yalnız kendisine eklenen aktif süreyle deterministik ilerlemiyor.");
+FocusSessionGoal restoredFocusGoal = FocusSessionGoal.Restore(1_500, 600);
+Assert(restoredFocusGoal.DurationSeconds == 1_500 && restoredFocusGoal.ElapsedSeconds == 600 &&
+       restoredFocusGoal.RemainingSeconds() == 900 && !restoredFocusGoal.IsCompleted,
+    "Yarım kalan odak hedefi günlük sayaçtan bağımsız ilerlemesiyle geri yüklenemedi.");
+ControlSettings midnightFocusSettings = new()
+{
+    Mode = UsageMode.Personal,
+    PersonalProtectionLevel = PersonalProtectionLevel.Flexible
+};
+DateTimeOffset beforeFocusMidnight = new(2026, 8, 24, 23, 59, 59, TimeSpan.FromHours(3));
+UsageLedger midnightFocusLedger = new() { LocalDay = new DateOnly(2026, 8, 24), UsedSeconds = 100 };
+SessionEngine midnightFocusEngine = new(midnightFocusSettings, midnightFocusLedger, beforeFocusMidnight);
+Assert(midnightFocusEngine.StartOrResume(beforeFocusMidnight), "Gece yarısı odak testi başlatılamadı.");
+long midnightFocusAccrued = midnightFocusEngine.Accrue(TimeSpan.FromSeconds(2), beforeFocusMidnight.AddSeconds(2));
+Assert(midnightFocusAccrued == 2 && midnightFocusEngine.Ledger.LocalDay == new DateOnly(2026, 8, 25) &&
+       midnightFocusEngine.Ledger.UsedSeconds == 1 &&
+       midnightFocusEngine.Ledger.History.Single(item => item.LocalDay == new DateOnly(2026, 8, 24)).UsedSeconds == 101,
+    "Gece yarısını geçen aktif süre önceki ve yeni güne doğru bölünmedi.");
 Assert(!SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(isFamilyMode: true) &&
        SessionSurfaceRecoveryPolicy.ShouldResumeAfterControlCenterDismissal(isFamilyMode: false),
     "Korumalı Kontrol Merkezi kapatılınca oturum yüzeyi kendiliğinden geri geliyor.");
@@ -853,7 +871,20 @@ Assert(beforeTemporaryAllowance.IsAllowed && beforeTemporaryAllowance.DailyLimit
 allowanceMonday.IsEnabled = false;
 SessionEngine allowanceEngine = new(allowanceSettings, new UsageLedger { LocalDay = new DateOnly(2026, 8, 24) }, new DateTimeOffset(2026, 8, 24, 19, 0, 0, TimeSpan.FromHours(3)));
 Assert(allowanceEngine.GetSnapshot(new DateTimeOffset(2026, 8, 24, 19, 0, 0, TimeSpan.FromHours(3))).LimitSeconds == 75 * 60, "Geçici izin oturum limitine eklenmedi.");
-Assert(allowanceEngine.Ledger.RhythmExcused, "Geçici izin günü ritim serisinden muaf tutulmadı.");
+Assert(!allowanceEngine.Ledger.RhythmExcused && allowanceEngine.Ledger.RhythmApprovedMinutes == 75,
+    "Geçici izin bütün günü muaf tutmak yerine onaylanan süre olarak kaydedilmedi.");
+DailyUsageRecord allowanceRhythmDay = new()
+{
+    LocalDay = new DateOnly(2026, 8, 24),
+    UsedSeconds = 150 * 60,
+    RhythmGoal = RhythmGoalKind.KeepBalance,
+    RhythmDailyLimitMinutes = 120,
+    RhythmApprovedMinutes = 75,
+    RhythmMeasurementAvailable = true
+};
+RhythmStreakAnalyzer.FinalizeDay(allowanceRhythmDay);
+Assert(allowanceRhythmDay.RhythmOutcome == RhythmDayOutcome.Success && !allowanceRhythmDay.RhythmExcused,
+    "Onaylı geçici izin yalnız verilen süreyi adil değerlendirmeye katmadı.");
 
 ControlSettings overnightSettings = new();
 DaySchedule overnightMonday = overnightSettings.Schedule.Single(item => item.Day == DayOfWeek.Monday);
@@ -888,6 +919,73 @@ Assert(overnightAllowance.IsAllowed && overnightAllowance.DailyLimitMinutes == 4
     "Gece yarısını aşan geçici izin ertesi gün devam etmedi.");
 
 string testDirectory = Path.Combine(Path.GetTempPath(), "Kvieta-SmokeTests", Guid.NewGuid().ToString("N"));
+string intentionSettingsPath = Path.Combine(testDirectory, "intention-settings.json");
+string intentionUsagePath = Path.Combine(testDirectory, "intention-usage.json");
+ControlSettings intentionSettings = new()
+{
+    SetupCompleted = true,
+    Mode = UsageMode.Personal,
+    PersonalProtectionLevel = PersonalProtectionLevel.Flexible
+};
+await new JsonSettingsStore(intentionSettingsPath).SaveAsync(intentionSettings);
+SessionViewModel intentionSession = new(
+    new JsonSettingsStore(intentionSettingsPath),
+    new JsonUsageStore(intentionUsagePath),
+    focusDurationMinutes: 25);
+await intentionSession.InitializeAsync();
+intentionSession.FocusIntention = "Matematik çalış — özel";
+Assert(await intentionSession.StartOrResumeAsync(), "Niyetli odak mevcut hızlı başlangıç yolundan başlatılamadı.");
+await intentionSession.EndSessionAsync();
+Assert(intentionSession.HasFocusClosure &&
+       (intentionSession.FocusClosureSummary.Contains("Yarım", StringComparison.Ordinal) ||
+        intentionSession.FocusClosureSummary.Contains("Ended early", StringComparison.Ordinal)),
+    "Yarım bırakılan odak tamamlanmış oturumdan ayrılmadı.");
+Assert(!File.ReadAllText(intentionUsagePath).Contains("Matematik", StringComparison.Ordinal),
+    "Özel odak niyeti kullanım geçmişine yazıldı.");
+Assert(await intentionSession.ContinueAfterFocusAsync(),
+    "Aynı süreyle devam eylemi mevcut oturum policy hesabından geçemedi.");
+intentionSession.Dispose();
+string resumedFocusSettingsPath = Path.Combine(testDirectory, "resumed-focus-settings.json");
+string resumedFocusUsagePath = Path.Combine(testDirectory, "resumed-focus-usage.json");
+JsonSettingsStore resumedFocusSettingsStore = new(resumedFocusSettingsPath);
+await resumedFocusSettingsStore.SaveAsync(new ControlSettings
+{
+    SetupCompleted = true,
+    Mode = UsageMode.Personal,
+    PersonalProtectionLevel = PersonalProtectionLevel.Flexible
+});
+Guid resumedFocusId = Guid.NewGuid();
+await new JsonUsageStore(resumedFocusUsagePath).ReplaceAsync(new UsageLedger
+{
+    LocalDay = DateOnly.FromDateTime(DateTime.Today),
+    ActiveFocusSessionId = resumedFocusId,
+    ActiveFocusTargetSeconds = 1500,
+    ActiveFocusElapsedSeconds = 600,
+    LastUpdatedUtc = DateTimeOffset.UtcNow
+});
+using (SessionViewModel resumedFocusViewModel = new(
+    resumedFocusSettingsStore,
+    new JsonUsageStore(resumedFocusUsagePath)))
+{
+    await resumedFocusViewModel.InitializeAsync();
+    Assert(resumedFocusViewModel.HasCountdown && resumedFocusViewModel.RemainingSeconds == 900,
+        "Yarım kalan aktif odak oturumu yeniden açılışta ilerlemesiyle yüklenmedi.");
+}
+JsonUsageStore completedFocusStore = new(resumedFocusUsagePath);
+UsageLedger staleActiveFocus = await completedFocusStore.LoadAsync();
+UsageLedger completedFocus = await completedFocusStore.LoadAsync();
+completedFocus.ActiveFocusSessionId = null;
+completedFocus.ActiveFocusTargetSeconds = 0;
+completedFocus.ActiveFocusElapsedSeconds = 0;
+completedFocus.FocusSessionCount = 1;
+completedFocus.FocusCompletedSeconds = 1500;
+completedFocus.LastUpdatedUtc = DateTimeOffset.UtcNow.AddSeconds(1);
+await completedFocusStore.SaveAsync(completedFocus);
+await completedFocusStore.SaveAsync(staleActiveFocus);
+UsageLedger focusAfterStaleSave = await completedFocusStore.LoadAsync();
+Assert(focusAfterStaleSave.ActiveFocusSessionId is null && focusAfterStaleSave.FocusSessionCount == 1 &&
+       focusAfterStaleSave.FocusCompletedSeconds == 1500,
+    "Tamamlanan odak oturumu eski eşzamanlı kayıtla dirildi veya iki kez sayıldı.");
 string focusPreferencesPath = Path.Combine(testDirectory, "focus-preferences.json");
 JsonFocusPreferencesStore focusPreferencesStore = new(focusPreferencesPath);
 await focusPreferencesStore.SaveLastDurationAsync(50);
@@ -907,6 +1005,12 @@ Assert(!rhythmPreferences.ShouldShowSuggestion(reminderNow) &&
 await rhythmPreferencesStore.SaveAsync(RhythmSuggestionPreference.Hidden);
 Assert(!(await rhythmPreferencesStore.LoadAsync()).ShouldShowSuggestion(reminderNow.AddYears(1)),
     "Ritim önerisinin gizle tercihi kalıcı değil.");
+await rhythmPreferencesStore.MarkMilestoneCelebratedAsync(7);
+await rhythmPreferencesStore.SaveAsync(RhythmSuggestionPreference.Visible);
+RhythmPreferences celebratedPreferences = await rhythmPreferencesStore.LoadAsync();
+Assert(celebratedPreferences.LastCelebratedStreakMilestone == 7 &&
+       celebratedPreferences.ShouldShowSuggestion(reminderNow),
+    "Tek seferlik seri kutlaması öneri tercihi değişirken kayboldu.");
 System.Windows.Media.Imaging.BitmapSource rhythmCard = RhythmShareCardRenderer.Create(
     "Haftalık Ritimim", "7 gün", "14 gün", "↓ %12", "2 sa", english: false);
 Assert(rhythmCard.PixelWidth == 1200 && rhythmCard.PixelHeight == 630,
@@ -1126,7 +1230,7 @@ await File.WriteAllTextAsync(migrationUsagePath, """
 """);
 JsonUsageStore migrationUsageStore = new(migrationUsagePath);
 UsageLedger migratedUsage = await migrationUsageStore.LoadAsync();
-Assert(migratedUsage.SchemaVersion == 7 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 7'ye taşınmadı.");
+Assert(migratedUsage.SchemaVersion == 8 && migrationUsageStore.LastLoadMigrated, "Kullanım verisi şema 8'e taşınmadı.");
 Assert(migratedUsage.AwarenessHourlyUsedSeconds.Count == 0, "Eski kullanım verisine sahte saatlik dağılım eklendi.");
 Assert(File.Exists(migrationUsageStore.BackupPath), "Migration sonrasında sağlam kullanım yedeği oluşturulmadı.");
 
@@ -1191,7 +1295,9 @@ UsageLedger staleBeforeClear = retainedUsage;
 UsageLedger clearedGeneration = await retentionUsageStore.ClearAsync();
 await retentionUsageStore.SaveAsync(staleBeforeClear);
 UsageLedger afterStaleSave = await retentionUsageStore.LoadAsync();
-Assert(afterStaleSave.DataGeneration == clearedGeneration.DataGeneration && afterStaleSave.History.Count == 0 && afterStaleSave.RecentEvents.Count == 0,
+Assert(afterStaleSave.DataGeneration == clearedGeneration.DataGeneration && afterStaleSave.History.Count == 0 &&
+       afterStaleSave.RecentEvents.Count == 0 && afterStaleSave.RhythmCheckpoint.ProcessedThroughDay is null &&
+       afterStaleSave.RhythmCheckpoint.BestStreak == 0,
     "Silme sonrasında gelen eski arka plan kaydı geçmişi geri oluşturdu.");
 
 UsageLedger awarenessLedger = new();
@@ -1318,7 +1424,7 @@ Assert(loadedLedger.UsedSeconds == ledger.UsedSeconds, "Kullanım kaydı geri y�
 string legacyPath = Path.Combine(testDirectory, "legacy-settings.json");
 await File.WriteAllTextAsync(legacyPath, "{\"SchemaVersion\":1,\"DeviceName\":\"Eski Kurulum\"}");
 ControlSettings migratedSettings = await new JsonSettingsStore(legacyPath).LoadAsync();
-Assert(migratedSettings.SchemaVersion == 9, "Eski ayar şeması yükseltilemedi.");
+Assert(migratedSettings.SchemaVersion == 10, "Eski ayar şeması yükseltilemedi.");
 Assert(migratedSettings.Mode == UsageMode.Family &&
        migratedSettings.PersonalProtectionLevel == PersonalProtectionLevel.Balanced &&
        !migratedSettings.StrictPersonalMode,
@@ -1384,8 +1490,8 @@ ControlSettings reviewStreakSettings = new() { Mode = UsageMode.Insights };
 UsageLedger reviewStreakLedger = new() { LocalDay = rhythmToday, SummaryReviewed = true, AwarenessUsedSeconds = 60 };
 reviewStreakLedger.History =
 [
-    new DailyUsageRecord { LocalDay = rhythmToday.AddDays(-2), AwarenessUsedSeconds = 60, SummaryReviewed = true },
-    new DailyUsageRecord { LocalDay = rhythmToday.AddDays(-1), AwarenessUsedSeconds = 60, SummaryReviewed = true }
+    new DailyUsageRecord { LocalDay = rhythmToday.AddDays(-2), AwarenessUsedSeconds = 60, SummaryReviewed = true, RhythmGoal = RhythmGoalKind.ReviewSummary, RhythmOutcome = RhythmDayOutcome.Success, RhythmMeasurementAvailable = true },
+    new DailyUsageRecord { LocalDay = rhythmToday.AddDays(-1), AwarenessUsedSeconds = 60, SummaryReviewed = true, RhythmGoal = RhythmGoalKind.ReviewSummary, RhythmOutcome = RhythmDayOutcome.Success, RhythmMeasurementAvailable = true }
 ];
 RhythmStreakSummary reviewStreak = RhythmStreakAnalyzer.Analyze(reviewStreakSettings, reviewStreakLedger, rhythmToday);
 Assert(reviewStreak.Goal == RhythmGoalKind.ReviewSummary && reviewStreak.CurrentStreak == 3 &&
@@ -1403,12 +1509,15 @@ focusStreakLedger.History = Enumerable.Range(1, 8)
         LocalDay = rhythmToday.AddDays(-9 + offset),
         UsedSeconds = 60,
         FocusSessionCount = offset <= 7 ? 1 : 0,
-        FocusCompletedSeconds = offset <= 7 ? 1500 : 0
+        FocusCompletedSeconds = offset <= 7 ? 1500 : 0,
+        RhythmGoal = RhythmGoalKind.CompleteFocus,
+        RhythmOutcome = offset <= 7 ? RhythmDayOutcome.Success : RhythmDayOutcome.Missed,
+        RhythmMeasurementAvailable = true
     })
     .ToList();
 RhythmStreakSummary protectedStreak = RhythmStreakAnalyzer.Analyze(focusStreakSettings, focusStreakLedger, rhythmToday);
 Assert(protectedStreak.CurrentStreak == 7 && protectedStreak.Protectors == 0 &&
-       protectedStreak.TodayOutcome == RhythmDayOutcome.Rest,
+       protectedStreak.TodayOutcome == RhythmDayOutcome.Pending,
     "Yedi günlük odak serisinin kazandırdığı Ritim Koruyucu kaçırılan günü korumadı.");
 UsageLedger todayProtectedLedger = new()
 {
@@ -1420,19 +1529,142 @@ UsageLedger todayProtectedLedger = new()
             LocalDay = rhythmToday.AddDays(-8 + offset),
             UsedSeconds = 60,
             FocusSessionCount = 1,
-            FocusCompletedSeconds = 1500
+            FocusCompletedSeconds = 1500,
+            RhythmGoal = RhythmGoalKind.CompleteFocus,
+            RhythmOutcome = RhythmDayOutcome.Success,
+            RhythmMeasurementAvailable = true
         })
         .ToList()
 };
 RhythmStreakSummary todayProtected = RhythmStreakAnalyzer.Analyze(focusStreakSettings, todayProtectedLedger, rhythmToday);
-Assert(todayProtected.CurrentStreak == 7 && todayProtected.Protectors == 0 &&
-       todayProtected.TodayOutcome == RhythmDayOutcome.Protected,
-    "Bugün kullanılan Ritim Koruyucu kullanıcıya görünür sonuç üretmedi.");
+Assert(todayProtected.CurrentStreak == 7 && todayProtected.Protectors == 1 &&
+       todayProtected.TodayOutcome == RhythmDayOutcome.Pending,
+    "Tamamlanmamış bugünkü hedef gün kapanmadan Ritim Koruyucu tüketti.");
 todayProtectedLedger.RhythmExcused = true;
 RhythmStreakSummary excusedStreak = RhythmStreakAnalyzer.Analyze(focusStreakSettings, todayProtectedLedger, rhythmToday);
 Assert(excusedStreak.CurrentStreak == 7 && excusedStreak.Protectors == 1 &&
        excusedStreak.TodayOutcome == RhythmDayOutcome.Excused,
     "Geçici izin veya kurtarma günü seriyi bozdu ya da koruyucu tüketti.");
+ControlSettings disabledFocusSchedule = new()
+{
+    Mode = UsageMode.Personal,
+    PersonalProtectionLevel = PersonalProtectionLevel.Flexible
+};
+disabledFocusSchedule.Schedule.Single(item => item.Day == rhythmToday.DayOfWeek).IsEnabled = false;
+RhythmStreakSummary disabledFocusToday = RhythmStreakAnalyzer.Analyze(
+    disabledFocusSchedule,
+    new UsageLedger { LocalDay = rhythmToday, UsedSeconds = 60 },
+    rhythmToday);
+Assert(disabledFocusToday.TodayOutcome == RhythmDayOutcome.Pending,
+    "Uygulama erişim planının kapalı günü Esnek odak ritmine dinlenme günü olarak sızdı.");
+
+UsageLedger snapshottedGoalLedger = new()
+{
+    LocalDay = rhythmToday,
+    UsedSeconds = 1500,
+    FocusSessionCount = 1,
+    FocusCompletedSeconds = 1500
+};
+_ = new SessionEngine(focusStreakSettings, snapshottedGoalLedger, new DateTimeOffset(2026, 8, 24, 20, 0, 0, TimeSpan.FromHours(3)));
+Assert(snapshottedGoalLedger.RhythmGoal == RhythmGoalKind.CompleteFocus,
+    "Günün ritim hedefi ilk kullanımda sabitlenmedi.");
+Assert(snapshottedGoalLedger.RhythmFocusTargetKind == FocusRhythmTargetKind.Minutes &&
+       snapshottedGoalLedger.RhythmGoalTarget == 25,
+    "Esnek kişisel modun dakika hedefi gün kaydına sabitlenmedi.");
+DailyUsageRecord minuteTargetDay = new()
+{
+    LocalDay = rhythmToday,
+    UsedSeconds = 60,
+    FocusSessionCount = 1,
+    FocusCompletedSeconds = 10 * 60,
+    RhythmGoal = RhythmGoalKind.CompleteFocus,
+    RhythmFocusTargetKind = FocusRhythmTargetKind.Minutes,
+    RhythmGoalTarget = 25,
+    RhythmMeasurementAvailable = true
+};
+RhythmStreakAnalyzer.FinalizeDay(minuteTargetDay);
+Assert(minuteTargetDay.RhythmOutcome == RhythmDayOutcome.Missed,
+    "Kısa bir odak oturumu 25 dakikalık hedefi yanlışlıkla tamamladı.");
+DailyUsageRecord sessionTargetDay = new()
+{
+    LocalDay = rhythmToday,
+    UsedSeconds = 60,
+    FocusSessionCount = 2,
+    FocusCompletedSeconds = 10 * 60,
+    RhythmGoal = RhythmGoalKind.CompleteFocus,
+    RhythmFocusTargetKind = FocusRhythmTargetKind.Sessions,
+    RhythmGoalTarget = 2,
+    RhythmMeasurementAvailable = true
+};
+RhythmStreakAnalyzer.FinalizeDay(sessionTargetDay);
+Assert(sessionTargetDay.RhythmOutcome == RhythmDayOutcome.Success,
+    "Oturum sayısı hedefi gerçek tamamlanan oturumları saymadı.");
+DailyUsageRecord clippedBalanceDay = new()
+{
+    LocalDay = rhythmToday,
+    UsedSeconds = 60 * 60,
+    LimitReachedCount = 1,
+    RhythmGoal = RhythmGoalKind.KeepBalance,
+    RhythmDailyLimitMinutes = 60,
+    RhythmMeasurementAvailable = true
+};
+RhythmStreakAnalyzer.FinalizeDay(clippedBalanceDay);
+Assert(clippedBalanceDay.RhythmOutcome == RhythmDayOutcome.Missed,
+    "Limitte kesilmiş sayaç ölçülebilir limit ihlalini yanlışlıkla başarı saydı.");
+IReadOnlyList<RhythmDayResult> recentRhythmDays = RhythmStreakAnalyzer.BuildRecentDays(
+    focusStreakSettings, focusStreakLedger, rhythmToday);
+Assert(recentRhythmDays.Count == 7 && recentRhythmDays.Select(day => day.Day).Distinct().Count() == 7,
+    "Yedi günlük ritim şeridi aynı gün kayıtlarından oluşturulmadı.");
+ControlSettings changedNextDaySettings = new()
+{
+    Mode = UsageMode.Insights,
+    AwarenessTrackingEnabled = true
+};
+_ = new SessionEngine(changedNextDaySettings, snapshottedGoalLedger, new DateTimeOffset(2026, 8, 25, 9, 0, 0, TimeSpan.FromHours(3)));
+DailyUsageRecord snapshottedDay = snapshottedGoalLedger.History.Single(item => item.LocalDay == rhythmToday);
+Assert(snapshottedDay.RhythmGoal == RhythmGoalKind.CompleteFocus &&
+       snapshottedDay.RhythmOutcome == RhythmDayOutcome.Success,
+    "Mod değişikliği arşivlenen günün hedefini veya sonucunu geriye dönük değiştirdi.");
+RhythmStreakSummary changedModeStreak = RhythmStreakAnalyzer.Analyze(changedNextDaySettings, snapshottedGoalLedger, rhythmToday.AddDays(1));
+Assert(changedModeStreak.CurrentStreak == 1 && changedModeStreak.TodayOutcome == RhythmDayOutcome.Pending,
+    "Geçmiş hedef sonucu yeni modla yeniden yorumlandı.");
+
+UsageLedger unknownLegacyRhythm = new()
+{
+    LocalDay = rhythmToday,
+    History =
+    [
+        new DailyUsageRecord { LocalDay = rhythmToday.AddDays(-1), UsedSeconds = 60 }
+    ]
+};
+RhythmStreakSummary unknownLegacyResult = RhythmStreakAnalyzer.Analyze(focusStreakSettings, unknownLegacyRhythm, rhythmToday);
+Assert(unknownLegacyResult.CurrentStreak == 0 && unknownLegacyResult.TodayOutcome == RhythmDayOutcome.Pending,
+    "Hedefi bilinmeyen eski gün bugünkü ayarla ödül veya ceza üretti.");
+
+string rhythmCheckpointPath = Path.Combine(testDirectory, "rhythm-checkpoint-usage.json");
+DateOnly checkpointToday = DateOnly.FromDateTime(DateTime.Today);
+UsageLedger checkpointLedger = new() { LocalDay = checkpointToday };
+checkpointLedger.History = Enumerable.Range(1, 35)
+    .Select(offset => new DailyUsageRecord
+    {
+        LocalDay = checkpointToday.AddDays(-36 + offset),
+        RhythmGoal = RhythmGoalKind.CompleteFocus,
+        RhythmOutcome = RhythmDayOutcome.Success,
+        RhythmMeasurementAvailable = true,
+        UsedSeconds = 1500,
+        FocusSessionCount = 1,
+        FocusCompletedSeconds = 1500
+    })
+    .ToList();
+JsonUsageStore rhythmCheckpointStore = new(rhythmCheckpointPath);
+await rhythmCheckpointStore.ReplaceAsync(checkpointLedger);
+await rhythmCheckpointStore.TrimHistoryAsync(30);
+UsageLedger trimmedRhythmLedger = await rhythmCheckpointStore.LoadAsync();
+RhythmStreakSummary retainedLongStreak = RhythmStreakAnalyzer.Analyze(focusStreakSettings, trimmedRhythmLedger, checkpointToday);
+Assert(trimmedRhythmLedger.History.Count == 29 &&
+       trimmedRhythmLedger.RhythmCheckpoint.ProcessedThroughDay == checkpointToday.AddDays(-30) &&
+       retainedLongStreak.CurrentStreak == 35 && retainedLongStreak.BestStreak == 35,
+    "Ham geçmiş budanınca uzun dönem ritim özeti veya en iyi seri kayboldu.");
 Assert(rhythm.IsGoalEnabled && rhythm.IsGoalMet && rhythm.GoalDailySeconds == 4860, "Kullanıcı onaylı azaltma hedefi yanlış değerlendirildi.");
 Assert(rhythm.RisingApplication == "editor" && rhythm.FallingApplication == "browser", "Uygulama artış/azalış eğilimi yanlış bulundu.");
 Assert(rhythm.FocusCompletedSeconds == 1200, "Haftalık tamamlanan odak süresi özete eklenmedi.");
@@ -1781,6 +2013,24 @@ Assert(SessionViewModel.ShouldAllowExtraTimeRequest(familyExtraTimeSettings, Ses
        !SessionViewModel.ShouldAllowExtraTimeRequest(familyExtraTimeSettings, SessionState.Ready) &&
        !SessionViewModel.ShouldAllowExtraTimeRequest(familyExtraTimeSettings, SessionState.OutsideSchedule),
     "Aile modunda ek süre eylemi oturum sürerken ve süre dolduğunda doğru görünmüyor.");
+UsageLedger explanationLedger = new()
+{
+    LocalDay = DateOnly.FromDateTime(DateTime.Today),
+    State = SessionState.TimeExpired,
+    BonusMinutes = 15
+};
+SessionStatusExplanation expiredExplanation = SessionStatusExplainer.Explain(
+    familyExtraTimeSettings, explanationLedger, SessionState.TimeExpired, DateTimeOffset.Now);
+Assert(expiredExplanation.Reason == SessionStatusReason.DailyLimit &&
+       expiredExplanation.ActionAvailable && expiredExplanation.AccessibleText.Contains("PIN", StringComparison.Ordinal),
+    "Ortak durum modeli günlük limit nedenini ve yerel PIN eylemini açıklamadı.");
+AppRule previewRule = new() { Id = Guid.NewGuid(), Name = "Preview", Mode = AppRuleMode.Limited, DailyLimitMinutes = 1 };
+explanationLedger.AppUsedSeconds[previewRule.Id] = 60;
+SessionStatusExplanation applicationPreview = SessionStatusExplainer.PreviewApplication(
+    familyExtraTimeSettings, explanationLedger, previewRule, SessionState.Active, DateTimeOffset.Now);
+Assert(applicationPreview.Reason == SessionStatusReason.ApplicationLimit &&
+       applicationPreview.WhatHappened.Contains("engellenir", StringComparison.OrdinalIgnoreCase),
+    "Kural önizlemesi gerçek uygulama enforcement hesabıyla eşleşmedi.");
 
 AdminCredential guardedCredential = AdminPinService.CreateInternalCredential();
 await personalViewModel.SetUsageModeAsync(

@@ -839,7 +839,7 @@ public partial class SetupWindow : Window
         {
             UsageMode.Insights => T("ilk ritim hedefi: günlük özeti incele", "first rhythm goal: review the daily summary"),
             UsageMode.Personal when _plan.PersonalLevel == PersonalProtectionLevel.Flexible =>
-                T("ilk ritim hedefi: bir odak oturumu tamamla", "first rhythm goal: complete one focus session"),
+                T("ilk ritim hedefi: 25 dakika odak", "first rhythm goal: 25 minutes of focus"),
             _ => T("ilk ritim hedefi: günlük dengeni koru", "first rhythm goal: keep your daily balance")
         });
         if (_plan.RequiresGuardian) options.Add("Guardian");

@@ -6,6 +6,8 @@ using Kvieta.App.Services;
 
 namespace Kvieta.App.ViewModels;
 
+public sealed record FocusSessionClosure(bool Completed, long ActiveSeconds, long TargetSeconds, string Intention);
+
 public sealed class SessionViewModel : ObservableObject, IDisposable
 {
     private JsonSettingsStore _settingsStore;
@@ -25,7 +27,10 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     private bool _clockAnomalyAudited;
     private bool _usageSuspendedForAdministration;
     private long _flexibleSessionBaselineSeconds;
-    private readonly FocusSessionGoal? _focusGoal;
+    private FocusSessionGoal? _focusGoal;
+    private readonly int? _requestedFocusDurationMinutes;
+    private string _focusIntention = string.Empty;
+    private FocusSessionClosure? _focusClosure;
 
     public SessionViewModel(
         JsonSettingsStore? settingsStore = null,
@@ -34,7 +39,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     {
         _settingsStore = settingsStore ?? new JsonSettingsStore();
         _usageStore = usageStore ?? new JsonUsageStore();
-        _focusGoal = focusDurationMinutes is > 0 ? new FocusSessionGoal(focusDurationMinutes.Value) : null;
+        _requestedFocusDurationMinutes = focusDurationMinutes is > 0 ? focusDurationMinutes : null;
     }
 
     public void Dispose() => _applicationRuleEnforcer.Dispose();
@@ -46,6 +51,39 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     public bool CanStartOrResume =>
         _focusGoal?.IsCompleted != true && State is (SessionState.Ready or SessionState.Paused);
     public bool CanEndSession => State == SessionState.Paused;
+    public bool HasFocusSession => _focusGoal is not null && _focusClosure is null;
+    public bool HasFocusClosure => _focusClosure is not null;
+    public bool CanContinueAfterFocus => HasFocusClosure && IsFlexiblePersonalMode &&
+        State is SessionState.Ready or SessionState.Paused;
+    public string FocusIntention
+    {
+        get => _focusIntention;
+        set
+        {
+            string clean = (value ?? string.Empty).Replace('\r', ' ').Replace('\n', ' ');
+            SetProperty(ref _focusIntention, clean[..Math.Min(80, clean.Length)]);
+        }
+    }
+    public string FocusClosureTitle => _focusClosure?.Completed == true
+        ? LocalizationService.Get("FocusCompletedHeadline")
+        : LocalizationService.Get("FocusEndedEarlyHeadline");
+    public string FocusClosureSummary => _focusClosure is null ? string.Empty :
+        string.Format(LocalizationService.Get(_focusClosure.Completed ? "FocusCompletedSummary" : "FocusEndedEarlySummary"),
+            FormatDuration(_focusClosure.ActiveSeconds));
+    public string FocusClosureGoalProgress
+    {
+        get
+        {
+            if (_focusClosure is null || _engine is null) return string.Empty;
+            long progress = _engine.Ledger.RhythmFocusTargetKind == FocusRhythmTargetKind.Minutes
+                ? _engine.Ledger.FocusCompletedSeconds / 60
+                : _engine.Ledger.FocusSessionCount;
+            string unit = _engine.Ledger.RhythmFocusTargetKind == FocusRhythmTargetKind.Minutes
+                ? LocalizationService.Get("MinuteShort")
+                : LocalizationService.Get("FocusSessionsShort");
+            return string.Format(LocalizationService.Get("DailyGoalProgressFormat"), progress, _engine.Ledger.RhythmGoalTarget, unit);
+        }
+    }
     public bool IsBlocked => State is SessionState.TimeExpired or SessionState.OutsideSchedule;
     public bool ShouldShowSessionSurfaces => _settings?.Mode != UsageMode.Insights;
     public bool IsProtectedPersonalMode =>
@@ -68,13 +106,9 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         ? FocusRemainingSeconds()
         : Math.Max(0, _snapshot?.RemainingSeconds ?? 0);
     public IReadOnlyList<int> WarningMinutes => _settings?.WarningMinutes ?? [15, 5, 1];
-    public string BlockedReasonText => State switch
-    {
-        SessionState.OutsideSchedule when IsClockRollbackDetected => LocalizationService.Get("ClockRollbackBlocked"),
-        SessionState.OutsideSchedule => LocalizationService.Get("CannotStartOutsideSchedule"),
-        SessionState.TimeExpired => LocalizationService.Get("CannotStartTimeExpired"),
-        _ => string.Empty
-    };
+    public string BlockedReasonText => IsBlocked
+        ? CurrentStatusExplanation?.WhatHappened ?? string.Empty
+        : string.Empty;
 
     public string StateLabel => _focusGoal?.IsCompleted == true
         ? LocalizationService.Get("FocusCompletedState")
@@ -103,6 +137,12 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
     public string Description => _focusGoal?.IsCompleted == true
         ? LocalizationService.Get("FocusCompletedDescription")
         : _persistenceWarning ?? _snapshot?.Reason ?? "Kullanım bilgileri yükleniyor…";
+    public string StatusExplanationText => CurrentStatusExplanation?.AccessibleText ?? string.Empty;
+    private SessionStatusExplanation? CurrentStatusExplanation => _settings is null || _engine is null
+        ? null
+        : SessionStatusExplainer.Explain(
+            _settings, _engine.Ledger, State, DateTimeOffset.Now,
+            _settings.RequiresGuardian && ProtectionServiceManager.GetState() != ProtectionServiceState.Running);
     public bool HasCountdown => _focusGoal is not null || !IsFlexiblePersonalMode;
     public string TimeMetricLabel => LocalizationService.Get(
         _focusGoal is null && IsFlexiblePersonalMode ? "ElapsedTimeLong" : "RemainingTimeLong");
@@ -128,7 +168,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         {
             if (_focusGoal is not null)
             {
-                return _focusGoal.ProgressPercent(_snapshot?.UsedSeconds ?? 0);
+                return _focusGoal.ProgressPercent();
             }
 
             long limit = _snapshot?.LimitSeconds ?? 0;
@@ -154,9 +194,22 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         _settingsLastWriteUtc = GetSettingsLastWriteUtc();
         _pendingApplyAfterUtc = settings.PendingChange?.ApplyAfterUtc;
         UsageLedger ledger = await _usageStore.LoadAsync();
+        if (_requestedFocusDurationMinutes is { } requestedMinutes)
+        {
+            _focusGoal = new FocusSessionGoal(requestedMinutes);
+            _focusGoal.Start();
+            ledger.ActiveFocusSessionId = Guid.NewGuid();
+            ledger.ActiveFocusTargetSeconds = _focusGoal.DurationSeconds;
+            ledger.ActiveFocusElapsedSeconds = 0;
+        }
+        else if (ledger.ActiveFocusSessionId is not null && ledger.ActiveFocusTargetSeconds > 0)
+        {
+            _focusGoal = FocusSessionGoal.Restore(
+                ledger.ActiveFocusTargetSeconds,
+                ledger.ActiveFocusElapsedSeconds);
+        }
         _engine = new SessionEngine(settings, ledger, DateTimeOffset.Now);
         _flexibleSessionBaselineSeconds = ledger.UsedSeconds;
-        _focusGoal?.Start(ledger.UsedSeconds);
         _engine.ObserveClock(DateTimeOffset.Now, WindowsMonotonicClock.Uptime, WindowsMonotonicClock.GetBootId());
         _tickWatch.Restart();
         RefreshSnapshot(notifyStateChange: false);
@@ -233,16 +286,14 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         {
             long wholeSeconds = (long)Math.Floor(_uncommittedSeconds);
             _uncommittedSeconds -= wholeSeconds;
-            _engine.Accrue(TimeSpan.FromSeconds(wholeSeconds), DateTimeOffset.Now);
+            long activeSeconds = _engine.Accrue(TimeSpan.FromSeconds(wholeSeconds), DateTimeOffset.Now);
+            AccrueFocus(activeSeconds);
         }
 
         RefreshSnapshot(notifyStateChange: true);
 
-        if (_focusGoal?.CompleteIfReached(_engine.Ledger.UsedSeconds) == true)
+        if (TryCompleteFocus())
         {
-            _engine.Ledger.FocusSessionCount++;
-            _engine.Ledger.FocusCompletedSeconds += _focusGoal.DurationSeconds;
-            _engine.EndSession(DateTimeOffset.Now);
             RefreshSnapshot(notifyStateChange: true);
             await SaveAsync();
             return;
@@ -336,6 +387,10 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         }
 
         CommitPendingActiveTime();
+        if (TryCompleteFocus())
+        {
+            return true;
+        }
         bool paused = _engine.Pause(DateTimeOffset.Now);
         if (paused)
         {
@@ -354,7 +409,13 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         }
 
         CommitPendingActiveTime();
+        if (!TryCompleteFocus() && _focusGoal is not null)
+        {
+            _focusClosure = new FocusSessionClosure(false, _focusGoal.ElapsedSeconds, _focusGoal.DurationSeconds, FocusIntention);
+        }
         _engine.EndSession(DateTimeOffset.Now);
+        ClearPersistedFocus();
+        _focusGoal = null;
         if (IsFlexiblePersonalMode)
         {
             _flexibleSessionBaselineSeconds = _engine.Ledger.UsedSeconds;
@@ -362,6 +423,35 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         _pauseStartedAt = null;
         RefreshSnapshot(notifyStateChange: true);
         await SaveAsync();
+    }
+
+    public async Task<bool> ContinueAfterFocusAsync()
+    {
+        if (_engine is null || _focusClosure is null || !CanContinueAfterFocus) return false;
+        long targetSeconds = _focusClosure.TargetSeconds;
+        _focusClosure = null;
+        FocusIntention = string.Empty;
+        _focusGoal = FocusSessionGoal.Restore(targetSeconds, 0);
+        _focusGoal.Start();
+        _engine.Ledger.ActiveFocusSessionId = Guid.NewGuid();
+        _engine.Ledger.ActiveFocusTargetSeconds = targetSeconds;
+        _engine.Ledger.ActiveFocusElapsedSeconds = 0;
+        bool started = _engine.StartOrResume(DateTimeOffset.Now);
+        if (!started)
+        {
+            ClearPersistedFocus();
+            _focusGoal = null;
+        }
+        RefreshSnapshot(notifyStateChange: true);
+        await SaveAsync();
+        return started;
+    }
+
+    public void DismissFocusClosure()
+    {
+        _focusClosure = null;
+        FocusIntention = string.Empty;
+        RefreshSnapshot(notifyStateChange: true);
     }
 
     public async Task AddBonusMinutesAsync(int minutes)
@@ -389,7 +479,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         {
             ControlSettings target = pending.TargetSettings;
             target.PendingChange = null;
-            target.SchemaVersion = 9;
+            target.SchemaVersion = 10;
             target.SetupCompleted = true;
             await _settingsStore.SaveAsync(target);
             _settings = target;
@@ -497,6 +587,10 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
 
         bool wasActive = IsActive;
         UsageLedger ledger = await _usageStore.LoadAsync();
+        if (ledger.ActiveFocusSessionId is null)
+        {
+            _focusGoal = null;
+        }
         _engine = new SessionEngine(_settings, ledger, DateTimeOffset.Now);
         if (wasActive || _settings.Mode == UsageMode.Insights)
         {
@@ -538,8 +632,38 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         _uncommittedSeconds -= wholeSeconds;
         if (wholeSeconds > 0)
         {
-            _engine.Accrue(TimeSpan.FromSeconds(wholeSeconds), DateTimeOffset.Now);
+            long activeSeconds = _engine.Accrue(TimeSpan.FromSeconds(wholeSeconds), DateTimeOffset.Now);
+            AccrueFocus(activeSeconds);
         }
+    }
+
+    private void AccrueFocus(long activeSeconds)
+    {
+        if (_engine is null || _focusGoal is null || activeSeconds <= 0) return;
+        _focusGoal.Accrue(activeSeconds);
+        if (_engine.Ledger.ActiveFocusSessionId is not null)
+        {
+            _engine.Ledger.ActiveFocusElapsedSeconds = _focusGoal.ElapsedSeconds;
+        }
+    }
+
+    private void ClearPersistedFocus()
+    {
+        if (_engine is null) return;
+        _engine.Ledger.ActiveFocusSessionId = null;
+        _engine.Ledger.ActiveFocusTargetSeconds = 0;
+        _engine.Ledger.ActiveFocusElapsedSeconds = 0;
+    }
+
+    private bool TryCompleteFocus()
+    {
+        if (_engine is null || _focusGoal?.CompleteIfReached() != true) return false;
+        _engine.Ledger.FocusSessionCount++;
+        _engine.Ledger.FocusCompletedSeconds += _focusGoal.DurationSeconds;
+        _focusClosure = new FocusSessionClosure(true, _focusGoal.ElapsedSeconds, _focusGoal.DurationSeconds, FocusIntention);
+        ClearPersistedFocus();
+        _engine.EndSession(DateTimeOffset.Now);
+        return true;
     }
 
     private void RefreshSnapshot(bool notifyStateChange)
@@ -556,6 +680,9 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsActive));
         OnPropertyChanged(nameof(CanStartOrResume));
         OnPropertyChanged(nameof(CanEndSession));
+        OnPropertyChanged(nameof(HasFocusSession));
+        OnPropertyChanged(nameof(HasFocusClosure));
+        OnPropertyChanged(nameof(CanContinueAfterFocus));
         OnPropertyChanged(nameof(IsBlocked));
         OnPropertyChanged(nameof(CanRequestExtraTime));
         OnPropertyChanged(nameof(CanPlanTomorrow));
@@ -569,6 +696,10 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(StateLabel));
         OnPropertyChanged(nameof(Headline));
         OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(StatusExplanationText));
+        OnPropertyChanged(nameof(FocusClosureTitle));
+        OnPropertyChanged(nameof(FocusClosureSummary));
+        OnPropertyChanged(nameof(FocusClosureGoalProgress));
         OnPropertyChanged(nameof(RemainingText));
         OnPropertyChanged(nameof(UsedText));
         OnPropertyChanged(nameof(LimitText));
@@ -607,7 +738,7 @@ public sealed class SessionViewModel : ObservableObject, IDisposable
             return 0;
         }
 
-        long focusRemaining = _focusGoal.RemainingSeconds(_snapshot?.UsedSeconds ?? 0);
+        long focusRemaining = _focusGoal.RemainingSeconds();
         if (IsFlexiblePersonalMode || _snapshot is null)
         {
             return focusRemaining;

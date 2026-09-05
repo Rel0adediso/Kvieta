@@ -51,7 +51,9 @@ public sealed class MainViewModel : ObservableObject
     private UsageLedger? _lastUsageLedger;
     private string _selectedHistoryDaySummaryText = "—";
     private AdminCredential? _stagedAdminCredential;
-    private bool _summaryReviewRecorded;
+    private string _dailyRhythmGoal = "25 dk odak";
+    private string _selectedRhythmDayText = "—";
+    private int? _suggestedReductionPercent;
 
     public MainViewModel(JsonSettingsStore? settingsStore = null, JsonUsageStore? usageStore = null)
     {
@@ -67,12 +69,14 @@ public sealed class MainViewModel : ObservableObject
     public IReadOnlyList<string> LanguageModes { get; } = ["Türkçe", "English"];
     public ObservableCollection<string> ChangeDelayOptions { get; } = [];
     public ObservableCollection<string> ReductionGoalOptions { get; } = [];
+    public ObservableCollection<string> DailyRhythmGoalOptions { get; } = [];
     public ObservableCollection<string> RetentionOptions { get; } = [];
     public ObservableCollection<UsageHistoryDayRow> HistoryDays { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> TodayApplications { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryApplications { get; } = [];
     public ObservableCollection<AppUsageHistoryRow> HistoryAllApplications { get; } = [];
     public ObservableCollection<UsageHistoryEventRow> HistoryEvents { get; } = [];
+    public ObservableCollection<RhythmDayRow> RhythmDays { get; } = [];
 
     public int SelectedPageIndex
     {
@@ -204,6 +208,7 @@ public sealed class MainViewModel : ObservableObject
                 OnPropertyChanged(nameof(HasScheduledPlan));
                 OnPropertyChanged(nameof(TodayDescriptionText));
                 OnPropertyChanged(nameof(RhythmPlanMetricLabel));
+                RefreshDailyRhythmGoalOptions();
                 if (value == UsageMode.Insights && SelectedPageIndex is 1 or 2)
                 {
                     SelectedPageIndex = 0;
@@ -315,6 +320,7 @@ public sealed class MainViewModel : ObservableObject
     public int RuleCount => AppRules.Count;
     public bool HasNoAppRules => AppRules.Count == 0;
     public string CurrentWindowStatus { get; private set; } = "Program yükleniyor…";
+    public string CurrentStatusExplanation { get; private set; } = "—";
     public string SettingsPath => _settingsStore.FilePath;
     public bool HasAdminPin => (_stagedAdminCredential ?? _settings.AdminPin).IsConfigured;
     public string AdminPinActionText => HasAdminPin ? LocalizationService.Get("ChangePin") : LocalizationService.Get("CreatePin");
@@ -349,6 +355,16 @@ public sealed class MainViewModel : ObservableObject
     public string RhythmStreakText { get; private set; } = "0";
     public string RhythmBestStreakText { get; private set; } = "0";
     public string RhythmProtectorText { get; private set; } = "0/2";
+    public string RhythmTodayProgressText { get; private set; } = "—";
+    public string RhythmSuggestionPreviewText { get; private set; } = "—";
+    public string RhythmWeekSymbolsText { get; private set; } = "—";
+    public bool CanApplyRhythmSuggestion { get; private set; }
+    public int? RhythmReachedMilestone { get; private set; }
+    public string SelectedRhythmDayText
+    {
+        get => _selectedRhythmDayText;
+        private set => SetProperty(ref _selectedRhythmDayText, value);
+    }
     public bool HasHistoryApplications => HistoryApplications.Count > 0;
     public bool HasNoHistoryApplications => !HasHistoryApplications;
     public bool HasHistoryEvents => HistoryEvents.Count > 0;
@@ -383,6 +399,7 @@ public sealed class MainViewModel : ObservableObject
             StrictPersonalMode = _settings.StrictPersonalMode;
             PersonalProtectionLevel = _settings.PersonalProtectionLevel;
             ReductionGoal = ToDisplayGoal(_settings.WeeklyReductionGoalPercent);
+            DailyRhythmGoal = ToDisplayDailyRhythmGoal(_settings.FocusRhythmTargetKind, _settings.FocusRhythmTargetValue);
             RetentionPeriod = ToDisplayRetention(_settings.UsageRetentionDays);
             SelectedUsageMode = _settings.Mode;
             ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
@@ -411,18 +428,32 @@ public sealed class MainViewModel : ObservableObject
     {
         UsageLedger ledger = await _usageStore.LoadAsync();
         DateOnly today = DateOnly.FromDateTime(DateTime.Today);
-        if (!_summaryReviewRecorded && SelectedPageIndex == 0)
-        {
-            _summaryReviewRecorded = true;
-            await _usageStore.MarkSummaryReviewedAsync(today);
-            ledger = await _usageStore.LoadAsync();
-        }
         _lastUsageLedger = ledger;
         UsedTodayMinutes = ledger.LocalDay == today
             ? (int)((IsInsightsMode ? ledger.AwarenessUsedSeconds : ledger.UsedSeconds) / 60)
             : 0;
         BuildUsageHistory(ledger);
         BuildRhythm(ledger);
+    }
+
+    public async Task MarkTodaySummaryReviewedAsync()
+    {
+        await _usageStore.MarkSummaryReviewedAsync(DateOnly.FromDateTime(DateTime.Today));
+        await ReloadUsageAsync();
+        StatusMessage = L("Günlük özet değerlendirildi; bugünün ritmine işlendi.", "Daily summary reviewed and recorded in today's rhythm.");
+    }
+
+    public async Task<bool> ApplyRhythmSuggestionAsync()
+    {
+        if (!CanApplyRhythmSuggestion || SuggestedReductionPercent() is not { } target) return false;
+        _settings = await _settingsStore.UpdateAsync(current =>
+        {
+            current.WeeklyReductionGoalPercent = target;
+            return current;
+        });
+        ReductionGoal = ToDisplayGoal(target);
+        if (_lastUsageLedger is not null) BuildRhythm(_lastUsageLedger);
+        return true;
     }
 
     public async Task<bool> ApplyPendingIfDueAsync()
@@ -438,6 +469,7 @@ public sealed class MainViewModel : ObservableObject
         StrictPersonalMode = _settings.StrictPersonalMode;
         PersonalProtectionLevel = _settings.PersonalProtectionLevel;
         ReductionGoal = ToDisplayGoal(_settings.WeeklyReductionGoalPercent);
+        DailyRhythmGoal = ToDisplayDailyRhythmGoal(_settings.FocusRhythmTargetKind, _settings.FocusRhythmTargetValue);
         RetentionPeriod = ToDisplayRetention(_settings.UsageRetentionDays);
         SelectedUsageMode = _settings.Mode;
         ChangeDelay = ToDisplayDelay(_settings.PersonalChangeDelayMinutes);
@@ -475,7 +507,7 @@ public sealed class MainViewModel : ObservableObject
 
             ControlSettings desired = new()
             {
-                SchemaVersion = 9,
+                SchemaVersion = 10,
                 SetupCompleted = true,
                 Mode = SelectedUsageMode,
                 DeviceName = string.IsNullOrWhiteSpace(DeviceName) ? LocalizationService.Get("DefaultDeviceName") : DeviceName.Trim(),
@@ -490,6 +522,8 @@ public sealed class MainViewModel : ObservableObject
                 StrictPersonalMode = StrictPersonalMode,
                 PersonalProtectionLevel = PersonalProtectionLevel,
                 WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal),
+                FocusRhythmTargetKind = FromDisplayDailyRhythmGoal(DailyRhythmGoal).Kind,
+                FocusRhythmTargetValue = FromDisplayDailyRhythmGoal(DailyRhythmGoal).Value,
                 AdminPin = _stagedAdminCredential ?? _settings.AdminPin,
                 RecoveryCodes = CloneRecoveryCodes(_settings.RecoveryCodes),
                 WarningMinutes = [15, 5, 1],
@@ -610,6 +644,12 @@ public sealed class MainViewModel : ObservableObject
         StatusMessage = L(
             "Uygulama kuralı hazır · Uygulamak için Kaydet'e bas.",
             "Application rule is ready · Press Save to apply it.");
+    }
+
+    public string DailyRhythmGoal
+    {
+        get => _dailyRhythmGoal;
+        set => SetProperty(ref _dailyRhythmGoal, value);
     }
 
     public string? FindApplicationRulePath(string applicationName) => AppRules
@@ -838,7 +878,9 @@ public sealed class MainViewModel : ObservableObject
         BuildUsageHistory(empty);
         BuildRhythm(empty);
         UsedTodayMinutes = 0;
-        StatusMessage = L("Kullanım geçmişi bu cihazdan silindi", "Usage history was deleted from this device");
+        StatusMessage = L(
+            "Kullanım geçmişi ve Ritim Serisi bu cihazdan silindi; plan ve koruma ayarların değişmedi",
+            "Usage history and the Rhythm Streak were deleted from this device; plans and protection settings were unchanged");
     }
 
     private static void AppendCsvRow(StringBuilder csv, DateOnly date, string type, string name, long seconds)
@@ -1014,8 +1056,23 @@ public sealed class MainViewModel : ObservableObject
             : IsFlexiblePersonalMode
                 ? L("Manuel odak · Kontrol sende", "Manual focus · You're in control")
             : status.Reason;
+        UsageLedger previewLedger = _lastUsageLedger ?? new UsageLedger();
+        SessionState previewState = previewLedger.State;
+        CurrentStatusExplanation = IsInsightsMode
+            ? L("Yerel ölçüm açık; kısıtlama veya uzaktan izin uygulanmıyor.", "Local tracking is active; no restrictions or remote approval are applied.")
+            : SessionStatusExplainer.Explain(
+                previewSettings,
+                previewLedger,
+                previewState,
+                DateTimeOffset.Now,
+                previewSettings.RequiresGuardian && ProtectionServiceManager.GetState() != ProtectionServiceState.Running).AccessibleText;
+        foreach (AppRuleRow rule in AppRules)
+        {
+            rule.RefreshPreview(previewSettings, previewLedger, previewState);
+        }
 
         OnPropertyChanged(nameof(CurrentWindowStatus));
+        OnPropertyChanged(nameof(CurrentStatusExplanation));
         OnPropertyChanged(nameof(UsedTodayText));
         OnPropertyChanged(nameof(TodayLimitText));
         OnPropertyChanged(nameof(RemainingText));
@@ -1239,6 +1296,8 @@ public sealed class MainViewModel : ObservableObject
         rhythmSettings.WeeklyReductionGoalPercent = FromDisplayGoal(ReductionGoal);
         RhythmSummary summary = RhythmAnalyzer.Analyze(rhythmSettings, ledger, DateOnly.FromDateTime(DateTime.Today));
         RhythmStreakSummary streak = RhythmStreakAnalyzer.Analyze(rhythmSettings, ledger, DateOnly.FromDateTime(DateTime.Today));
+        IReadOnlyList<RhythmDayResult> recentDays = RhythmStreakAnalyzer.BuildRecentDays(
+            rhythmSettings, ledger, DateOnly.FromDateTime(DateTime.Today));
         if (_isRhythmBaselineReady != summary.IsBaselineReady)
         {
             _isRhythmBaselineReady = summary.IsBaselineReady;
@@ -1274,6 +1333,27 @@ public sealed class MainViewModel : ObservableObject
         RhythmStreakText = $"{streak.CurrentStreak} {L("gün", "days")}";
         RhythmBestStreakText = $"{streak.BestStreak} {L("gün", "days")}";
         RhythmProtectorText = $"{streak.Protectors}/2";
+        RhythmReachedMilestone = streak.ReachedMilestone;
+
+        RhythmDays.Clear();
+        foreach (RhythmDayResult day in recentDays)
+        {
+            RhythmDays.Add(new RhythmDayRow { Result = day });
+        }
+        RhythmDayRow? todayRow = RhythmDays.LastOrDefault();
+        if (todayRow is not null)
+        {
+            todayRow.IsSelected = true;
+            SelectedRhythmDayText = todayRow.DetailText;
+            RhythmTodayProgressText = $"{todayRow.GoalText} · {todayRow.ProgressText}";
+            (FocusRhythmTargetKind Kind, int Value) draft = FromDisplayDailyRhythmGoal(DailyRhythmGoal);
+            if (todayRow.Result.Goal == RhythmGoalKind.CompleteFocus &&
+                (todayRow.Result.FocusTargetKind != draft.Kind || todayRow.Result.Target != draft.Value))
+            {
+                RhythmTodayProgressText += L(" · yeni hedef yarın", " · new goal tomorrow");
+            }
+        }
+        RhythmWeekSymbolsText = string.Join("  ", RhythmDays.Select(day => $"{day.DayText} {day.SymbolText}"));
 
         if (!_settings.AwarenessTrackingEnabled)
         {
@@ -1306,6 +1386,17 @@ public sealed class MainViewModel : ObservableObject
         {
             RhythmInsightText += L($" En çok azalan: {falling}.", $" Biggest decrease: {falling}.");
         }
+
+        _suggestedReductionPercent = summary.IsBaselineReady && summary.WeekChangePercent is > 0
+            ? summary.WeekChangePercent >= 20 ? 10 : 5
+            : null;
+        CanApplyRhythmSuggestion = _suggestedReductionPercent is { } suggestion &&
+            suggestion != _settings.WeeklyReductionGoalPercent;
+        RhythmSuggestionPreviewText = _suggestedReductionPercent is { } suggested
+            ? L(
+                $"Dayanak: son 7 gün · {_settings.WeeklyReductionGoalPercent}% → {suggested}% daha az · yalnız bu hedef şimdi değişir",
+                $"Basis: last 7 days · {_settings.WeeklyReductionGoalPercent}% → {suggested}% less · only this goal changes now")
+            : L("Yeni öneri için yeterli ve anlamlı değişim bekleniyor.", "Waiting for enough meaningful change for a new suggestion.");
 
         RhythmGoalStatusText = FromDisplayGoal(ReductionGoal) == 0
             ? BuildStreakStatus(streak)
@@ -1346,7 +1437,20 @@ public sealed class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(RhythmStreakText));
         OnPropertyChanged(nameof(RhythmBestStreakText));
         OnPropertyChanged(nameof(RhythmProtectorText));
+        OnPropertyChanged(nameof(RhythmTodayProgressText));
+        OnPropertyChanged(nameof(RhythmSuggestionPreviewText));
+        OnPropertyChanged(nameof(RhythmWeekSymbolsText));
+        OnPropertyChanged(nameof(CanApplyRhythmSuggestion));
+        OnPropertyChanged(nameof(RhythmReachedMilestone));
     }
+
+    public void SelectRhythmDay(RhythmDayRow selected)
+    {
+        foreach (RhythmDayRow row in RhythmDays) row.IsSelected = ReferenceEquals(row, selected);
+        SelectedRhythmDayText = selected.DetailText;
+    }
+
+    private int? SuggestedReductionPercent() => _suggestedReductionPercent;
 
     private string BuildStreakStatus(RhythmStreakSummary streak)
     {
@@ -1362,12 +1466,17 @@ public sealed class MainViewModel : ObservableObject
             RhythmDayOutcome.Rest => L("Bugün dinlenme günü", "Today is a rest day"),
             RhythmDayOutcome.Excused => L("Bugün ritmi etkilemeyecek", "Today will not affect your rhythm"),
             RhythmDayOutcome.Protected => L("Ritim Koruyucu kullanıldı", "Rhythm Protector used"),
+            RhythmDayOutcome.Unobserved => L("Bugün henüz değerlendirilemiyor", "Today cannot be evaluated yet"),
             _ => L($"Bugünün hedefi: {goal}", $"Today's goal: {goal}")
         };
         string milestone = streak.ReachedMilestone is { } value
             ? L($" · {value} günlük filiz", $" · {value}-day sprout")
             : string.Empty;
-        return $"{today} · {L("Seri", "Streak")} {streak.CurrentStreak} · {L("En iyi", "Best")} {streak.BestStreak} · {L("Koruyucu", "Protector")} {streak.Protectors}/2{milestone}";
+        int recentSuccesses = RhythmDays.Count(day => day.Result.Outcome == RhythmDayOutcome.Success);
+        string comeback = streak.CurrentStreak == 0 && recentSuccesses > 0
+            ? L($" · Son 7 günde {recentSuccesses} gerçek başarı; bugün küçük bir adımla dön", $" · {recentSuccesses} real wins in the last 7 days; return with one small step today")
+            : string.Empty;
+        return $"{today} · {L("Seri", "Streak")} {streak.CurrentStreak} · {L("En iyi", "Best")} {streak.BestStreak} · {L("Koruyucu", "Protector")} {streak.Protectors}/2{milestone}{comeback}";
     }
 
     private async Task RecordPolicyChangeAsync()
@@ -1610,6 +1719,29 @@ public sealed class MainViewModel : ObservableObject
         ReductionGoalOptions.Add(ToDisplayGoal(10));
         ReductionGoalOptions.Add(ToDisplayGoal(15));
         ReductionGoal = ToDisplayGoal(reductionGoalPercent);
+        RefreshDailyRhythmGoalOptions();
+    }
+
+    private void RefreshDailyRhythmGoalOptions()
+    {
+        (FocusRhythmTargetKind kind, int value) selected = FromDisplayDailyRhythmGoal(DailyRhythmGoal);
+        DailyRhythmGoalOptions.Clear();
+        if (IsFlexiblePersonalMode)
+        {
+            DailyRhythmGoalOptions.Add(ToDisplayDailyRhythmGoal(FocusRhythmTargetKind.Minutes, 10));
+            DailyRhythmGoalOptions.Add(ToDisplayDailyRhythmGoal(FocusRhythmTargetKind.Minutes, 25));
+            DailyRhythmGoalOptions.Add(ToDisplayDailyRhythmGoal(FocusRhythmTargetKind.Minutes, 50));
+            DailyRhythmGoalOptions.Add(ToDisplayDailyRhythmGoal(FocusRhythmTargetKind.Sessions, 1));
+            DailyRhythmGoalOptions.Add(ToDisplayDailyRhythmGoal(FocusRhythmTargetKind.Sessions, 2));
+            DailyRhythmGoal = ToDisplayDailyRhythmGoal(selected.kind, selected.value);
+        }
+        else
+        {
+            DailyRhythmGoalOptions.Add(IsInsightsMode
+                ? L("Günlük özeti değerlendir", "Review daily summary")
+                : L("Günlük dengeni koru", "Keep daily balance"));
+            DailyRhythmGoal = DailyRhythmGoalOptions[0];
+        }
     }
 
     private void RefreshRetentionOptions(int retentionDays)
@@ -1847,6 +1979,22 @@ public sealed class MainViewModel : ObservableObject
         ? LocalizationService.Get("RhythmNoGoal")
         : string.Format(LocalizationService.Get("RhythmGoalLessFormat"), percent);
 
+    private static (FocusRhythmTargetKind Kind, int Value) FromDisplayDailyRhythmGoal(string value)
+    {
+        bool sessions = value.Contains("oturum", StringComparison.OrdinalIgnoreCase) ||
+            value.Contains("session", StringComparison.OrdinalIgnoreCase);
+        int parsed = int.TryParse(value.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault(), out int number)
+            ? number
+            : sessions ? 1 : 25;
+        return (sessions ? FocusRhythmTargetKind.Sessions : FocusRhythmTargetKind.Minutes, parsed);
+    }
+
+    private static string ToDisplayDailyRhythmGoal(FocusRhythmTargetKind kind, int value) => kind switch
+    {
+        FocusRhythmTargetKind.Sessions => L($"{value} odak oturumu (min 5 dk)", $"{value} focus session{(value == 1 ? string.Empty : "s")} (5 min min)"),
+        _ => L($"{value} dk odak", $"{value} min focus")
+    };
+
     private static int FromDisplayRetention(string retention) => retention switch
     {
         var value when value == ToDisplayRetention(30) => 30,
@@ -1933,6 +2081,8 @@ public sealed class MainViewModel : ObservableObject
         StrictPersonalMode = settings.StrictPersonalMode,
         PersonalProtectionLevel = settings.PersonalProtectionLevel,
         WeeklyReductionGoalPercent = settings.WeeklyReductionGoalPercent,
+        FocusRhythmTargetKind = settings.FocusRhythmTargetKind,
+        FocusRhythmTargetValue = settings.FocusRhythmTargetValue,
         AdminPin = new AdminCredential
         {
             Version = settings.AdminPin.Version,

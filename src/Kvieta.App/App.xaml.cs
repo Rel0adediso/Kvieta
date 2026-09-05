@@ -190,7 +190,7 @@ public partial class App : System.Windows.Application
                 settings.AdminPin = AdminPinService.CreateInternalCredential();
             }
 
-            settings.SchemaVersion = 9;
+            settings.SchemaVersion = 10;
             settings.SetupCompleted = true;
             await settingsStore.SaveAsync(settings);
         }

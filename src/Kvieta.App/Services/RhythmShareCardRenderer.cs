@@ -14,7 +14,8 @@ public static class RhythmShareCardRenderer
         string best,
         string weeklyChange,
         string focus,
-        bool english)
+        bool english,
+        string? weekStrip = null)
     {
         const int width = 1200;
         const int height = 630;
@@ -43,6 +44,11 @@ public static class RhythmShareCardRenderer
             DrawMetric(drawing, english ? "BEST" : "EN İYİ", best, 344, 242);
             DrawMetric(drawing, english ? "WEEKLY CHANGE" : "HAFTALIK DEĞİŞİM", weeklyChange, 620, 242);
             DrawMetric(drawing, english ? "FOCUS" : "ODAK", focus, 896, 242);
+
+            if (!string.IsNullOrWhiteSpace(weekStrip))
+            {
+                DrawText(drawing, weekStrip, 68, 418, 22, FontWeights.SemiBold, MediaColor.FromRgb(210, 217, 194));
+            }
 
             DrawText(drawing, "Kvieta", 68, 516, 30, FontWeights.SemiBold, MediaColor.FromRgb(190, 202, 137));
             DrawText(drawing,

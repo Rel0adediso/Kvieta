@@ -105,35 +105,68 @@ public sealed class SessionEngine
         }
     }
 
-    public void Accrue(TimeSpan elapsed, DateTimeOffset now)
+    public long Accrue(TimeSpan elapsed, DateTimeOffset now)
     {
-        Refresh(now);
-        if (Ledger.State != SessionState.Active || elapsed <= TimeSpan.Zero)
+        long seconds = Math.Max(0, (long)Math.Floor(elapsed.TotalSeconds));
+        if (seconds == 0 || elapsed <= TimeSpan.Zero)
         {
-            return;
+            return 0;
         }
 
-        long seconds = Math.Max(0, (long)Math.Floor(elapsed.TotalSeconds));
-        if (seconds == 0)
+        DateTimeOffset cursor = now.AddSeconds(-seconds);
+        Refresh(cursor);
+        long remaining = seconds;
+        long accrued = 0;
+        while (remaining > 0 && DateOnly.FromDateTime(cursor.DateTime) != DateOnly.FromDateTime(now.DateTime))
         {
-            return;
+            DateTimeOffset nextMidnight = new(cursor.Date.AddDays(1), cursor.Offset);
+            long beforeMidnight = Math.Min(
+                remaining,
+                Math.Max(1, (long)Math.Ceiling((nextMidnight - cursor).TotalSeconds)));
+            accrued += AccrueCurrentDay(beforeMidnight, nextMidnight.AddTicks(-1));
+            remaining -= beforeMidnight;
+            bool shouldContinue = Ledger.State == SessionState.Active;
+            Refresh(nextMidnight);
+            if (shouldContinue && Ledger.State == SessionState.Ready)
+            {
+                StartOrResume(nextMidnight);
+            }
+            cursor = nextMidnight;
+        }
+
+        Refresh(now);
+        if (remaining > 0)
+        {
+            accrued += AccrueCurrentDay(remaining, now);
+        }
+        return accrued;
+    }
+
+    private long AccrueCurrentDay(long seconds, DateTimeOffset now)
+    {
+        if (Ledger.State != SessionState.Active || seconds <= 0)
+        {
+            return 0;
         }
 
         if (_settings.Mode == UsageMode.Insights)
         {
+            long previous = Ledger.UsedSeconds;
             Ledger.UsedSeconds = Math.Min(24 * 60 * 60, Ledger.UsedSeconds + seconds);
             Ledger.State = SessionState.Active;
             Touch(now);
-            return;
+            return Ledger.UsedSeconds - previous;
         }
 
         long limitSeconds = GetLimitSeconds(now);
+        long previousUsedSeconds = Ledger.UsedSeconds;
         Ledger.UsedSeconds = Math.Min(limitSeconds, Ledger.UsedSeconds + seconds);
+        long accruedSeconds = Ledger.UsedSeconds - previousUsedSeconds;
         if (_testOverrideActive && Ledger.UsedSeconds >= limitSeconds)
         {
             _testOverrideActive = false;
             Refresh(now);
-            return;
+            return accruedSeconds;
         }
 
         bool reachedLimit = Ledger.UsedSeconds >= limitSeconds;
@@ -144,6 +177,7 @@ public sealed class SessionEngine
             AddEvent(UsageEventKind.LimitReached, now);
         }
         Touch(now);
+        return accruedSeconds;
     }
 
     public void ForceStartForTesting(DateTimeOffset now)
@@ -217,9 +251,18 @@ public sealed class SessionEngine
             Ledger.FocusSessionCount = 0;
             Ledger.FocusCompletedSeconds = 0;
             Ledger.RhythmExcused = false;
+            Ledger.RhythmGoal = null;
+            Ledger.RhythmFocusTargetKind = null;
+            Ledger.RhythmGoalTarget = 0;
+            Ledger.RhythmDailyLimitMinutes = null;
+            Ledger.RhythmApprovedMinutes = 0;
+            Ledger.RhythmPlannedRest = false;
+            Ledger.RhythmMeasurementAvailable = false;
             Ledger.State = SessionState.Ready;
             Touch(now);
         }
+
+        RhythmStreakAnalyzer.CaptureCurrentGoal(_settings, Ledger);
 
         if (_testOverrideActive)
         {
@@ -240,7 +283,14 @@ public sealed class SessionEngine
         }
 
         ScheduleStatus schedule = ScheduleEvaluator.Evaluate(_settings, now);
-        Ledger.RhythmExcused |= schedule.IsTemporaryAllowanceActive;
+        if (schedule.IsTemporaryAllowanceActive)
+        {
+            DaySchedule? regularSchedule = _settings.Schedule.FirstOrDefault(item => item.Day == today.DayOfWeek);
+            int regularLimit = regularSchedule is { IsEnabled: true } ? regularSchedule.DailyLimitMinutes : 0;
+            Ledger.RhythmApprovedMinutes = Math.Max(
+                Ledger.RhythmApprovedMinutes,
+                Math.Max(0, schedule.DailyLimitMinutes - regularLimit));
+        }
         if (!schedule.IsAllowed)
         {
             Ledger.State = SessionState.OutsideSchedule;
@@ -285,12 +335,6 @@ public sealed class SessionEngine
 
     private void ArchiveCurrentDay(DateOnly retentionReferenceDay)
     {
-        if (Ledger.UsedSeconds <= 0 && Ledger.AppUsedSeconds.Count == 0 && Ledger.AwarenessUsedSeconds <= 0 && Ledger.BreakCount == 0 &&
-            Ledger.LimitReachedCount == 0 && Ledger.ExtraTimeGrantCount == 0 && !Ledger.SummaryReviewed && Ledger.FocusSessionCount == 0 && !Ledger.RhythmExcused)
-        {
-            return;
-        }
-
         Dictionary<Guid, string> names = _settings.AppRules.ToDictionary(rule => rule.Id, rule => rule.Name);
         DailyUsageRecord record = new()
         {
@@ -304,6 +348,13 @@ public sealed class SessionEngine
             FocusSessionCount = Ledger.FocusSessionCount,
             FocusCompletedSeconds = Ledger.FocusCompletedSeconds,
             RhythmExcused = Ledger.RhythmExcused,
+            RhythmGoal = Ledger.RhythmGoal,
+            RhythmFocusTargetKind = Ledger.RhythmFocusTargetKind,
+            RhythmGoalTarget = Ledger.RhythmGoalTarget,
+            RhythmDailyLimitMinutes = Ledger.RhythmDailyLimitMinutes,
+            RhythmApprovedMinutes = Ledger.RhythmApprovedMinutes,
+            RhythmPlannedRest = Ledger.RhythmPlannedRest,
+            RhythmMeasurementAvailable = Ledger.RhythmMeasurementAvailable,
             AwarenessUsedSeconds = Ledger.AwarenessUsedSeconds,
             AwarenessHourlyUsedSeconds = new Dictionary<int, long>(Ledger.AwarenessHourlyUsedSeconds),
             Applications = Ledger.AppUsedSeconds
@@ -327,6 +378,7 @@ public sealed class SessionEngine
                 .OrderByDescending(item => item.UsedSeconds)
                 .ToList()
         };
+        RhythmStreakAnalyzer.FinalizeDay(record);
 
         Ledger.History.RemoveAll(item => item.LocalDay == record.LocalDay);
         Ledger.History.Add(record);
@@ -337,12 +389,21 @@ public sealed class SessionEngine
         }
 
         DateOnly activeCutoff = Ledger.RetainedFromDay.Value;
-        Ledger.History = Ledger.History
-            .Where(item => item.LocalDay >= activeCutoff)
-            .OrderByDescending(item => item.LocalDay)
-            .Take(180)
+        List<DailyUsageRecord> removedRhythmDays = Ledger.History
+            .Where(item => item.LocalDay < activeCutoff)
             .OrderBy(item => item.LocalDay)
             .ToList();
+        RhythmStreakAnalyzer.AdvanceCheckpoint(Ledger.RhythmCheckpoint, removedRhythmDays);
+        Ledger.History = Ledger.History
+            .Where(item => item.LocalDay >= activeCutoff)
+            .OrderBy(item => item.LocalDay)
+            .ToList();
+        if (Ledger.History.Count > 180)
+        {
+            int removeCount = Ledger.History.Count - 180;
+            RhythmStreakAnalyzer.AdvanceCheckpoint(Ledger.RhythmCheckpoint, Ledger.History.Take(removeCount));
+            Ledger.History.RemoveRange(0, removeCount);
+        }
         Ledger.RecentEvents = Ledger.RecentEvents
             .Where(item => DateOnly.FromDateTime(item.OccurredAtUtc.ToLocalTime().DateTime) >= activeCutoff)
             .ToList();

@@ -1,5 +1,71 @@
 # Kvieta release notes
 
+## Unreleased V1 work
+
+### Focus closure and explainable policy state
+
+- Adds an optional, 80-character focus intention that stays only in the live
+  session view model and is never persisted to usage history, diagnostics, or
+  sharing. Quick Focus remains immediate and does not require an intention.
+- Distinguishes completed and early-ended focus sessions, shows actual active
+  time and daily-goal progress, and offers same-duration continuation only
+  through the current schedule and limit checks.
+- Introduces one shared explanation model for Today, session/block surfaces,
+  and application-rule previews: what happened, which rule caused it, when it
+  changes if known, and which action is available.
+- Uses the real application enforcement predicate for read-only rule previews,
+  identifies clock, schedule, limit, pending-policy, temporary-allowance, and
+  Guardian states, and avoids inventing an end time when none is known.
+- Serializes extra-time prompts on the session surface so repeated clicks cannot
+  open parallel approval flows; all grants still use the existing local PIN path.
+
+### Daily goals, suggestions, and the seven-day rhythm
+
+- Adds one mode-appropriate daily goal. Flexible Personal mode can use a focus
+  minute or completed-session target, Insights requires an explicit summary
+  review action, and protected modes measure balance without granting authority.
+- Snapshots goal type and amount per day, shows real progress, and applies a
+  changed goal from the next day instead of rewriting today's result.
+- Makes suggestions explain their seven-day basis and exact old-to-new change,
+  then updates only that setting after confirmation. Reminder/hide failures keep
+  the card visible, reminders return while the app is open, and hidden cards can
+  be restored from Settings.
+- Adds a bilingual, icon-and-text seven-day rhythm strip with selectable goal,
+  progress, and outcome details. The explicit share action renders the same
+  seven-day results, and milestone celebrations persist so they appear once.
+- Starts Quick Focus without publishing unrelated unsaved Settings edits.
+- Migrates settings to schema 10 and Rhythm preferences to schema 2.
+
+### Rhythm correctness and persistence
+
+- Keeps an unfinished current-day focus or summary goal pending until day
+  close, so merely starting to use the PC cannot spend a Rhythm Protector early.
+- Snapshots the daily Rhythm goal, balance limit, planned-rest state, approved
+  allowance, and final outcome in the local usage record. Later mode or schedule
+  changes no longer reinterpret finalized days.
+- Migrates local usage data to schema 8. Legacy days without a trustworthy goal
+  snapshot remain neutral instead of being rewarded or penalized using today's settings.
+- Preserves current streak, best streak, Protector balance, and successful-day
+  count in a compact checkpoint when detailed usage history is trimmed.
+- Records temporary allowances as their approved minute amount instead of
+  excusing the entire day. Focus and summary goals still require their own behavior.
+- Adds regressions for pending current-day goals, schedule isolation, mode
+  changes, legacy neutral days, approved allowances, and retention checkpoints.
+
+### Focus timing
+
+- Decouples Quick Focus progress from the daily usage counter and advances it
+  only by active seconds actually accepted by the session engine.
+- Splits active time at local midnight before rolling the daily ledger, keeping
+  the focus countdown continuous while attributing usage to the correct day.
+- Persists an active focus session ID, target, and elapsed active time so a
+  recorded partial session can return after a process restart without counting
+  the unknown time while Kvieta was closed.
+- Makes focus completion repeat-safe across stale concurrent saves and clears
+  persisted focus state when the user explicitly ends the session.
+- Clarifies in both languages that deleting usage data also resets the current
+  and best Rhythm Streak and Rhythm Protectors while leaving plans and protection unchanged.
+
 ## Kvieta Alpha 3 — Current community preview
 
 Kvieta Alpha 3 brings the pre-V1 product experience into one coherent,

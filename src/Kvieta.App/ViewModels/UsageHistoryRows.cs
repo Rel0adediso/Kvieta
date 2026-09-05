@@ -1,5 +1,6 @@
 using Kvieta.App.Services;
 using Kvieta.Core.Models;
+using Kvieta.Core.Services;
 using System.IO;
 using System.Windows.Media;
 
@@ -21,6 +22,55 @@ public sealed class UsageHistoryDayRow : ObservableObject
     public string DetailText => $"{LocalizationService.Get("HistoryBreaksShort")} {BreakCount}  ·  {LocalizationService.Get("HistoryLimitsShort")} {LimitReachedCount}";
     public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
     public string SummaryText => $"{DayText} · {UsedText} · {DetailText}";
+}
+
+public sealed class RhythmDayRow : ObservableObject
+{
+    private bool _isSelected;
+    public required RhythmDayResult Result { get; init; }
+    public DateOnly Day => Result.Day;
+    public string DayText => Day.ToDateTime(TimeOnly.MinValue).ToString("ddd");
+    public string DateText => Day.ToString("dd.MM");
+    public string SymbolText => Result.Outcome switch
+    {
+        RhythmDayOutcome.Success => "✓",
+        RhythmDayOutcome.Pending => "…",
+        RhythmDayOutcome.Rest => "☾",
+        RhythmDayOutcome.Excused => "○",
+        RhythmDayOutcome.Protected => "◇",
+        RhythmDayOutcome.Missed => "×",
+        _ => "—"
+    };
+    public string StateText => Result.Outcome switch
+    {
+        RhythmDayOutcome.Success => L("Tamamlandı", "Complete"),
+        RhythmDayOutcome.Pending => L("Devam ediyor", "In progress"),
+        RhythmDayOutcome.Rest => L("Dinlenme", "Rest"),
+        RhythmDayOutcome.Excused => L("Muaf", "Excused"),
+        RhythmDayOutcome.Protected => L("Korundu", "Protected"),
+        RhythmDayOutcome.Missed => L("Kaçırıldı", "Missed"),
+        _ => L("Ölçülmedi", "Unobserved")
+    };
+    public string GoalText => Result.Goal switch
+    {
+        RhythmGoalKind.ReviewSummary => L("Günlük özeti değerlendir", "Review the daily summary"),
+        RhythmGoalKind.CompleteFocus when Result.FocusTargetKind == FocusRhythmTargetKind.Minutes =>
+            L($"{Result.Target} dk odak", $"{Result.Target} min focus"),
+        RhythmGoalKind.CompleteFocus => L($"{Result.Target} odak oturumu (en az 5 dk)", $"{Result.Target} focus session(s) (5 min minimum)"),
+        RhythmGoalKind.KeepBalance => L("Günlük dengeni koru", "Keep your daily balance"),
+        _ => L("Hedef kaydı yok", "No goal record")
+    };
+    public string ProgressText => Result.Goal switch
+    {
+        RhythmGoalKind.CompleteFocus when Result.FocusTargetKind == FocusRhythmTargetKind.Minutes => $"{Result.Progress}/{Result.Target} {L("dk", "min")}",
+        RhythmGoalKind.CompleteFocus => $"{Result.Progress}/{Result.Target}",
+        RhythmGoalKind.ReviewSummary => $"{Result.Progress}/{Result.Target}",
+        RhythmGoalKind.KeepBalance => $"{Result.Progress}/{Result.Target} {L("dk", "min")}",
+        _ => "—"
+    };
+    public string DetailText => $"{Day:dd.MM} · {GoalText} · {ProgressText} · {StateText}";
+    public bool IsSelected { get => _isSelected; set => SetProperty(ref _isSelected, value); }
+    private static string L(string tr, string en) => LocalizationService.CurrentLanguage == LanguagePreference.English ? en : tr;
 }
 
 public sealed class AppUsageHistoryRow

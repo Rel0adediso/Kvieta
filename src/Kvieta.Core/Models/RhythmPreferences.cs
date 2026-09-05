@@ -9,9 +9,10 @@ public enum RhythmSuggestionPreference
 
 public sealed class RhythmPreferences
 {
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
     public RhythmSuggestionPreference SuggestionPreference { get; set; }
     public DateTimeOffset? RemindAfterUtc { get; set; }
+    public int LastCelebratedStreakMilestone { get; set; }
 
     public bool ShouldShowSuggestion(DateTimeOffset now) => SuggestionPreference switch
     {

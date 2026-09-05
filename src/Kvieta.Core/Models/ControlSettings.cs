@@ -44,9 +44,15 @@ public enum PersonalProtectionLevel
     Protected
 }
 
+public enum FocusRhythmTargetKind
+{
+    Minutes,
+    Sessions
+}
+
 public sealed class ControlSettings
 {
-    public int SchemaVersion { get; set; } = 9;
+    public int SchemaVersion { get; set; } = 10;
     public bool SetupCompleted { get; set; }
     public UsageMode Mode { get; set; } = UsageMode.Family;
     public string DeviceName { get; set; } = "Bu Bilgisayar";
@@ -61,6 +67,8 @@ public sealed class ControlSettings
     public bool StrictPersonalMode { get; set; }
     public PersonalProtectionLevel PersonalProtectionLevel { get; set; } = PersonalProtectionLevel.Balanced;
     public int WeeklyReductionGoalPercent { get; set; }
+    public FocusRhythmTargetKind FocusRhythmTargetKind { get; set; } = FocusRhythmTargetKind.Minutes;
+    public int FocusRhythmTargetValue { get; set; } = 25;
     public PendingPolicyChange? PendingChange { get; set; }
     public AdminCredential AdminPin { get; set; } = new();
     public List<RecoveryCodeRecord> RecoveryCodes { get; set; } = [];

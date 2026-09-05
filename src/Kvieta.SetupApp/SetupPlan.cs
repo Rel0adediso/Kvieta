@@ -178,7 +178,7 @@ public sealed class SetupPlan
 
         ControlSettings settings = new()
         {
-            SchemaVersion = 9,
+            SchemaVersion = 10,
             SetupCompleted = true,
             Mode = Mode,
             PersonalProtectionLevel = Mode == UsageMode.Personal

@@ -37,6 +37,7 @@ public partial class SessionSurfaceWindow : Window
     private readonly HashSet<int> _shownWarningMinutes = [];
     private DateOnly _warningDay = DateOnly.FromDateTime(DateTime.Today);
     private bool _openPlanOnControlCenter;
+    private bool _extraTimeRequestInProgress;
 
     public SessionSurfaceWindow(
         bool isDirectSession = false,
@@ -192,24 +193,40 @@ public partial class SessionSurfaceWindow : Window
 
     private async void RequestTime_Click(object sender, RoutedEventArgs e)
     {
-        AdminCredential credential = await LoadExitCredentialAsync();
-        if (!credential.IsConfigured && _requirePinToExit)
+        if (_extraTimeRequestInProgress || !_viewModel.CanRequestExtraTime) return;
+        _extraTimeRequestInProgress = true;
+        try
         {
-            ShowMissingAdministratorCredential();
-            return;
-        }
+            AdminCredential credential = await LoadExitCredentialAsync();
+            if (!credential.IsConfigured && _requirePinToExit)
+            {
+                ShowMissingAdministratorCredential();
+                return;
+            }
 
-        if (credential.IsConfigured)
-        {
-            AdminPinWindow verification = PrepareSessionModal(AdminPinWindow.CreateVerification(
-                pin => VerifyExitPinAsync(pin, credential),
-                RecoverExitPinAsync));
+            if (credential.IsConfigured)
+            {
+                AdminPinWindow verification = PrepareSessionModal(AdminPinWindow.CreateVerification(
+                    pin => VerifyExitPinAsync(pin, credential),
+                    RecoverExitPinAsync));
+                _modalDialogOpen = true;
+                try
+                {
+                    if (verification.ShowDialog() != true) return;
+                }
+                finally
+                {
+                    _modalDialogOpen = false;
+                }
+            }
+
+            BonusTimeWindow selector = PrepareSessionModal(new BonusTimeWindow());
             _modalDialogOpen = true;
             try
             {
-                if (verification.ShowDialog() != true)
+                if (selector.ShowDialog() == true)
                 {
-                    return;
+                    await _viewModel.AddBonusMinutesAsync(selector.SelectedMinutes);
                 }
             }
             finally
@@ -217,19 +234,9 @@ public partial class SessionSurfaceWindow : Window
                 _modalDialogOpen = false;
             }
         }
-
-        BonusTimeWindow selector = PrepareSessionModal(new BonusTimeWindow());
-        _modalDialogOpen = true;
-        try
-        {
-            if (selector.ShowDialog() == true)
-            {
-                await _viewModel.AddBonusMinutesAsync(selector.SelectedMinutes);
-            }
-        }
         finally
         {
-            _modalDialogOpen = false;
+            _extraTimeRequestInProgress = false;
             EnsureCorrectSurface();
         }
     }
@@ -354,6 +361,22 @@ public partial class SessionSurfaceWindow : Window
                 EnsureCorrectSurface();
             }
         }
+    }
+
+    private async void ContinueAfterFocus_Click(object sender, RoutedEventArgs e)
+    {
+        if (await _viewModel.ContinueAfterFocusAsync())
+        {
+            _forceSurfaceVisible = false;
+            await ShowWidgetSurfaceAsync();
+        }
+        EnsureCorrectSurface();
+    }
+
+    private void DismissFocusClosure_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel.DismissFocusClosure();
+        ExitPrototype_Click(sender, e);
     }
 
     private void ShowWarningIfDue()

@@ -37,7 +37,7 @@
     <sys:String x:Key="AnimationsEnabled">Motion</sys:String><sys:String x:Key="AnimationsDescription">Enables short transitions. Windows Reduce Motion always takes priority.</sys:String>
     <sys:String x:Key="StrictPersonalMode">Strict personal mode</sys:String><sys:String x:Key="StrictPersonalModeDescription">Disables instant self-granted extra time after the limit. Turning this off uses the relaxation delay.</sys:String><sys:String x:Key="HistoryShowAll">SHOW ALL ›</sys:String><sys:String x:Key="HistoryApplicationDetails">Application usage details</sys:String><sys:String x:Key="HistoryApplicationDetailsDescription">Foreground applications ordered from longest to shortest use.</sys:String>
     <sys:String x:Key="RhythmBaseline">STARTING RHYTHM</sys:String><sys:String x:Key="RhythmWeeklyChange">WEEKLY CHANGE</sys:String><sys:String x:Key="RhythmPlanAligned">PLAN-ALIGNED</sys:String><sys:String x:Key="RhythmObservedDays">OBSERVED DAYS</sys:String><sys:String x:Key="RhythmReclaimed">RECLAIMED</sys:String><sys:String x:Key="RhythmPeakHour">PEAK USAGE HOUR</sys:String><sys:String x:Key="RhythmWeekPattern">WEEKLY RHYTHM</sys:String><sys:String x:Key="RhythmGoal">SMALL GOAL</sys:String><sys:String x:Key="RhythmNoGoal">No goal</sys:String><sys:String x:Key="RhythmGoalLessFormat">{0}% less</sys:String>
-    <sys:String x:Key="PrivacyCenter">Privacy and data</sys:String><sys:String x:Key="PrivacyCenterDescription">Your data stays on this device; you control retention and exports.</sys:String><sys:String x:Key="RetentionPeriod">RETENTION PERIOD</sys:String><sys:String x:Key="RetentionDaysFormat">{0} days</sys:String><sys:String x:Key="ExportUsage">Export usage data</sys:String><sys:String x:Key="ExportCompleted">Usage data exported</sys:String><sys:String x:Key="ExportFailed">Export failed</sys:String><sys:String x:Key="ClearHistory">Clear history</sys:String><sys:String x:Key="ClearHistoryConfirmation">Permanently delete all usage history on this device, including today?</sys:String><sys:String x:Key="ClearHistoryFailed">History could not be cleared</sys:String>
+    <sys:String x:Key="PrivacyCenter">Privacy and data</sys:String><sys:String x:Key="PrivacyCenterDescription">Your data stays on this device; you control retention and exports.</sys:String><sys:String x:Key="RetentionPeriod">RETENTION PERIOD</sys:String><sys:String x:Key="RetentionDaysFormat">{0} days</sys:String><sys:String x:Key="ExportUsage">Export usage data</sys:String><sys:String x:Key="ExportCompleted">Usage data exported</sys:String><sys:String x:Key="ExportFailed">Export failed</sys:String><sys:String x:Key="ClearHistory">Delete usage and Rhythm</sys:String><sys:String x:Key="ClearHistoryConfirmation">Permanently delete usage history including today, the current and best Rhythm Streak, and Rhythm Protectors from this device? Your plans, application rules, and protection settings will not change.</sys:String><sys:String x:Key="ClearHistoryFailed">Usage and Rhythm data could not be deleted</sys:String>
     <sys:String x:Key="SavedShort">Saved</sys:String>
     <sys:String x:Key="ConfirmModeSelection">Confirm selection</sys:String>
     <sys:String x:Key="NoHistoryApplications">No application usage data yet.</sys:String>
@@ -70,7 +70,7 @@
     <sys:String x:Key="DevelopmentTestBuild">Development/Test build</sys:String>
     <sys:String x:Key="PublicReleaseBuild">Public Release</sys:String>
     <sys:String x:Key="RecoveryCodes">New recovery codes</sys:String>
-    <sys:String x:Key="ManagerDevice">Manager device</sys:String>
+    <sys:String x:Key="ManagerDevice">Manager device (local network only)</sys:String>
     <sys:String x:Key="RecoveryCodesTitle">One-time recovery codes</sys:String>
     <sys:String x:Key="RecoveryCodesDescription">Store these codes somewhere safe. Each code works once and will not be shown again.</sys:String>
     <sys:String x:Key="CopyRecoveryCodes">Copy codes</sys:String>
@@ -159,4 +159,16 @@
     <sys:String x:Key="PersonalStrictnessDescription">Selected personal protection level</sys:String>
     <sys:String x:Key="RhythmFocusTime">FOCUS THIS WEEK</sys:String>
     <sys:String x:Key="HideSuggestion">Hide</sys:String>
+    <sys:String x:Key="DailyRhythmGoal">Today's goal</sys:String>
+    <sys:String x:Key="ReviewSummaryAction">I reviewed the summary</sys:String>
+    <sys:String x:Key="RestoreRhythmSuggestions">Show rhythm suggestions again</sys:String>
+    <sys:String x:Key="FocusIntentionLabel">What will you do in this focus? (optional)</sys:String>
+    <sys:String x:Key="FocusIntentionPrivacy">Kept only in this live session's memory; never written to history, diagnostics, or sharing.</sys:String>
+    <sys:String x:Key="FocusEndedEarlyHeadline">You stopped here.</sys:String>
+    <sys:String x:Key="FocusCompletedSummary">Actual active focus time: {0}.</sys:String>
+    <sys:String x:Key="FocusEndedEarlySummary">Ended early · actual active time: {0}. It was not counted as a completed session.</sys:String>
+    <sys:String x:Key="FocusSessionsShort">sessions</sys:String>
+    <sys:String x:Key="DailyGoalProgressFormat">Daily goal progress: {0}/{1} {2}</sys:String>
+    <sys:String x:Key="ContinueFocus">Continue with same duration</sys:String>
+    <sys:String x:Key="TakeBreak">Take a break</sys:String>
 </ResourceDictionary>

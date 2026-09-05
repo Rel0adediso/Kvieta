@@ -52,7 +52,7 @@ public sealed class JsonSettingsStore
                     ? PersonalProtectionLevel.Balanced
                     : PersonalProtectionLevel.Flexible;
             }
-            settings.SchemaVersion = 9;
+            settings.SchemaVersion = 10;
             NormalizePersonalProtection(settings);
             settings.SetupCompleted = true;
             settings.AwarenessTrackingEnabled = settings.Mode == UsageMode.Insights || settings.AwarenessTrackingEnabled;
@@ -88,12 +88,12 @@ public sealed class JsonSettingsStore
         static () => new ControlSettings(),
         static settings =>
         {
-            if (settings.SchemaVersion > 9)
+            if (settings.SchemaVersion > 10)
             {
                 throw new InvalidDataException($"Desteklenmeyen ayar şeması: {settings.SchemaVersion}");
             }
 
-            bool changed = settings.SchemaVersion < 9;
+            bool changed = settings.SchemaVersion < 10;
             if (settings.SchemaVersion < 2)
             {
                 settings.SetupCompleted = true;
@@ -107,15 +107,15 @@ public sealed class JsonSettingsStore
                     : PersonalProtectionLevel.Flexible;
             }
 
-            settings.SchemaVersion = 9;
+            settings.SchemaVersion = 10;
             changed |= NormalizePersonalProtection(settings);
             changed |= NormalizeLimitAction(settings);
-            if (settings.PendingChange?.TargetSettings is { } target && target.SchemaVersion < 9)
+            if (settings.PendingChange?.TargetSettings is { } target && target.SchemaVersion < 10)
             {
                 target.PersonalProtectionLevel = target.StrictPersonalMode
                     ? PersonalProtectionLevel.Balanced
                     : PersonalProtectionLevel.Flexible;
-                target.SchemaVersion = 9;
+                target.SchemaVersion = 10;
             }
             if (settings.PendingChange?.TargetSettings is { } pendingTarget)
             {
@@ -131,6 +131,9 @@ public sealed class JsonSettingsStore
             settings.WeeklyReductionGoalPercent = settings.WeeklyReductionGoalPercent is 0 or 5 or 10 or 15
                 ? settings.WeeklyReductionGoalPercent
                 : 0;
+            settings.FocusRhythmTargetValue = settings.FocusRhythmTargetKind == FocusRhythmTargetKind.Minutes
+                ? Math.Clamp(settings.FocusRhythmTargetValue <= 0 ? 25 : settings.FocusRhythmTargetValue, 5, 240)
+                : Math.Clamp(settings.FocusRhythmTargetValue <= 0 ? 1 : settings.FocusRhythmTargetValue, 1, 12);
             settings.UsageRetentionDays = settings.UsageRetentionDays is 30 or 90 or 180
                 ? settings.UsageRetentionDays
                 : 90;

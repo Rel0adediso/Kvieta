@@ -14,6 +14,10 @@ public sealed class AppRuleRow : ObservableObject
     private int _dailyLimitMinutes;
     private readonly AppRule _identity;
     private readonly IReadOnlyList<AppRuleModeOption> _modes;
+    private ControlSettings? _previewSettings;
+    private UsageLedger? _previewLedger;
+    private SessionState _previewState;
+    private string _previewText = string.Empty;
 
     public AppRuleRow(AppRule rule)
     {
@@ -54,6 +58,7 @@ public sealed class AppRuleRow : ObservableObject
         }
     }
     public IReadOnlyList<AppRuleModeOption> Modes => _modes;
+    public string PreviewText { get => _previewText; private set => SetProperty(ref _previewText, value); }
 
     public string Name
     {
@@ -76,6 +81,7 @@ public sealed class AppRuleRow : ObservableObject
             {
                 OnPropertyChanged(nameof(IsLimitEditable));
                 OnPropertyChanged(nameof(IsLimitHidden));
+                RebuildPreview();
             }
         }
     }
@@ -83,7 +89,10 @@ public sealed class AppRuleRow : ObservableObject
     public int DailyLimitMinutes
     {
         get => _dailyLimitMinutes;
-        set => SetProperty(ref _dailyLimitMinutes, Math.Clamp(value, 0, 1440));
+        set
+        {
+            if (SetProperty(ref _dailyLimitMinutes, Math.Clamp(value, 0, 1440))) RebuildPreview();
+        }
     }
 
     public AppRule ToModel()
@@ -105,6 +114,21 @@ public sealed class AppRuleRow : ObservableObject
             Mode = Mode.Value,
             DailyLimitMinutes = DailyLimitMinutes
         };
+    }
+
+    public void RefreshPreview(ControlSettings settings, UsageLedger ledger, SessionState state)
+    {
+        _previewSettings = settings;
+        _previewLedger = ledger;
+        _previewState = state;
+        RebuildPreview();
+    }
+
+    private void RebuildPreview()
+    {
+        if (_previewSettings is null || _previewLedger is null) return;
+        PreviewText = SessionStatusExplainer.PreviewApplication(
+            _previewSettings, _previewLedger, ToModel(), _previewState, DateTimeOffset.Now).AccessibleText;
     }
 
 }

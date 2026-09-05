@@ -35,8 +35,6 @@ public partial class MainWindow : Window
     private bool _applicationDetailsOpen;
     private IInputElement? _applicationDetailsPreviousFocus;
     private bool _sidebarAnimationRunning;
-    private bool _baselineMilestoneShown;
-    private bool _goalMilestoneShown;
     private bool _sessionSurfaceTransitionInProgress;
     private bool _openManagerDeviceOnLoad;
     private bool _protectionActionInProgress;
@@ -93,6 +91,7 @@ public partial class MainWindow : Window
             }
 
             await _viewModel.ReloadUsageAsync();
+            await RefreshRhythmSuggestionVisibilityAsync();
             _viewModel.RefreshOverview();
             RefreshProtectionStatus();
         };
@@ -247,26 +246,30 @@ public partial class MainWindow : Window
 
             if (nextIndex == 3)
             {
-                ShowRhythmMilestoneIfNeeded();
+                _ = ShowRhythmMilestoneIfNeededAsync();
             }
         }, DispatcherPriority.Loaded);
     }
 
-    private void ShowRhythmMilestoneIfNeeded()
+    private async Task ShowRhythmMilestoneIfNeededAsync()
     {
-        bool shouldCelebrate = (!_baselineMilestoneShown && _viewModel.IsRhythmBaselineReady) ||
-            (!_goalMilestoneShown && _viewModel.IsRhythmGoalMet);
-        _baselineMilestoneShown |= _viewModel.IsRhythmBaselineReady;
-        _goalMilestoneShown |= _viewModel.IsRhythmGoalMet;
-        if (!shouldCelebrate)
+        try
         {
-            return;
-        }
+            if (_viewModel.RhythmReachedMilestone is not { } milestone) return;
+            RhythmPreferences preferences = await _rhythmPreferencesStore.LoadAsync();
+            if (preferences.LastCelebratedStreakMilestone >= milestone) return;
+            await _rhythmPreferencesStore.MarkMilestoneCelebratedAsync(milestone);
+            if (!_viewModel.AnimationsEnabled) return;
 
-        System.Windows.Media.Color accent = FindResource("PrimaryBrush") is SolidColorBrush brush
-            ? brush.Color
-            : System.Windows.Media.Color.FromRgb(180, 188, 130);
-        MotionService.Highlight(RhythmInsightCard, accent);
+            System.Windows.Media.Color accent = FindResource("PrimaryBrush") is SolidColorBrush brush
+                ? brush.Color
+                : System.Windows.Media.Color.FromRgb(180, 188, 130);
+            MotionService.Highlight(RhythmInsightCard, accent);
+        }
+        catch
+        {
+            // Celebration persistence is optional and must not interrupt navigation.
+        }
     }
 
     private void Language_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -743,33 +746,95 @@ public partial class MainWindow : Window
         _viewModel.StatusMessage = LocalizationService.Get("RecoveryCodesGenerated");
     }
 
-    private void ApplyRhythmSuggestion_Click(object sender, RoutedEventArgs e)
+    private async void ApplyRhythmSuggestion_Click(object sender, RoutedEventArgs e)
     {
-        string? gentleGoal = _viewModel.ReductionGoalOptions.Skip(1).FirstOrDefault();
-        if (gentleGoal is not null) _viewModel.ReductionGoal = gentleGoal;
-        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
-            ? "A gentle rhythm goal is ready. Press Save to apply it."
-            : "Nazik ritim hedefi hazır. Uygulamak için Kaydet'e bas.";
+        if (!_viewModel.CanApplyRhythmSuggestion) return;
+        MessageBoxResult answer = System.Windows.MessageBox.Show(
+            this,
+            _viewModel.RhythmSuggestionPreviewText,
+            "Kvieta",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Information);
+        if (answer != MessageBoxResult.Yes) return;
+        try
+        {
+            await _viewModel.ApplyRhythmSuggestionAsync();
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "The rhythm goal was applied without changing other settings."
+                : "Ritim hedefi diğer ayarlara dokunmadan uygulandı.";
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{(LocalizationService.CurrentLanguage == LanguagePreference.English ? "Suggestion could not be applied" : "Öneri uygulanamadı")}: {exception.Message}";
+        }
     }
 
     private async void RhythmSuggestionLater_Click(object sender, RoutedEventArgs e)
     {
-        RhythmInsightCard.Visibility = Visibility.Collapsed;
-        await _rhythmPreferencesStore.SaveAsync(
-            RhythmSuggestionPreference.RemindLater,
-            DateTimeOffset.UtcNow.AddDays(1));
-        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
-            ? "The rhythm suggestion will return tomorrow."
-            : "Ritim önerisi yarın yeniden görünecek.";
+        try
+        {
+            await _rhythmPreferencesStore.SaveAsync(RhythmSuggestionPreference.RemindLater, DateTimeOffset.UtcNow.AddDays(1));
+            RhythmInsightCard.Visibility = Visibility.Collapsed;
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "The rhythm suggestion will return tomorrow."
+                : "Ritim önerisi yarın yeniden görünecek.";
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{(LocalizationService.CurrentLanguage == LanguagePreference.English ? "Reminder could not be saved" : "Hatırlatma kaydedilemedi")}: {exception.Message}";
+        }
     }
 
     private async void HideRhythmSuggestion_Click(object sender, RoutedEventArgs e)
     {
-        RhythmInsightCard.Visibility = Visibility.Collapsed;
-        await _rhythmPreferencesStore.SaveAsync(RhythmSuggestionPreference.Hidden);
-        _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
-            ? "Rhythm suggestions are hidden on this device."
-            : "Ritim önerileri bu cihazda gizlendi.";
+        try
+        {
+            await _rhythmPreferencesStore.SaveAsync(RhythmSuggestionPreference.Hidden);
+            RhythmInsightCard.Visibility = Visibility.Collapsed;
+            _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
+                ? "Rhythm suggestions are hidden on this device."
+                : "Ritim önerileri bu cihazda gizlendi.";
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = $"{(LocalizationService.CurrentLanguage == LanguagePreference.English ? "Preference could not be saved" : "Tercih kaydedilemedi")}: {exception.Message}";
+        }
+    }
+
+    private async Task RefreshRhythmSuggestionVisibilityAsync()
+    {
+        try
+        {
+            RhythmPreferences preferences = await _rhythmPreferencesStore.LoadAsync();
+            RhythmInsightCard.Visibility = preferences.ShouldShowSuggestion(DateTimeOffset.UtcNow)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+        catch
+        {
+            // Keep the current card state if the local preference cannot be read.
+        }
+    }
+
+    private async void RestoreRhythmSuggestions_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _rhythmPreferencesStore.SaveAsync(RhythmSuggestionPreference.Visible);
+            RhythmInsightCard.Visibility = Visibility.Visible;
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusMessage = exception.Message;
+        }
+    }
+
+    private async void ReviewSummary_Click(object sender, RoutedEventArgs e) =>
+        await _viewModel.MarkTodaySummaryReviewedAsync();
+
+    private void RhythmDay_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: RhythmDayRow row }) _viewModel.SelectRhythmDay(row);
     }
 
     private void ShareRhythm_Click(object sender, RoutedEventArgs e)
@@ -782,7 +847,8 @@ public partial class MainWindow : Window
                 _viewModel.RhythmBestStreakText,
                 _viewModel.RhythmWeekChangeText,
                 _viewModel.RhythmFocusText,
-                LocalizationService.CurrentLanguage == LanguagePreference.English);
+                LocalizationService.CurrentLanguage == LanguagePreference.English,
+                _viewModel.RhythmWeekSymbolsText);
             System.Windows.Clipboard.SetImage(card);
             _viewModel.StatusMessage = LocalizationService.CurrentLanguage == LanguagePreference.English
                 ? "Privacy-safe weekly rhythm card copied as an image."
@@ -1489,6 +1555,7 @@ public partial class MainWindow : Window
         {
             _viewModel.RemoveApplication(rule);
         }
+        _viewModel.RefreshOverview();
     }
 
     private async Task<bool> EnsureGuardianForFamilyModeAsync(ControlSettings rollbackSettings)
@@ -1864,11 +1931,6 @@ public partial class MainWindow : Window
         _sessionSurfaceTransitionInProgress = true;
         try
         {
-            if (!await _viewModel.SaveAsync())
-            {
-                return;
-            }
-
             _lastFocusDurationMinutes = Math.Clamp(durationMinutes, 1, 24 * 60);
             RepeatLastDurationRun.Text = _lastFocusDurationMinutes.ToString();
             try

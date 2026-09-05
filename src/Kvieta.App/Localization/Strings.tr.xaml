@@ -37,7 +37,7 @@
     <sys:String x:Key="AnimationsEnabled">Hareketler</sys:String><sys:String x:Key="AnimationsDescription">Kısa geçişleri açar. Windows hareket azaltma tercihi her zaman önceliklidir.</sys:String>
     <sys:String x:Key="StrictPersonalMode">Sıkı kişisel mod</sys:String><sys:String x:Key="StrictPersonalModeDescription">Süre dolduğunda kendine anında ek süre vermeyi kapatır. Bu seçeneği kapatmak gevşetme beklemesine girer.</sys:String><sys:String x:Key="HistoryShowAll">TÜMÜNÜ GÖR ›</sys:String><sys:String x:Key="HistoryApplicationDetails">Uygulama kullanım ayrıntıları</sys:String><sys:String x:Key="HistoryApplicationDetailsDescription">Ön planda kullanılan uygulamalar, en uzundan en kısaya.</sys:String>
     <sys:String x:Key="RhythmBaseline">BAŞLANGIÇ RİTMİ</sys:String><sys:String x:Key="RhythmWeeklyChange">HAFTALIK DEĞİŞİM</sys:String><sys:String x:Key="RhythmPlanAligned">PLANLA UYUMLU</sys:String><sys:String x:Key="RhythmObservedDays">ÖLÇÜLEN GÜN</sys:String><sys:String x:Key="RhythmReclaimed">GERİ KAZANILAN</sys:String><sys:String x:Key="RhythmPeakHour">YOĞUN KULLANIM SAATİ</sys:String><sys:String x:Key="RhythmWeekPattern">HAFTA RİTMİ</sys:String><sys:String x:Key="RhythmGoal">KÜÇÜK HEDEF</sys:String><sys:String x:Key="RhythmNoGoal">Hedef yok</sys:String><sys:String x:Key="RhythmGoalLessFormat">%{0} daha az</sys:String>
-    <sys:String x:Key="PrivacyCenter">Gizlilik ve veri</sys:String><sys:String x:Key="PrivacyCenterDescription">Verilerin yalnız bu cihazda kalır; saklama ve dışa aktarma kontrolü sende.</sys:String><sys:String x:Key="RetentionPeriod">SAKLAMA SÜRESİ</sys:String><sys:String x:Key="RetentionDaysFormat">{0} gün</sys:String><sys:String x:Key="ExportUsage">Kullanım verisini dışa aktar</sys:String><sys:String x:Key="ExportCompleted">Kullanım verisi dışa aktarıldı</sys:String><sys:String x:Key="ExportFailed">Dışa aktarma başarısız</sys:String><sys:String x:Key="ClearHistory">Geçmişi sil</sys:String><sys:String x:Key="ClearHistoryConfirmation">Bugün dahil tüm kullanım geçmişi bu cihazdan kalıcı olarak silinsin mi?</sys:String><sys:String x:Key="ClearHistoryFailed">Geçmiş silinemedi</sys:String>
+    <sys:String x:Key="PrivacyCenter">Gizlilik ve veri</sys:String><sys:String x:Key="PrivacyCenterDescription">Verilerin yalnız bu cihazda kalır; saklama ve dışa aktarma kontrolü sende.</sys:String><sys:String x:Key="RetentionPeriod">SAKLAMA SÜRESİ</sys:String><sys:String x:Key="RetentionDaysFormat">{0} gün</sys:String><sys:String x:Key="ExportUsage">Kullanım verisini dışa aktar</sys:String><sys:String x:Key="ExportCompleted">Kullanım verisi dışa aktarıldı</sys:String><sys:String x:Key="ExportFailed">Dışa aktarma başarısız</sys:String><sys:String x:Key="ClearHistory">Kullanım ve ritmi sil</sys:String><sys:String x:Key="ClearHistoryConfirmation">Bugün dahil kullanım geçmişi, mevcut ve en iyi Ritim Serisi ile Ritim Koruyucular bu cihazdan kalıcı olarak silinsin mi? Planların, uygulama kuralların ve koruma ayarların değişmez.</sys:String><sys:String x:Key="ClearHistoryFailed">Kullanım ve ritim verisi silinemedi</sys:String>
     <sys:String x:Key="SavedShort">Kaydedildi</sys:String>
     <sys:String x:Key="ConfirmModeSelection">Seçimi onayla</sys:String>
     <sys:String x:Key="NoHistoryApplications">Henüz uygulama kullanım verisi oluşmadı.</sys:String>
@@ -70,7 +70,7 @@
     <sys:String x:Key="DevelopmentTestBuild">Development/Test paketi</sys:String>
     <sys:String x:Key="PublicReleaseBuild">Public Release</sys:String>
     <sys:String x:Key="RecoveryCodes">Yeni kurtarma kodları</sys:String>
-    <sys:String x:Key="ManagerDevice">Yönetici cihazı</sys:String>
+    <sys:String x:Key="ManagerDevice">Yönetici cihazı (yalnız yerel ağ)</sys:String>
     <sys:String x:Key="RecoveryCodesTitle">Tek kullanımlık kurtarma kodları</sys:String>
     <sys:String x:Key="RecoveryCodesDescription">Bu kodları güvenli bir yerde sakla. Her kod yalnız bir kez çalışır ve tekrar gösterilmez.</sys:String>
     <sys:String x:Key="CopyRecoveryCodes">Kodları kopyala</sys:String>
@@ -159,4 +159,16 @@
     <sys:String x:Key="PersonalStrictnessDescription">Seçilen kişisel koruma seviyesi</sys:String>
     <sys:String x:Key="RhythmFocusTime">BU HAFTA ODAK</sys:String>
     <sys:String x:Key="HideSuggestion">Gizle</sys:String>
+    <sys:String x:Key="DailyRhythmGoal">Bugünün hedefi</sys:String>
+    <sys:String x:Key="ReviewSummaryAction">Özeti değerlendirdim</sys:String>
+    <sys:String x:Key="RestoreRhythmSuggestions">Ritim önerilerini yeniden göster</sys:String>
+    <sys:String x:Key="FocusIntentionLabel">Bu odakta ne yapacaksın? (isteğe bağlı)</sys:String>
+    <sys:String x:Key="FocusIntentionPrivacy">Yalnız bu canlı oturumun belleğinde tutulur; geçmişe, tanılamaya veya paylaşıma yazılmaz.</sys:String>
+    <sys:String x:Key="FocusEndedEarlyHeadline">Oturumu burada bıraktın.</sys:String>
+    <sys:String x:Key="FocusCompletedSummary">Gerçek aktif odak süresi: {0}.</sys:String>
+    <sys:String x:Key="FocusEndedEarlySummary">Yarım bırakıldı · gerçek aktif süre: {0}. Tamamlanmış oturum sayılmadı.</sys:String>
+    <sys:String x:Key="FocusSessionsShort">oturum</sys:String>
+    <sys:String x:Key="DailyGoalProgressFormat">Günlük hedef ilerlemesi: {0}/{1} {2}</sys:String>
+    <sys:String x:Key="ContinueFocus">Aynı süreyle devam et</sys:String>
+    <sys:String x:Key="TakeBreak">Mola ver</sys:String>
 </ResourceDictionary>
